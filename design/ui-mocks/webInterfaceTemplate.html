@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="webInterface.css">
+	</head>
+<body>
+<h1>
+	Server Webpage
+</h1>
+<h2>
+	this is a templeate 
+</h2>	
+<p>
+	this is a templeate for how the web interface may look. <br>
+	there is curentally no active database here, all table values are simulated.
+</p>
+<br>
+<button type="button" onclick="alert('Hello world!')">Click Me!</button>
+ <button type="button">Click Me too!</button> 
+ 
+ 
+<select>
+  <option value="sort by"> sort by</option>
+  <option value="hostname">hostname</option>
+  <option value="availblity">availblity</option>
+  <option value="working statuse">statuse</option>
+</select>
+ 
+ <div>
+
+<br>
+<table style="border-collapse: collapse; border-color: rgb(136, 136, 136); border-width: 1px;" border="1" bordercolor="#888" cellspacing="0">
+<tbody>
+	<tr>
+		<td style="width: 90px; height: 57px;"><b>&nbsp;host name<span> &nbsp; </span></b><b><br>
+		</b></td>
+		<td style="width: 83px; height: 57px;"><b>&nbsp;availability&nbsp; </b><b><br>
+		</b></td>
+		<td style="width: 33px; height: 57px;"><b>date last used <br>
+		</b></td>
+		<td style="width: 122px; height: 57px;"><b>&nbsp;mac address<span>&nbsp;&nbsp; &nbsp;</span><span> </span><br>
+		</b></td>
+		<td style="width: 54px; height: 57px;"><b>&nbsp;IP address<br>
+		</b></td>
+		<td style="width: 72px; height: 57px;"><b>&nbsp;Processor<br>
+		</b></td>
+		<td style="width: 61px; height: 57px;">&nbsp;<b>Number of cores</b><br>
+		</td>
+		<td style="width: 58px; height: 57px;"><b>Memory</b> <b>(RAM)</b> <br>
+		</td>
+		<td style="width: 35px; height: 57px;"><b>Hard drive</b> <br>
+		</td>
+		<td style="width: 65px; height: 57px;">&nbsp;<b>Network card<br>
+		</b></td>
+		<td style="width:97px;height:38px"><b>&nbsp; Test server</b></td>
+		<td style="width:110px;height:38px"><b>&nbsp; opersonal statuse at last test</b></td>
+	</tr>
+	<tr>
+		<td style="width: 90px; height: 57px;">&nbsp;Blackmarsh1<span> &nbsp; </span><br>
+		</td>
+		<td style="width: 83px; height: 57px;">&nbsp;booked by Jeffrey Dawson&nbsp;<br>
+		</td>
+		<td style="width: 33px; height: 57px;">&nbsp;			
+			<p id="demo1"></p>
+			<script>
+			document.getElementById("demo1").innerHTML = Date();
+			</script></td>
+		<td style="width: 122px; height: 57px;">d3:e5:7e:4g:6gh:...<br>
+		</td>
+		<td style="width: 54px; height: 57px;">&nbsp;134.153.29.87</td>
+		<td style="width: 72px; height: 57px;">&nbsp;Itanium 2</td>
+		<td style="width: 61px; height: 57px;">&nbsp;2</td>
+		<td style="width: 58px; height: 57px;">&nbsp;8GB</td>
+		<td style="width: 35px; height: 57px;">&nbsp;</td>
+		<td style="width: 65px; height: 57px;">&nbsp;<br>
+		<td style="width:97px;height:19px">&nbsp;<button type="button" onclick="alert('make code to test server')"> test server</button>  </td>
+		<td style="width:110px;height:19px">&nbsp; working</td>
+		</td>
+	</tr>
+	<tr>
+		<td style="width: 90px; height: 57px;">&nbsp;Blackmarch2</td>
+		<td style="width: 83px; height: 57px;">&nbsp;Booked by Dr Anderson<br>
+		</td>
+		<td style="width: 33px; height: 57px;">&nbsp;
+			<p id="demo"></p>				
+			<script>
+			document.getElementById("demo").innerHTML = Date();
+			</script></td>
+		<td style="width: 122px; height: 57px;">&nbsp;x3:e5:6e:4g:6gh...</td>
+		<td style="width: 54px; height: 57px;">&nbsp;134.153.29.88</td>
+		<td style="width: 72px; height: 57px;">&nbsp;Pentium 4</td>
+		<td style="width: 61px; height: 57px;">&nbsp;1</td>
+		<td style="width: 58px; height: 57px;">&nbsp;12GB</td>
+		<td style="width: 35px; height: 57px;">&nbsp;</td>
+		<td style="width: 65px; height: 57px;">&nbsp;</td>
+		<td style="width:97px;height:19px">&nbsp;<button type="button" onclick="alert('make code to test server')"> test server</button>  </td>
+		<td style="width:110px;height:19px">&nbsp; working</td>
+	</tr>
+	<tr>
+		<td style="width: 90px; height: 38px;">&nbsp;Canada Drive<span>&nbsp;</span><span> &nbsp;</span><span>&nbsp;&nbsp; &nbsp;</span><span>&nbsp;&nbsp; </span><span></span><br>
+		</td>
+		<td style="width: 83px; height: 38px;">&nbsp;available<br>
+		</td>
+		<td style="width: 33px; height: 38px;">&nbsp; 1 week ago</td>
+		<td style="width: 122px; height: 38px;">&nbsp;g3:e5:2p:4x:6gf...</td>
+		<td style="width: 54px; height: 38px;">&nbsp;134.153.29.89</td>
+		<td style="width: 72px; height: 38px;">&nbsp;Xeon</td>
+		<td style="width: 61px; height: 38px;">&nbsp;4</td>
+		<td style="width: 58px; height: 38px;">&nbsp;32GB</td>
+		<td style="width: 35px; height: 38px;">&nbsp;</td>
+		<td style="width: 65px; height: 38px;">&nbsp;</td>
+		<td style="width:97px;height:19px">&nbsp;<button type="button" onclick="alert('make code to test server')"> test server</button>  </td>
+		<td style="width:110px;height:19px">&nbsp; working</td>
+	</tr>
+</tbody>
+</table>
+<br>
+
+</div>
+
+<br>
+
+
+  <button type="button">add server</button> 
+ 
+ 
+</body>
+</html>
