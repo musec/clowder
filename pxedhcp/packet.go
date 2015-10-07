@@ -2,7 +2,7 @@ package pxedhcp
 
 import (
 	"net"
-	"bytes"
+//	"bytes"
 )
 
 
@@ -62,6 +62,7 @@ func (p Packet) CHAddr() net.HardwareAddr {
 		hLen = 16
 	}
 	return net.HardwareAddr(p[28 : 28+hLen])
+}
 
 //sname(64) Optional server host name, null terminated string.
 func (p Packet) SName() []byte { return p[44:108] }
@@ -100,70 +101,70 @@ func (p Packet) SetFile(file []byte)	{
 	}
 }
 func (p Packet) SetMagicCookie() { copy(p[236:240], []byte{99, 130, 83, 99}) }
+func (p Packet) SetBroadcast(broadcast bool) {
+	if broadcast {
+		p.Flags()[0] = 128
+	} else {
+		p.Flags()[0] = 0
+	}
+}
+
 func (p Packet) SetOPtions(opt []byte)	{ copy(p[236:len(opt)], opt)}
 
 
 
 // Creates a request packet
-func NewRequestPacket(xID []byte, mType byte, cHAdd net.HardwareAddr, cIPAdd net.IP, broadcast bool, options []Option) Packet {
+func NewRequestPacket(xid []byte, broadcast bool, ciaddr net.IP,chaddr net.HardwareAddr) Packet {
 	p := make(Packet, 241)
 	p.SetOpCode(BOOTREQUEST)
-	p.SetHType(1)
-	p.SetCHAddr(chAddr)
-	p.SetXId(xId)
-	if cIAddr != nil {
-		p.SetCIAddr(cIAddr)
+	p.SetHType(ETHERNET)
+	p.SetCHAddr(chaddr)
+	p.SetXId(xid)
+	if ciaddr != nil {
+		p.SetCIAddr(ciaddr)
 	}
 	p.SetBroadcast(broadcast)
-	p.AddOption(OptionDHCPMessageType, []byte{byte(mt)})
-	for _, o := range options {
-		p.AddOption(o.Code, o.Value)
-	}
-
 	p.SetMagicCookie()
-	p[240] = byte(End)
-	p.Padding()
+	p[240] = byte(END)
 	return p
 }
+
 
 // Creates a reply packet
-func NewReplyPacket(req Packet, mt MessageType, serverId, yIAddr net.IP, leaseDuration time.Duration, options []Option) Packet {
+func NewReplyPacket(xid []byte, broadcast bool, ciaddr net.IP,chaddr net.HardwareAddr) Packet {
 	p := make(Packet, 241)
-	p.SetOpCode(opCode)
-	p.SetHType(1)
+	p.SetOpCode(BOOTREPLY)
+	p.SetHType(ETHERNET)
+	p.SetCHAddr(chaddr)
+	p.SetXId(xid)
+	if ciaddr != nil {
+		p.SetCIAddr(ciaddr)
+	}
+	p.SetBroadcast(broadcast)
 	p.SetMagicCookie()
-	p[240] = byte(End)
-	p.SetXId(req.XId())
-	p.SetFlags(req.Flags())
-	p.SetYIAddr(yIAddr)
-	p.SetGIAddr(req.GIAddr())
-	p.SetCHAddr(req.CHAddr())
-	p.SetSecs(req.Secs())
-	p.Padding()
+	p[240] = byte(END)
 	return p
 }
-
 
 
 func (p *Packet) Padding(size int) {
-	l:=len(p)
-	if l < size {
-		pad:=make(byte,size-l)
-		*p = append(*p, pad)
+	for len(*p) < size {
+		*p = append(*p, PAD)
 	}
 }
 
+func (p Packet) isBroadcast() bool { return p.Flags()[0] > 127 }
 
-func IsPxeRequest(p *Packet)) bool {
-	//TODO
-	return true
-;
-
-func IsDhcpDiscoverp *Packet)() bool {
+func IsPxeRequest(p *Packet) bool {
 	//TODO
 	return true
 }
-func IsDhcpRequest(p *Packet)) bool {
+
+func IsDhcpDiscover(p *Packet) bool {
+	//TODO
+	return true
+}
+func IsDhcpRequest(p *Packet) bool {
 	//TODO
 	return true
 }
@@ -172,11 +173,13 @@ func IsDhcpRequest(p *Packet)) bool {
 //****************************************     CONSTANTS     ****************************************
 //***************************************************************************************************
 
+//op code
 const (
 	BOOTREQUEST				byte = 1
 	BOOTREPLY				byte = 2
 )
 
+//htype
 const (
 	ETHERNET				byte = 1
 )
