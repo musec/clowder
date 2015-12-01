@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"net"
 	"testing"
-	//"fmt"
+	"fmt"
 )
 var dhcpPackets= [][]byte{
 []byte{
@@ -184,7 +184,7 @@ func TestNewPacket(t *testing.T) {
 			t.Fatal("Error : Expected broadcast")
 		}
 		if !bytes.Equal(p[:240], dhcpPackets[i][:240]){
-			t.Fatalf("Test case % d error : \nWant : [% x] \nGOT  : [% x] \n", i, dhcpPackets[i][:240],p[:240])
+			t.Fatalf("Test case % d error : \nWant : [% x] \nGot  : [% x] \n", i, dhcpPackets[i][:240],p[:240])
 		}
 
 	}
@@ -200,9 +200,31 @@ func TestPadding(t *testing.T) {
 }
 
 func TestAddOptions(t *testing.T)  {
-	//TODO
+	c:=tests[0]
+	p := NewRequestPacket(c.xid,c.broadcast,c.ciaddr,c.chaddr)
+	p.SetYIAddr(c.yiaddr)
+	p.SetSecsElapsed(c.secs)
+	p.SetServerName(c.sname)
+	p.SetBootFile(c.file)
+	p.AddOption(OptDHCPMsgTye,[]byte{01})
+	p.AddOption(OptParameterList,[]byte{1, 2, 3, 5, 6, 11, 12, 13, 15, 16, 17, 18, 43, 54, 60, 67, 128, 129, 130, 131, 132, 133, 134, 135})
+	p.AddOption(OptDHCPMaxMsgSize,[]byte{0x04, 0xec})
+	p.AddOption(OptUUIDGUID,[]byte{0x00, 0x44, 0x45, 0x4c, 0x4c, 0x36, 0x00, 0x10, 0x58, 0x80, 0x43, 0xb5, 0xc0, 0x4f, 0x53, 0x35, 0x32})
+	p.AddOption(OptClientSystemArchitecture,[]byte{0x00, 0x00})
+	p.AddOption(OptClientNetworkDeviceInterface,[]byte{0x01, 0x02, 0x01})
+	p.AddOption(OptClassId,[]byte{0x50, 0x58, 0x45, 0x43, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x3a, 0x41, 0x72, 0x63, 0x68, 0x3a, 0x30, 0x30, 0x30, 0x30, 0x30, 0x3a, 0x55, 0x4e, 0x44, 0x49, 0x3a, 0x30, 0x30, 0x32, 0x30, 0x30, 0x31})
+	p.Padding(len(dhcpPackets[0]))
+	if !bytes.Equal(p, dhcpPackets[0]){
+		t.Fatalf("Error : \nWant : [% x], %d \nGot  : [% x],%d \n",dhcpPackets[0],len(dhcpPackets[0]),p,len(p))
+	}
+
+
 }
 
 func TestParseOptions(t *testing.T)  {
-	//TODO
+	p:=Packet(dhcpPackets[0][:])
+	opts:=p.ParseOptions()
+	for o, v:=range opts {
+		fmt.Printf("%x, %d, % x \n",o,len(v),v)
+	}
 }

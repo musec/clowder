@@ -1,0 +1,19 @@
+[database]
+	filename = "clowder.db"
+
+[server]
+	Ip		= "192.168.1.1"
+	Mask		= "255.255.255.0"
+	Duration	= "24h"
+	BootFile	= "pxeboot"
+	DNS		= "192.168.1.1"
+	Router		= "192.168.1.1"
+	DomainName	= "musec.engr.mun.ca"
+
+[machines]
+	ipstart = "192.168.1.20"
+	iprange = 50
+
+[devices]
+	ipstart = "192.168.1.100"
+	iprange = 50

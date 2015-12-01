@@ -1,0 +1,116 @@
+package pxedhcp
+
+import (
+	"net"
+	"strconv"
+)
+
+//IP Addresses status
+type IPStat byte
+
+const {
+	AVAILABE	IPStat = 0	//
+	RESERVED	IPStat = 1	//	Offered/ MAC Address binding
+	ALLOCATED	IPStat = 2	//
+}
+
+type PxeTable struct {
+	MachineID	[]byte
+	
+type Lease struct {
+	stat	IPStat
+	nic	string
+	expiry	time.Time
+}
+
+
+type Server struct {
+	ip		net.IP
+	mask		net.IP
+	leaseDuration	time.Duration	//
+	pool		IPPool
+	pxe		PxeTable
+}
+
+func (s Server) DHCPResponder(p Packet, msgType byte) (rep Packet) {
+
+	switch msgType {
+
+	case DISCOVER:
+		IPOffer := pool.GetAvailIP(p.GetHardwareAddr())
+		if IPOffer=nil {	// No available IP address
+			return nil
+		}
+		rep := NewReplyPacket(p)
+		rep.SetBroadcast(true)
+		rep.SetMsgType(OFFER)
+		rep.SetIPOffer(ip)
+		if t:=p.GetExpTime();t!=nil{
+			rep.SetExpTime(t)
+		} else {
+			rep.SetExpTime(s.leaseDuration)
+
+		if IsPxeRequest(p) {
+			rep.SetPxeOPtions(p,s.pxe)
+		}
+		return rep
+
+	case REQUEST:
+
+		
+
+	case RELEASE, DECLINE:
+	
+	return nil
+}
+
+
+func (s Server) handleClient(conn net.UDPConn) error {
+	buffer := make([]byte, 1500)
+	for {
+		n, addr, err := conn.ReadFrom(buffer)
+		if err != nil {
+			return err
+		}
+		if n < 240 {		//lesser than size of header
+			continue
+		}
+		req := Packet(buffer[:n])
+		if req.HLen() > 16 {
+			continue
+		}
+		options := req.ParseOptions()
+
+		if t := options[OptDHCPMsgTye]; len(t) != 1 {
+			continue
+		} else {
+			reqType :=t[0]
+			if reqType < DISCOVER || reqType > INFORM {
+				continue
+			}
+		}
+		if rep := handler.ServeDHCP(req, reqType, options); res != nil {
+			if _, err := conn.WriteTo(res, addr); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func (s Server) start() error {
+	addr, err := net.ResolveUDPAddr("ip4","67")
+	if err != nil {
+		return err
+	}
+
+	listener, err := net.ListenUDP("udp", addr)
+	if err != nil {
+		return err
+	}
+
+	for {
+
+		go s.handleClient(listener)
+	}
+}
+

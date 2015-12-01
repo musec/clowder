@@ -115,8 +115,8 @@ func NewReplyPacket(xid []byte, broadcast bool, ciaddr net.IP,chaddr net.Hardwar
 
 // Parses packet's 
 func (p Packet) ParseOptions() Options {
-	var opts Options
-	op := p.Options()
+	opts:=make(Options,10)
+	op := p.Options()[4:]
 	for len(op) >= 0  && op[0] != END {
 		if op[0]== PAD {
 			op = op[1:]

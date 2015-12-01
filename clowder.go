@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import(
+	"clowder/commands"
+)
 
 func main() {
-	fmt.Printf("Hello, world!\n")
+	commands.RootCmd.Execute()
 }
