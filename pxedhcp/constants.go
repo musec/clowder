@@ -69,7 +69,7 @@ const (								// Data Length		Meaning
 	OptAddressRequest			byte = 50	//	4           Requested IP Address
 	OptAddressTime				byte = 51	//	4           IP Address Lease Time
 	OptOverload				byte = 52	//	1           Overload "sname" or "file"
-	OptDHCPMsgTye				byte = 53	//	1           DHCP Message Type
+	OptDHCPMsgType				byte = 53	//	1           DHCP Message Type
 	OptDHCPServerId				byte = 54	//	4           DHCP Server Identification
 	OptParameterList			byte = 55	//	N           Parameter Request Lis
 	OptDHCPMessage				byte = 56	//	N           DHCP Error Message

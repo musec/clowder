@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 	"clowder/pxedhcp"
-	"clowder/db"
+//	"clowder/db"
 
 )
 
@@ -23,16 +23,16 @@ type Server struct {
 	DomainName	string
 
 	//Leases management
-	MachinePool	*IPPool
-	DevicePool	*IPPool
-	Pxe		*PxeTable
-	TableAccess	chan bool
+	MachineLeases	Leases
+	DeviceLeases	Leases
+	Pxe		PxeTable
+	TablesAccess	chan bool
 
 	//connections
 	TcpConn		[]*net.TCPConn
 	UdpConn		*net.UDPConn
 	TcpQuit		chan bool
-	UDPServerAccess	chan bool
+	DHCPOn		chan bool
 
 	//Logging
 	Logger		*log.Logger
@@ -45,12 +45,12 @@ func NewServer(ip_, mask_ net.IP, port int) *Server {
 	s.Ip = ip_
 	s.Mask = mask_
 	s.TcpPort = port
-	s.TableAccess = make(chan bool,1)
-	s.TableAccess<-true
+	s.TablesAccess = make(chan bool,1)
+	s.TablesAccess<-true
 	s.LogAccess = make(chan bool,1)
 	s.LogAccess <-true
-	s.UDPServerAccess = make(chan bool,1)
-	s.UDPServerAccess <-false
+	s.DHCPOn = make(chan bool,1)
+	s.DHCPOn <-false
 	return s
 }
 
@@ -80,32 +80,44 @@ func (s *Server) StartTCPServer() error {
 			}
 			continue
 		}
-		s.TcpConn.append(conn)
+		s.TcpConn=append(s.TcpConn,conn)
 		//handleClient(conn)
-		go func(c *net.TCPConn){
-			defer c.Close()
+		go func(conn *net.TCPConn){
+			defer conn.Close()
 			var buf [64]byte
 			for {
-				n, err:= s.tcpConn.Read(buf[0:])
-				if err!=nil || n<=2 {
+				n, err:= conn.Read(buf[0:])
+				if err!=nil {
 					return
+				}
+				if n<=2 {
+					continue
 				}
 				msg:=string(buf[:n-2])
 				fmt.Printf( "Get message: %s \n", msg)
 				switch msg {
 					case "DHCPON":
+						s.StartDHCPServer()
 					case "DHCPOFF":
+						s.StopDHCPServer()
 					case "LEASES":
-					case "QUIT":
-						close(s.
-						close(s.tcpQuit)
-						listener.Close()
+						fmt.Println([]byte(s.ExportLeaseTable()))
+						//conn.Write([]byte(s.ExportLeaseTable()))
 					case "PXE":
+						fmt.Println([]byte(s.Pxe.Export()))
+						//conn.Write([]byte(s.Pxe.Export()))
+					case "QUIT":
+						s.StopDHCPServer()
+						close(s.TcpQuit)
+						listener.Close()
 					case "NEWMACHINE":
 					case "exit":
+						return
+					default:
+						continue
 				}
 			}
-		}(s.tcpConn)
+		}(conn)
 
 	}
 	return nil
@@ -114,26 +126,27 @@ func (s *Server) StartTCPServer() error {
 func (s *Server) StartDHCPServer() error {
 	var err error
 
-	s.udpConn, err := net.ListenUDP("udp4",":67")
+	udpAddr, err := net.ResolveUDPAddr("udp4",":5001")
+	if err!=nil{
+		return err
+	}
+
+	conn, err := net.ListenUDP("udp4",udpAddr)
 	if err != nil {
 		return err
 	}
 
-	defer s.udpConn.Close()
+	s.UdpConn = conn
+
+	defer s.UdpConn.Close()
 
 	buffer := make([]byte, 1500)
 
 	log.Println("Trace: DHCP Server Listening.")
 
 	for {
-		select {
-		case <-s.udpQuit:
-			fmt.Println("DHCP server off closed.")
-			return nil
-		default:
-		}
 
-		n, err := s.udpConn.Read(buffer)
+		n, err := s.UdpConn.Read(buffer)
 		if err != nil {
 			return err
 		}
@@ -141,11 +154,11 @@ func (s *Server) StartDHCPServer() error {
 			continue
 		}
 
-		requestPacket := Packet(buffer[:n])
+		requestPacket := pxedhcp.Packet(buffer[:n])
 
-		responsePacket := pxedhcp.DHCPResponder(requestPacket, s)
+		responsePacket := s.DHCPResponder(requestPacket)
 
-		if responePacket == nil {
+		if responsePacket == nil {
 			continue
 		}
 		if _, err := conn.WriteTo(responsePacket, &net.UDPAddr{IP: net.IPv4bcast, Port: 68}); err != nil {
@@ -154,17 +167,23 @@ func (s *Server) StartDHCPServer() error {
 	}
 }
 
+func (s *Server) StopDHCPServer() {
+	on:=<-s.DHCPOn
+	if on {
+		s.UdpConn.Close()
+	}
+	s.DHCPOn<-false
+}
 
-func (s *Server) WriteLog(logType, message : string) {
+func (s *Server) WriteLog(logType, message string) {
 	<-s.LogAccess
 	s.Logger.Println(logType,": ", message)
 	s.LogAccess<-true
 }
 
 func (s *Server) ExportLeaseTable() string {
-	result:=""
-	for l:=range s.MachinePool.Leases{
-		
+	return s.MachineLeases.Export()+"\n"+s.DeviceLeases.Export()
+}
 /*
 func handleClient(conn *net.TCPConn){
 	defer conn.Close()

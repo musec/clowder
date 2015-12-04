@@ -17,7 +17,7 @@ var runCmd = &cobra.Command{
 	Short: "Start Clowder server management service.",
 	Long:  `Start Clowder server management service.
 	`,
-	Run: startRun,
+	Run: runRun,
 }
 
 func runRun(cmd *cobra.Command, args []string) {
@@ -37,12 +37,12 @@ func runRun(cmd *cobra.Command, args []string) {
 	//Create server
 	fmt.Println("Starting Clowder...")
 	serverIP := net.ParseIP(viper.GetString("server.ip"))
-	serverMask : =  net.ParseIP(viper.GetString("server.subnetmask"))
+	serverMask :=  net.ParseIP(viper.GetString("server.subnetmask"))
 	s := server.NewServer(serverIP,serverMask,tcpPort)
 
 	//Create log file
 	logFile:="clowder.log"
-	file, err := os.OpenFile(logFile os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Println("Failed to open log file", logFile, ":", err)
 		file=os.Stdout
@@ -52,16 +52,16 @@ func runRun(cmd *cobra.Command, args []string) {
 	//Setup machine IP pool
 	machineIP:=net.ParseIP(viper.GetString("machines.ipstart"))
 	machineRange:=viper.GetInt("machines.iprange")
-	s.MachinePool := server.NewIPPool(machineIP,machineRange)
+	s.MachineLeases = server.NewLeases(machineIP,machineRange)
 
 	//Setup device IP pool
 	deviceIP:=net.ParseIP(viper.GetString("devices.ipstart"))
 	deviceRange:=viper.GetInt("devices.iprange")
-	s.DevicePool := server.NewIPPool(deviceIP,deviceRange)
+	s.DeviceLeases = server.NewLeases(deviceIP,deviceRange)
 
 
 	if err := s.StartTCPServer(); err!=nil {
-		panic(fmt.Errorf(err))
+		panic(err)
 	}
 
 }

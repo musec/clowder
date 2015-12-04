@@ -8,7 +8,7 @@ type Packet []byte
 type Options map[byte][]byte  //map Option's Code -> Option's Value
 
 //***************************************************************************************************
-//***********************************     PRIVATE ACCESSORS     *************************************
+//**************************************      ACCESSORS     *****************************************
 //***************************************************************************************************
 
 func (p Packet) Op()		[]byte	{ return p[0:1] }
@@ -44,7 +44,7 @@ func (p Packet) SetClientHardwareAddr(hAddr net.HardwareAddr) {
 	copy(p.CHAddr(), hAddr)
 	p.HLen()[0] = byte(len(hAddr))
 }
-func (p Packet) SetHardwareAddrType(hType byte)	{ p.HType()[0] = hType }
+func (p Packet) SetHWAddrType(hType byte)	{ p.HType()[0] = hType }
 func (p Packet) SetHops(hops byte)	{ p.Hops()[0] = hops }
 func (p Packet) SetTransID(id []byte)	{ copy(p.XId(), id) }
 func (p Packet) SetSecsElapsed(secs []byte)	{ copy(p.Secs(), secs) }
@@ -67,7 +67,7 @@ func (p Packet) SetOPtions(opt []byte)	{ copy(p[236:len(opt)], opt)}
 
 //GETTER
 func (p Packet)	GetXID() 		[]byte	{ return p.XId() }
-func (p Packet)	GetHardwareAddrType()	byte	{ return p.HType()[0] }
+func (p Packet)	GetHWAddrType()	byte	{ return p.HType()[0] }
 func (p Packet) GetHardwareAddr() 	net.HardwareAddr {
 	hLen := p.HLen()[0]
 	if hLen > 16 {
@@ -78,13 +78,16 @@ func (p Packet) GetHardwareAddr() 	net.HardwareAddr {
 func (p Packet)	GetHops()		byte	{ return p.Hops()[0] }
 func (p Packet) GetTransID()		[]byte	{ return p.XId() }
 func (p Packet) GetSecsElapsed()	[]byte	{ return p.Secs() }
+func (p Packet) GetFlags()		[]byte	{ return p.Flags() }
+func (p Packet) GetGIAddr()		net.IP	{ return net.IP(p.GIAddr()) }
+func (p Packet) GetCIAddr()		net.IP	{ return net.IP(p.CIAddr()) }
 
 
 // Creates a request packet
 func NewRequestPacket(xid []byte, broadcast bool, ciaddr net.IP,chaddr net.HardwareAddr) Packet {
 	p := make(Packet, 241)
 	p.SetRequest()
-	p.SetHardwareAddrType(ETHERNET)
+	p.SetHWAddrType(ETHERNET)
 	p.SetClientHardwareAddr(chaddr)
 	p.SetTransID(xid)
 	if ciaddr != nil {
@@ -97,23 +100,22 @@ func NewRequestPacket(xid []byte, broadcast bool, ciaddr net.IP,chaddr net.Hardw
 }
 
 
-// Creates a reply packet
-func NewReplyPacket(xid []byte, broadcast bool, ciaddr net.IP,chaddr net.HardwareAddr) Packet {
+//NewReplyPacket creates a reply packet with header's information from request packet
+//The header's fileds are xid, flags, giaddr, chaddr. (See RFC 2131, table 3)
+func NewReplyPacket(req Packet) Packet {
 	p := make(Packet, 241)
 	p.SetReply()
-	p.SetHardwareAddrType(ETHERNET)
-	p.SetClientHardwareAddr(chaddr)
-	p.SetTransID(xid)
-	if ciaddr != nil {
-		p.SetCIAddr(ciaddr)
-	}
-	p.SetBroadcast(broadcast)
+	p.SetHWAddrType(ETHERNET)
+	p.SetTransID(req.GetTransID())
+	p.SetFlags(req.GetFlags())
+	p.SetClientHardwareAddr(req.GetHardwareAddr())
+	p.SetGIAddr(req.GetGIAddr())
 	p.SetMagicCookie()
 	p[240] = byte(END)
 	return p
 }
 
-// Parses packet's 
+//ParseOptions read option filed of a packet, parses it into a map[option code]->value:106 
 func (p Packet) ParseOptions() Options {
 	opts:=make(Options,10)
 	op := p.Options()[4:]
@@ -134,32 +136,19 @@ func (p Packet) ParseOptions() Options {
 
 
 // Add a DHCP option to a packet
-func (p *Packet) AddOption(OptCode byte, OptValue []byte) {
+func (p Packet) AddOption(OptCode byte, OptValue []byte) {
 	opt:=append([]byte{OptCode,byte(len(OptValue))},OptValue...)
 	opt=append(opt,END)
-	*p = append((*p)[:len(*p)-1],opt...)
+	p = append((p)[:len(p)-1],opt...)
 }
 
 // Padding packet to a size
-func (p *Packet) Padding(size int) {
-	for len(*p) < size {
-		*p = append(*p, PAD)
+func (p Packet) Padding(size int) {
+	for len(p) < size {
+		p = append(p, PAD)
 	}
 }
 
 //
 func (p Packet) isBroadcast() bool { return p.Flags()[0] > 127 }
-
-func IsPxeRequest(p *Packet) bool {
-	//TODO
-	return true
-}
-
-func IsDhcpDiscover(p *Packet) bool {
-	//TODO
-	return true
-}
-func IsDhcpRequest(p *Packet) bool {
-	return (*p).Op()[0]==BOOTREQUEST
-}
 

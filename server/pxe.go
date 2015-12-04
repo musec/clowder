@@ -1,5 +1,10 @@
 package server
 
+import (
+	"bytes"
+	"fmt"
+)
+
 type PxeRecord struct{
 	Uuid		[]byte
 	RootPath	string
@@ -8,30 +13,40 @@ type PxeRecord struct{
 
 type PxeTable []PxeRecord
 
-func  NewPxeTable() *PxeTable{
-	return make(PxeTable,10)
+func  NewPxeTable() PxeTable{
+	return make(PxeTable,0,10)
 }
 
-func (table *PxeTable) AddRecord(uuid []byte) {
-	table.append(PxeRecord{uuid,"",""})
+func (t PxeTable) AddRecord(uuid []byte) {
+	t=append(t,PxeRecord{uuid,"",""})
 }
 
-func (table PxeTable) GetRecord(uuid []byte) *PxeRecord {
-	for t:= range table {
-		if bytes.Equal(t.Uuid,uuid) {
-			return t
+func (t PxeTable) GetRecord(uuid []byte) *PxeRecord {
+	for i:= range t {
+		if bytes.Equal(t[i].Uuid,uuid) {
+			return &t[i]
 		}
 	}
 	return nil
 }
 
 
-func (record *PxeRecord) SetRootPath(path string) {
-	record.RootPath=path
+func (r *PxeRecord) SetRootPath(path string) {
+	r.RootPath=path
 }
 
-func (record *PxeRecord) SetBootFile(file string) {
-	record.BootFile=file
+func (r *PxeRecord) SetBootFile(file string) {
+	r.BootFile=file
 }
 
+func (t PxeTable) Export() string {
+	s:=""
+	for _,r:= range t{
+		s+=fmt.Sprintf("%x",r.Uuid)+"\t"+r.RootPath+"\t"+r.BootFile+"\n"
+	}
+	if s!="" {
+		s = s[:len(s)-1]
+	}
+	return s
+}
 

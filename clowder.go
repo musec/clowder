@@ -1,9 +1,9 @@
 package main
 
 import(
-	"clowder/commands"
+	"clowder/cmd"
 )
 
 func main() {
-	commands.RootCmd.Execute()
+	cmd.RootCmd.Execute()
 }
