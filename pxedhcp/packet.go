@@ -136,10 +136,10 @@ func (p Packet) ParseOptions() Options {
 
 
 // Add a DHCP option to a packet
-func (p Packet) AddOption(OptCode byte, OptValue []byte) {
+func (p *Packet) AddOption(OptCode byte, OptValue []byte) {
 	opt:=append([]byte{OptCode,byte(len(OptValue))},OptValue...)
 	opt=append(opt,END)
-	p = append((p)[:len(p)-1],opt...)
+	*p = append((*p)[:len(*p)-1],opt...)
 }
 
 // Padding packet to a size

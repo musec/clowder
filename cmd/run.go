@@ -8,9 +8,8 @@ import (
 	"github.com/spf13/viper"
 	"net"
 	"log"
+	"strconv"
 )
-
-var	tcpPort	int
 
 var runCmd = &cobra.Command{
 	Use:   "run",
@@ -19,6 +18,15 @@ var runCmd = &cobra.Command{
 	`,
 	Run: runRun,
 }
+
+var stopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Close Clowder server management service.",
+	Long:  `Close Clowder server management service.
+	`,
+	Run: stopRun,
+}
+
 
 func runRun(cmd *cobra.Command, args []string) {
 	//Read config file
@@ -30,15 +38,21 @@ func runRun(cmd *cobra.Command, args []string) {
 	if err != nil { // Handle errors reading the config file
 		panic(fmt.Errorf("Fatal error config file: %s \n", err))
 	}
-	if tcpPort<1024 || tcpPort > 65535 {
-		panic(fmt.Errorf("Cannot use port %d. TCP port must be a registered port.", tcpPort))
-	}
+//	if tcpPort<1024 || tcpPort > 65535 {
+//		panic(fmt.Errorf("Cannot use port %d. TCP port must be a registered port.", tcpPort))
+//	}
 
 	//Create server
 	fmt.Println("Starting Clowder...")
 	serverIP := net.ParseIP(viper.GetString("server.ip"))
 	serverMask :=  net.ParseIP(viper.GetString("server.subnetmask"))
-	s := server.NewServer(serverIP,serverMask,tcpPort)
+	duration := viper.GetDuration("server.duration")
+	hostname,_ := os.Hostname();
+	dns := net.ParseIP(viper.GetString("server.dns"))
+	router := net.ParseIP(viper.GetString("server.router"))
+	domainName := viper.GetString("server.domainname")
+
+	s := server.NewServer(serverIP, serverMask, tcpPort, duration, hostname, dns, router, domainName)
 
 	//Create log file
 	logFile:="clowder.log"
@@ -59,14 +73,25 @@ func runRun(cmd *cobra.Command, args []string) {
 	deviceRange:=viper.GetInt("devices.iprange")
 	s.DeviceLeases = server.NewLeases(deviceIP,deviceRange)
 
-
 	if err := s.StartTCPServer(); err!=nil {
-		panic(err)
+		s.WriteLog("ERROR\t"+err.Error())
+	}
+}
+
+func stopRun(cmd *cobra.Command, args []string) {
+	addr:=tcpAddr+":"+strconv.Itoa(tcpPort)
+	if msg,err:=server.SendCommand(addr,"STOPCLOWDER"); err==nil {
+		fmt.Println(msg)
+	} else {
+		fmt.Println(err.Error())
 	}
 
 }
 
 func init() {
+	stopCmd.PersistentFlags().StringVarP(&tcpAddr, "addr", "a", "localhost", "IP Address of Clowder server")
 	RootCmd.AddCommand(runCmd)
-	runCmd.Flags().IntVarP(&tcpPort, "port", "n", 5000, "TCP port to connect")
+	RootCmd.AddCommand(stopCmd)
+
+
 }

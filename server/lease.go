@@ -14,6 +14,7 @@ const (
 	AVAILABLE	IPStat = 0	//
 	RESERVED	IPStat = 1	//	Offered/ MAC Address binding
 	ALLOCATED	IPStat = 2	//
+	NOTAVAILABLE	IPStat = 3	//	Conflicted IP	
 )
 var StatMap = map[IPStat]string{
     AVAILABLE: "AVAILABLE",
@@ -21,44 +22,49 @@ var StatMap = map[IPStat]string{
     ALLOCATED: "ALLOCATED",
 }
 type Lease struct {
-	ip	net.IP
-	stat	IPStat
-	mac	net.HardwareAddr
-	expiry	time.Time
+	Ip	net.IP
+	Stat	IPStat
+	Mac	net.HardwareAddr
+	Expiry	time.Time
 }
 
 type Leases []Lease
 
+//NewLeases creates a new Leases
 func NewLeases(start net.IP, ipRange int) Leases {
 	leases := make(Leases,ipRange,ipRange)
 	for i :=0; i< ipRange; i++{
 		ip := AddIP(start,i)
+		//fmt.Println(start)
 		leases[i]=Lease{ip,0,net.HardwareAddr{},time.Time{}}
 	}
 	return leases
 }
 
+//GetLeaseFromMAC returns a pointer to lease having a specific IP address
 func (p Leases) GetLease(ip net.IP) *Lease {
 	for i:= range p {
-		if p[i].ip.Equal(ip) {
+		if p[i].Ip.Equal(ip) {
 			return &p[i]
 		}
 	}
 	return nil
 }
 
+//GetLeaseFromMAC returns a pointer to lease having a specific MAC address
 func (p Leases) GetLeaseFromMac(mac net.HardwareAddr) *Lease {
 	for i:= range p {
-		if bytes.Equal(p[i].mac,mac) {
+		if bytes.Equal(p[i].Mac,mac) {
 			return &p[i]
 		}
 	}
 	return nil
 }
 
+//GetAvailLease returns a pointer to lease which its status is AVAILABLE
 func (p Leases) GetAvailLease() *Lease {
 	for i :=range p {
-		if p[i].stat== AVAILABLE {
+		if p[i].Stat== AVAILABLE {
 			return &p[i]
 		}
 	}
@@ -66,22 +72,23 @@ func (p Leases) GetAvailLease() *Lease {
 }
 
 func (p Leases) SetIPStat(ip net.IP, stat IPStat) {
-	p.GetLease(ip).stat = stat
+	p.GetLease(ip).Stat = stat
 }
 
 func (p Leases) SetMac(ip net.IP, mac net.HardwareAddr) {
-	p.GetLease(ip).mac = mac
+	p.GetLease(ip).Mac = mac
 }
 
 func (p Leases) SetExpTime(ip net.IP, t time.Time) {
-	p.GetLease(ip).expiry = t
+	p.GetLease(ip).Expiry = t
 }
 
+//Exports generates leases information into a string
 func (p Leases) Export() string {
 	s:=""
 	for _,l:= range p{
-		if l.stat!=AVAILABLE{
-			s+=l.ip.String()+"\t"+StatMap[l.stat]+"\t"+l.mac.String()+"\t"+l.expiry.String()+"\n"
+		if l.Stat!=AVAILABLE{
+			s+=l.Ip.String()+"\t"+StatMap[l.Stat]+"\t"+l.Mac.String()+"\t"+l.Expiry.String()+"\n"
 		}
 	}
 	if s!="" {
@@ -90,19 +97,24 @@ func (p Leases) Export() string {
 	return s
 }
 
+//Refresh checks leases' expiry time. If a lease is expiried leases, its status will be set to AVAILABLE
+//and its MAC address will be removed from the record. 
+//UPDATE: Refresh only check ALLOCATED leases, set their status to RESERVED if they are expiried
 func (p Leases) Refresh() {
 	now:=time.Now()
 	for i:= range p {
-		if p[i].stat!=AVAILABLE && now.After(p[i].expiry) {
-			p[i].stat=AVAILABLE
-			p[i].expiry=time.Time{}
+		if p[i].Stat==ALLOCATED && now.After(p[i].Expiry) {
+			p[i].Stat=RESERVED
+			p[i].Expiry=time.Time{}
+			//p[i].Mac=net.HardwareAddr{}
 		}
 	}
 }
 
+
 func (p Leases) UpdateLease(l Lease) {
-	lease:=p.GetLease(l.ip)
-	*lease=l
+	lease:=p.GetLease(l.Ip)
+	if lease!=nil {*lease=l}
 }
 
 func InRange(ip, start net.IP, ipRange int) bool {
@@ -116,6 +128,6 @@ func AddIP(start net.IP, n int) net.IP {
 }
 
 func IpToUint32(ip net.IP) uint32 {
-	return binary.BigEndian.Uint32(ip)
+	return binary.BigEndian.Uint32(ip.To4())
 }
 
