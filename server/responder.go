@@ -6,7 +6,8 @@ import (
 	"clowder/pxedhcp"
 	"time"
 	"encoding/binary"
-//	"fmt"
+	"clowder/dbase"
+	"fmt"
 )
 
 func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
@@ -24,11 +25,13 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 	//Is a PXE DHCP Packet
 	pxeRequest := options[pxedhcp.OptClassId]!=nil &&  options[pxedhcp.OptClientSystemArchitecture]!=nil && options[pxedhcp.OptClientNetworkDeviceInterface]!=nil && options[pxedhcp.OptUUIDGUID]!=nil
-	var pool Leases
-	var uuid []byte
-	var pxe *PxeRecord
+	var pool dbase.Leases
+	var uuid dbase.UUID
+	var pxe *dbase.PxeRecord
 	if pxeRequest {
-		uuid=options[pxedhcp.OptUUIDGUID]
+		if len(options[pxedhcp.OptUUIDGUID])==17 {
+			uuid=options[pxedhcp.OptUUIDGUID][1:]
+		}
 		pool=s.MachineLeases
 		pxe = s.Pxe.GetRecord(uuid)
 	} else {
@@ -48,7 +51,8 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 	case pxedhcp.DISCOVER:
 
 		if lease==nil { //no record of this MAC address
-			s.NewMachines=append(s.NewMachines,Machines{mac,time.Now(),pxeRequest})
+			s.NewHardware[mac.String()]=uuid
+			fmt.Println("ABC")
 			return nil
 		}
 
@@ -60,7 +64,6 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		//MUST
 		response.AddOption(pxedhcp.OptDHCPMsgType,[]byte{pxedhcp.OFFER})	//Message Type
 		response.AddOption(pxedhcp.OptAddressTime,duration)			//Lease time
-
 		response.AddOption(pxedhcp.OptDHCPServerId,s.Ip)			//Server identifier
 		//MAY
 		response.AddOption(pxedhcp.OptSubnetMask,s.Mask)
@@ -94,7 +97,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		}
 
 		if lease==nil { //no record of this MAC address
-			s.NewMachines=append(s.NewMachines,Machines{mac,time.Now(),pxeRequest})
+			//s.NewMachines=append(s.NewMachines,Machines{mac,time.Now(),pxeRequest})
 			s.WriteLog("WARN Receive a DHCP REQUEST packet from an unknown MAC address: " + mac.String()+".")
 			return nil
 		}
@@ -139,7 +142,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		}
 
 		//update lease information
-		lease.Stat=ALLOCATED
+		lease.Stat=dbase.ALLOCATED
 		lease.Expiry=time.Now().Add(s.LeaseDuration)
 
 		return response
@@ -148,10 +151,10 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		if serverId, ok:= options[pxedhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip){ return nil }
 		if lease==nil { return nil }
 		//set the IP address to NOTAVAILABLE
-		lease.Stat=NOTAVAILABLE
+		lease.Stat=dbase.NOTAVAILABLE
 		lease.Mac=net.HardwareAddr{}
 		newLease := pool.GetAvailLease()
-		newLease.Stat=RESERVED
+		newLease.Stat=dbase.RESERVED
 		newLease.Mac=mac
 		//Update database
 		//db.UpdateBindingTable(mac,newLease.Ip)
@@ -162,7 +165,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		if serverId, ok:= options[pxedhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip){ return nil }
 		if lease==nil { return nil }
 		//set the IP address to RESERVED
-		lease.Stat=RESERVED
+		lease.Stat=dbase.RESERVED
 		return nil
 	}
 

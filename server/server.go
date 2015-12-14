@@ -8,11 +8,11 @@ import (
 	"time"
 	"clowder/pxedhcp"
 //	"clowder/db"
+	"clowder/dbase"
 )
-type Machines struct {
-	Mac		net.HardwareAddr
+type Hardware struct {
 	RequestTime	time.Time
-	Pxe		bool
+	Uuid		string
 }
 
 type Server struct {
@@ -27,10 +27,10 @@ type Server struct {
 	DomainName	string
 
 	//Leases management
-	MachineLeases	Leases
-	DeviceLeases	Leases
-	Pxe		PxeTable
-	NewMachines	[]Machines
+	MachineLeases	dbase.Leases
+	DeviceLeases	dbase.Leases
+	Pxe		dbase.PxeTable
+	NewHardware	dbase.Hardwares
 	TablesAccess	chan bool
 
 	//connections
@@ -57,6 +57,7 @@ func NewServer(ip, mask net.IP, port int, duration time.Duration, hostname strin
 	if router==nil {router=ip}
 	s.Router = router
 	s.DomainName=domainName
+	s.NewHardware=make(dbase.Hardwares)
 
 	s.TablesAccess = make(chan bool,1)
 	s.TablesAccess<-true
@@ -134,11 +135,10 @@ func (s *Server) StartTCPServer() error {
 						if on { s.StopDHCPServer() }
 						close(s.TcpQuit)
 						listener.Close()
-					case "NEWMACHINE":
-						//msg:=s.Pxe.Export()
-						//fmt.Println(msg)
-						//conn.Write([]byte(msg))
-						conn.Write([]byte("DONE"))
+					case "NEWHARDWARE":
+						msg:=s.NewHardware.String()
+						fmt.Println(msg)
+						conn.Write([]byte(msg))
 					case "STATUS":
 						msg:=s.GetStatus()
 						fmt.Println(msg)
@@ -147,7 +147,7 @@ func (s *Server) StartTCPServer() error {
 						conn.Write([]byte("DONE"))
 						return
 					default:
-						conn.Write([]byte("INVALID COMMAND.\nUSE: DHCPON, DHCPOFF, LEASES, NEWMACHINE, STATUS, CLOSECONN, STOPCLOWDER"))
+						conn.Write([]byte("INVALID COMMAND.\nUSE: DHCPON, DHCPOFF, LEASES, NEWHARDWARE, STATUS, CLOSECONN, STOPCLOWDER"))
 						continue
 				}
 			}
@@ -234,10 +234,10 @@ func (s *Server) WriteLog(message string) {
 
 func (s *Server) ExportLeaseTable() string {
 	//result:=""
-	//if str:=s.MachineLeases.Export();str!="" {result+=str+"\n"}
-	//result+=s.DeviceLeases.Export()
+	//if str:=s.MachineLeases.String();str!="" {result+=str+"\n"}
+	//result+=s.DeviceLeases.String()
 	//return result
-	return s.MachineLeases.Export()+"\n"+s.DeviceLeases.Export()
+	return s.MachineLeases.String()+"\n"+s.DeviceLeases.String()
 }
 
 func (s *Server) GetStatus() string {
@@ -250,8 +250,8 @@ func (s *Server) GetStatus() string {
 	} else {
 		msg+="inactive."
 	}
-	msg+="\nCurrent leases:\n"+s.MachineLeases.Export()+"\n"+s.DeviceLeases.Export()
-	msg+="PXE Information:\n"+s.Pxe.Export()
+	msg+="\nCurrent leases:\n"+s.MachineLeases.String()+"\n"+s.DeviceLeases.String()
+	msg+="PXE Information:\n"+s.Pxe.String()
 	s.DHCPOn<-on
 	s.TablesAccess<-true
 	return msg

@@ -3,6 +3,7 @@ package cmd
 import (
         "github.com/spf13/cobra"
 	"clowder/server"
+	"clowder/dbase"
         "fmt"
 	"os"
 	"github.com/spf13/viper"
@@ -66,12 +67,12 @@ func runRun(cmd *cobra.Command, args []string) {
 	//Setup machine IP pool
 	machineIP:=net.ParseIP(viper.GetString("machines.ipstart"))
 	machineRange:=viper.GetInt("machines.iprange")
-	s.MachineLeases = server.NewLeases(machineIP,machineRange)
+	s.MachineLeases = dbase.NewLeases(machineIP,machineRange)
 
 	//Setup device IP pool
 	deviceIP:=net.ParseIP(viper.GetString("devices.ipstart"))
 	deviceRange:=viper.GetInt("devices.iprange")
-	s.DeviceLeases = server.NewLeases(deviceIP,deviceRange)
+	s.DeviceLeases = dbase.NewLeases(deviceIP,deviceRange)
 
 	if err := s.StartTCPServer(); err!=nil {
 		s.WriteLog("ERROR\t"+err.Error())

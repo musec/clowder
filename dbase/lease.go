@@ -1,4 +1,4 @@
-package server
+package dbase
 
 import (
 	"net"
@@ -84,7 +84,7 @@ func (p Leases) SetExpTime(ip net.IP, t time.Time) {
 }
 
 //Exports generates leases information into a string
-func (p Leases) Export() string {
+func (p Leases) String() string {
 	s:=""
 	for _,l:= range p{
 		if l.Stat!=AVAILABLE{

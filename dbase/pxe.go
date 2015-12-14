@@ -1,4 +1,4 @@
-package server
+package dbase
 
 import (
 	"bytes"
@@ -39,7 +39,7 @@ func (r *PxeRecord) SetBootFile(file string) {
 	r.BootFile=file
 }
 
-func (t PxeTable) Export() string {
+func (t PxeTable) String() string {
 	s:=""
 	for _,r:= range t{
 		s+=fmt.Sprintf("%x",r.Uuid)+"\t"+r.RootPath+"\t"+r.BootFile+"\n"
