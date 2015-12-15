@@ -48,12 +48,12 @@ func runRun(cmd *cobra.Command, args []string) {
 
 	//Create server
 	fmt.Println("Starting Clowder...")
-	serverIP := net.ParseIP(viper.GetString("server.ip"))
-	serverMask :=  net.ParseIP(viper.GetString("server.subnetmask"))
+	serverIP := net.ParseIP(viper.GetString("server.ip")).To4()
+	serverMask :=  net.ParseIP(viper.GetString("server.subnetmask")).To4()
 	duration := viper.GetDuration("server.duration")
 	hostname,_ := os.Hostname();
-	dns := net.ParseIP(viper.GetString("server.dns"))
-	router := net.ParseIP(viper.GetString("server.router"))
+	dns := net.ParseIP(viper.GetString("server.dns")).To4()
+	router := net.ParseIP(viper.GetString("server.router")).To4()
 	domainName := viper.GetString("server.domainname")
 	dbFile := viper.GetString("database.filename")
 	s := server.NewServer(serverIP, serverMask, tcpPort, duration, hostname, dns, router, domainName)

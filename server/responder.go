@@ -7,7 +7,6 @@ import (
 	"time"
 	"encoding/binary"
 	"clowder/dbase"
-	"fmt"
 )
 
 func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
@@ -52,7 +51,6 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 		if lease==nil { //no record of this MAC address
 			s.NewHardware[mac.String()]=uuid
-			fmt.Println("ABC")
 			return nil
 		}
 
@@ -64,11 +62,11 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		//MUST
 		response.AddOption(pxedhcp.OptDHCPMsgType,[]byte{pxedhcp.OFFER})	//Message Type
 		response.AddOption(pxedhcp.OptAddressTime,duration)			//Lease time
-		response.AddOption(pxedhcp.OptDHCPServerId,s.Ip)			//Server identifier
+		response.AddOption(pxedhcp.OptDHCPServerId,[]byte(s.Ip))			//Server identifier
 		//MAY
-		response.AddOption(pxedhcp.OptSubnetMask,s.Mask)
-		response.AddOption(pxedhcp.OptRouter,s.Router)
-		response.AddOption(pxedhcp.OptDomainServer,s.DNS)
+		response.AddOption(pxedhcp.OptSubnetMask,[]byte(s.Mask))
+		response.AddOption(pxedhcp.OptRouter,[]byte(s.Router))
+		response.AddOption(pxedhcp.OptDomainServer,[]byte(s.DNS))
 		response.AddOption(pxedhcp.OptDomainName,[]byte(s.DomainName))
 
 		if pxeRequest {
@@ -129,11 +127,11 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		//MUST
 		response.AddOption(pxedhcp.OptDHCPMsgType,[]byte{pxedhcp.ACK})		//Message Type
 		response.AddOption(pxedhcp.OptAddressTime,duration)			//Lease time
-		response.AddOption(pxedhcp.OptDHCPServerId,s.Ip)			//Server identifier
+		response.AddOption(pxedhcp.OptDHCPServerId,[]byte(s.Ip))			//Server identifier
 		//MAY
-		response.AddOption(pxedhcp.OptSubnetMask,s.Mask)
-		response.AddOption(pxedhcp.OptRouter,s.Router)
-		response.AddOption(pxedhcp.OptDomainServer,s.DNS)
+		response.AddOption(pxedhcp.OptSubnetMask,[]byte(s.Mask))
+		response.AddOption(pxedhcp.OptRouter,[]byte(s.Router))
+		response.AddOption(pxedhcp.OptDomainServer,[]byte(s.DNS))
 		response.AddOption(pxedhcp.OptDomainName,[]byte(s.DomainName))
 
 		if pxeRequest {
