@@ -2,11 +2,10 @@ package dbase
 
 import (
 	"bytes"
-	"fmt"
 )
 
 type PxeRecord struct{
-	Uuid		[]byte
+	Uuid		UUID
 	RootPath	string
 	BootFile	string
 }
@@ -42,7 +41,7 @@ func (r *PxeRecord) SetBootFile(file string) {
 func (t PxeTable) String() string {
 	s:=""
 	for _,r:= range t{
-		s+=fmt.Sprintf("%x",r.Uuid)+"\t"+r.RootPath+"\t"+r.BootFile+"\n"
+		s+=r.Uuid.String()+"\t"+r.RootPath+"\t"+r.BootFile+"\n"
 	}
 	if s!="" {
 		s = s[:len(s)-1]

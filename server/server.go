@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"database/sql"
 	"clowder/pxedhcp"
-//	"clowder/db"
 	"clowder/dbase"
 )
 type Hardware struct {
@@ -26,11 +26,12 @@ type Server struct {
 	Router		net.IP
 	DomainName	string
 
-	//Leases management
+	//Data management
 	MachineLeases	dbase.Leases
 	DeviceLeases	dbase.Leases
 	Pxe		dbase.PxeTable
 	NewHardware	dbase.Hardwares
+	DBase		*sql.DB
 	TablesAccess	chan bool
 
 	//connections
@@ -58,6 +59,7 @@ func NewServer(ip, mask net.IP, port int, duration time.Duration, hostname strin
 	s.Router = router
 	s.DomainName=domainName
 	s.NewHardware=make(dbase.Hardwares)
+	s.Pxe=make(dbase.PxeTable,0,10)
 
 	s.TablesAccess = make(chan bool,1)
 	s.TablesAccess<-true
@@ -187,7 +189,7 @@ func (s *Server) StartDHCPServer() {
 	s.WriteLog("INFO\tDHCP server is enabled")
 
 	for {
-		n, err := s.UdpConn.Read(buffer)
+		n, addr, err := s.UdpConn.ReadFrom(buffer)
 		//check error, s.DHCPOn==false means the listener is closed by user
 		if err != nil {
 			on=<-s.DHCPOn
@@ -201,16 +203,30 @@ func (s *Server) StartDHCPServer() {
 		if n < 240 {
 			continue
 		}
+		ipStr, portStr, err := net.SplitHostPort(addr.String())
+		if err != nil {
+			s.WriteLog("ERROR\t"+err.Error())
+			return
+		}
 
 		requestPacket := pxedhcp.Packet(buffer[:n])
 		responsePacket := s.DHCPResponder(requestPacket)
 		if responsePacket == nil {
 			continue
 		}
-		if _, err := conn.WriteTo(responsePacket, &net.UDPAddr{IP: net.IPv4bcast, Port: 68}); err != nil {
+
+		if net.ParseIP(ipStr).Equal(net.IPv4zero) || responsePacket.IsBroadcast() {
+			port, _ := strconv.Atoi(portStr)
+			addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
+		}
+		if _, err := conn.WriteTo(responsePacket, addr); err != nil {
 			s.WriteLog("ERROR\t"+err.Error())
 			return
 		}
+		//if _, err := conn.WriteTo(responsePacket, &net.UDPAddr{IP: net.IPv4bcast, Port: 68}); err != nil {
+		//	s.WriteLog("ERROR\t"+err.Error())
+		//	return
+		//}
 	}
 }
 
@@ -251,7 +267,7 @@ func (s *Server) GetStatus() string {
 		msg+="inactive."
 	}
 	msg+="\nCurrent leases:\n"+s.MachineLeases.String()+"\n"+s.DeviceLeases.String()
-	msg+="PXE Information:\n"+s.Pxe.String()
+	msg+="\nPXE Information:\n"+s.Pxe.String()
 	s.DHCPOn<-on
 	s.TablesAccess<-true
 	return msg

@@ -10,6 +10,9 @@ import (
 	"net"
 	"log"
 	"strconv"
+	"database/sql"
+	_ "github.com/mattn/go-sqlite3"
+
 )
 
 var runCmd = &cobra.Command{
@@ -37,7 +40,7 @@ func runRun(cmd *cobra.Command, args []string) {
 	err := viper.ReadInConfig()
 
 	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		fmt.Println("Fatal error config file: ", err.Error())
 	}
 //	if tcpPort<1024 || tcpPort > 65535 {
 //		panic(fmt.Errorf("Cannot use port %d. TCP port must be a registered port.", tcpPort))
@@ -52,7 +55,7 @@ func runRun(cmd *cobra.Command, args []string) {
 	dns := net.ParseIP(viper.GetString("server.dns"))
 	router := net.ParseIP(viper.GetString("server.router"))
 	domainName := viper.GetString("server.domainname")
-
+	dbFile := viper.GetString("database.filename")
 	s := server.NewServer(serverIP, serverMask, tcpPort, duration, hostname, dns, router, domainName)
 
 	//Create log file
@@ -64,18 +67,38 @@ func runRun(cmd *cobra.Command, args []string) {
 	}
 	s.Logger=log.New(file,"",log.Ldate|log.Ltime)
 
+	//Open databse
+	if db,err:=sql.Open("sqlite3", dbFile); err==nil && db!=nil {
+		s.DBase=db
+	} else {
+		s.WriteLog("ERROR\t"+err.Error())
+		os.Exit(1)
+	}
+
 	//Setup machine IP pool
 	machineIP:=net.ParseIP(viper.GetString("machines.ipstart"))
 	machineRange:=viper.GetInt("machines.iprange")
 	s.MachineLeases = dbase.NewLeases(machineIP,machineRange)
+	if err:=s.MachineLeases.ReadBindingFromDB(s.DBase);err!=nil{
+		s.WriteLog("ERROR\t"+err.Error())
+		os.Exit(1)
+	}
 
 	//Setup device IP pool
 	deviceIP:=net.ParseIP(viper.GetString("devices.ipstart"))
 	deviceRange:=viper.GetInt("devices.iprange")
 	s.DeviceLeases = dbase.NewLeases(deviceIP,deviceRange)
+	if err:=s.DeviceLeases.ReadBindingFromDB(s.DBase);err!=nil{
+		s.WriteLog("ERROR\t"+err.Error())
+		os.Exit(1)
+	}
+
+	//Read PXE information
+	s.Pxe.ReadPxeFromDB(s.DBase)
 
 	if err := s.StartTCPServer(); err!=nil {
 		s.WriteLog("ERROR\t"+err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -93,6 +116,4 @@ func init() {
 	stopCmd.PersistentFlags().StringVarP(&tcpAddr, "addr", "a", "localhost", "IP Address of Clowder server")
 	RootCmd.AddCommand(runCmd)
 	RootCmd.AddCommand(stopCmd)
-
-
 }

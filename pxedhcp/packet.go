@@ -150,5 +150,5 @@ func (p Packet) Padding(size int) {
 }
 
 //
-func (p Packet) isBroadcast() bool { return p.Flags()[0] > 127 }
+func (p Packet) IsBroadcast() bool { return p.Flags()[0] > 127 }
 

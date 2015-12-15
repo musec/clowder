@@ -2,91 +2,98 @@ package dbase
 
 import (
 	"net"
-	"time"
 	"database/sql"
-	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func main() {
-    db, err := sql.Open("sqlite3", "./clowder.db")
-    checkErr(err)
-/*
+//ReadBindingFromDB reads MAC address binding infromation from database
+func (l Leases) ReadBindingFromDB(db *sql.DB) error {
+	rows, err := db.Query("SELECT * FROM Binding")
+	if err!=nil {return err}
+	for rows.Next() {
+		var mac_ string
+		var ip_ string
+		rows.Scan(&mac_, &ip_)
+		mac,_ :=net.ParseMAC(mac_)
+		ip:= net.ParseIP(ip_)
+		if lease:=l.GetLease(ip); lease!=nil {
+			lease.Mac=mac
+			lease.Stat=RESERVED
+		}
+	}
+	return nil
+}
 
-    // insert
-    stmt, err := db.Prepare("INSERT INTO userinfo(username, departname, created) values(?,?,?)")
-    checkErr(err)
+//InsertBindingToDB writes a record (MAC, IP) into Binding table
+func InsertBindingToDB(db *sql.DB, mac,ip string) error {
+	stmt,err := db.Prepare("INSERT INTO Binding(mac, ip) values(?,?)")
+	if err!=nil {return err}
+	_, err = stmt.Exec(mac,ip)
+	if err!=nil {return err}
+	return nil
+}
 
-    res, err := stmt.Exec("astaxie", "研发部门", "2012-12-09")
-    checkErr(err)
+//UpdateBindingToDB updates an exist record of Binding table
+func UpdateBindingToDB(db *sql.DB, mac,ip string) error {
+	stmt,err := db.Prepare("UPDATE Binding SET ip=? WHERE mac=?")
+	if err!=nil {return err}
+	_, err = stmt.Exec(ip,mac)
+	if err!=nil {return err}
+	return nil
+}
 
-    id, err := res.LastInsertId()
-    checkErr(err)
-
-    fmt.Println(id)
-    // update
-    stmt, err = db.Prepare("update userinfo set username=? where uid=?")
-    checkErr(err)
-
-    res, err = stmt.Exec("astaxieupdate", id)
-    checkErr(err)
-
-    affect, err := res.RowsAffected()
-    checkErr(err)
-
-    fmt.Println(affect)
-*/
-    // query
-    rows, err := db.Query("SELECT * FROM Binding")
-    checkErr(err)
-
-    for rows.Next() {
-        var mac_ string
-        var ip_ string
-        var expiry_ string
-        err = rows.Scan(&mac_, &ip_, &expiry_)
-        checkErr(err)
-	mac,_ :=net.ParseMAC(mac_)
-        ip:= net.ParseIP(ip_)
-	expiry,_ :=time.Parse(time.RFC822,expiry_)
-	fmt.Println(mac,"\t",ip,"\t",expiry,"\t",time.Now().After(expiry))
-    }
-
-    rows2, err := db.Query("SELECT * FROM Pxe")
-    checkErr(err)
-
-    for rows2.Next() {
-        var uuid_ string
-        var path_ string
-        var file_ string
-        err = rows2.Scan(&uuid_, &path_, &file_)
-        checkErr(err)
-	//mac,_ :=net.ParseMAC(mac_)
-        //ip:= net.ParseIP(ip_)
-	//expiry,_ :=time.Parse(time.RFC822,expiry_)
-	fmt.Println(uuid_,"\t",path_,"\t",file_)
-    }
-
-/*
-    // delete
-    stmt, err = db.Prepare("delete from userinfo where uid=?")
-    checkErr(err)
-
-    res, err = stmt.Exec(id)
-    checkErr(err)
-
-    affect, err = res.RowsAffected()
-    checkErr(err)
-
-    fmt.Println(affect)
-*/
-    db.Close()
+//DeleteMacBinding deletes an exist record of Binding table
+func DeleteMacBinding(db *sql.DB, mac string) error{
+	stmt, err := db.Prepare("DELETE FROM Binding WHERE mac=?")
+	if err!=nil { return err }
+	_, err = stmt.Exec(mac)
+	if err!=nil { return err }
+	return nil
 
 }
 
-func checkErr(err error) {
-    if err != nil {
-        panic(err)
-    }
+//ReadPxeFromDB reads PXE information from SQLite databse
+func (p *PxeTable) ReadPxeFromDB(db *sql.DB) error {
+	rows, err := db.Query("SELECT * FROM Pxe")
+	if err!=nil {return err}
+	for rows.Next() {
+		var id string
+		var path string
+		var file string
+		rows.Scan(&id, &path, &file)
+		if len(id)!=36 { continue }
+		uuid :=ParseUUID(id)
+		if uuid!=nil{
+			*p=append((*p),PxeRecord{uuid,path,file})
+		}
+	}
+	return nil
+}
+
+//InsertPxeToDB writes PXE information into Pxe table
+func InsertPxeToDB(db *sql.DB, uuid, path, file string) error {
+	stmt,err := db.Prepare("INSERT INTO Pxe(uuid, rootpath, bootfile) values(?,?,?)")
+	if err!=nil {return err}
+	_, err = stmt.Exec(uuid,path,file)
+	if err!=nil {return err}
+	return nil
+}
+
+//UpdatePxeToDB updates an exist record of Pxe table
+func UpdatePxeToDB(db *sql.DB, uuid,path,file string) error {
+	stmt,err := db.Prepare("UPDATE Pxe SET rootpath=?, bootfile=? WHERE uuid=?")
+	if err!=nil {return err}
+	_, err = stmt.Exec(path, file, uuid)
+	if err!=nil {return err}
+	return nil
+}
+
+//DeletePxeRecord deletes an exist record of Pxe table
+func DeletePxeRecord(db *sql.DB, uuid string) error{
+	stmt, err := db.Prepare("DELETE FROM Pxe WHERE uuid=?")
+	if err!=nil { return err }
+	_, err = stmt.Exec(uuid)
+	if err!=nil { return err }
+	return nil
 }
 
