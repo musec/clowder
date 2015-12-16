@@ -259,15 +259,15 @@ func (s *Server) ExportLeaseTable() string {
 func (s *Server) GetStatus() string {
 	on:=<-s.DHCPOn
 	<-s.TablesAccess
-	msg:="Clowder server:\n\tIP Address: "+s.Ip.String()+"\n\tSubnet mask: "+s.Mask.String()+"\n\tPort: "+ strconv.Itoa(s.TcpPort)
+	msg:="Clowder server:\n\tHostname: "+s.ServerName+"\n\tIP Address: "+s.Ip.String()+"\n\tSubnet mask: "+s.Mask.String()+"\n\tPort: "+ strconv.Itoa(s.TcpPort)+"\n\tDNS: "+s.DNS.String()
 	msg+="\nDHCP server is "
 	if on {
 		msg+="active."
 	} else {
 		msg+="inactive."
 	}
-	msg+="\nCurrent leases:\n"+s.MachineLeases.String()+"\n"+s.DeviceLeases.String()
-	msg+="\nPXE Information:\n"+s.Pxe.String()
+	msg+="\nCurrent leases(IP, Status, MAC, Expiry):\n"+s.MachineLeases.String()+"\n"+s.DeviceLeases.String()
+	msg+="\nPXE Information(UUID, RootPath, BootFile):\n"+s.Pxe.String()
 	s.DHCPOn<-on
 	s.TablesAccess<-true
 	return msg
