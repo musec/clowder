@@ -48,7 +48,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 	switch msgType {
 	case pxedhcp.DISCOVER:
-
+		s.WriteLog("INFO\tGet DISCOVER message from "+mac.String()) 
 		if lease==nil { //no record of this MAC address
 			s.NewHardware[mac.String()]=uuid
 			return nil
@@ -88,7 +88,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		return response
 
 	case pxedhcp.REQUEST:
-
+		s.WriteLog("INFO\tGet REQUEST message from "+mac.String()) 
 		//Is the packet for this server
 		if serverId, ok:= options[pxedhcp.OptDHCPServerId]; ok &&  !net.IP(serverId).Equal(s.Ip){
 			return nil
