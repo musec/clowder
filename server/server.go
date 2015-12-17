@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 	"database/sql"
-	"clowder/pxedhcp"
-	"clowder/dbase"
+	"github.com/musec/clowder/pxedhcp"
+	"github.com/musec/clowder/dbase"
 )
 type Hardware struct {
 	RequestTime	time.Time
@@ -168,7 +168,7 @@ func (s *Server) StartDHCPServer() {
 		return
 	}
 
-	udpAddr,_ := net.ResolveUDPAddr("udp4",":5001")
+	udpAddr,_ := net.ResolveUDPAddr("udp4",":67")
 	conn, err := net.ListenUDP("udp4",udpAddr)
 	if err != nil {
 		s.DHCPOn<-false

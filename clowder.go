@@ -1,7 +1,7 @@
 package main
 
 import(
-	"clowder/cmd"
+	"github.com/musec/clowder/cmd"
 )
 
 func main() {

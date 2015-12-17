@@ -2,11 +2,10 @@ package server
 
 import (
 	"net"
-//	"strconv"
-	"clowder/pxedhcp"
+	"github.com/musec/clowder/pxedhcp"
 	"time"
 	"encoding/binary"
-	"clowder/dbase"
+	"github.com/musec/clowder/dbase"
 )
 
 func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {

@@ -4,11 +4,11 @@ import (
 	"net"
 	"testing"
 	"fmt"
-	"clowder/pxedhcp"
+	"github.com/musec/clowder/pxedhcp"
 	"os"
 	"time"
 	"log"
-	"clowder/dbase"
+	"github.com/musec/clowder/dbase"
 )
 var dhcpPackets= [][]byte{
 []byte{

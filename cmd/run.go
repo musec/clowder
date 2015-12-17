@@ -2,8 +2,8 @@ package cmd
 
 import (
         "github.com/spf13/cobra"
-	"clowder/server"
-	"clowder/dbase"
+	"github.com/musec/clowder/server"
+	"github.com/musec/clowder/dbase"
         "fmt"
 	"os"
 	"github.com/spf13/viper"

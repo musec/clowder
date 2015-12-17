@@ -3,7 +3,7 @@ package cmd
 import (
         "github.com/spf13/cobra"
         "fmt"
-	"clowder/server"
+	"github.com/musec/clowder/server"
 	"strconv"
 )
 var tcpAddr string
