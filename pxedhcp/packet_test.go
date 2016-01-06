@@ -190,7 +190,7 @@ func TestPadding(t *testing.T) {
 	p := NewRequestPacket(c.xid, c.broadcast, c.ciaddr, c.chaddr)
 	p.Padding(512)
 	if len(p) != 512 {
-		t.Fatalf("error : padding \n")
+		t.Fatalf("expected packet length 512, got %d", len(p))
 	}
 }
 
