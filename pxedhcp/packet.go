@@ -140,9 +140,9 @@ func (p *Packet) AddOption(OptCode byte, OptValue []byte) {
 }
 
 // Padding packet to a size
-func (p Packet) Padding(size int) {
-	for len(p) < size {
-		p = append(p, PAD)
+func (p *Packet) Padding(size int) {
+	for len(*p) < size {
+		*p = append(*p, PAD)
 	}
 }
 
