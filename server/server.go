@@ -1,51 +1,52 @@
 package server
 
 import (
-	"net"
-	"log"
+	"database/sql"
 	"fmt"
+	"github.com/musec/clowder/dbase"
+	"github.com/musec/clowder/pxedhcp"
+	"log"
+	"net"
 	"strconv"
 	"time"
-	"database/sql"
-	"github.com/musec/clowder/pxedhcp"
-	"github.com/musec/clowder/dbase"
 )
+
 type Hardware struct {
-	RequestTime	time.Time
-	Uuid		string
+	RequestTime time.Time
+	Uuid        string
 }
 
 type Server struct {
 	//Server information
-	Ip		net.IP
-	Mask		net.IP
-	TcpPort		int
-	LeaseDuration	time.Duration
-	ServerName	string
-	DNS		net.IP
-	Router		net.IP
-	DomainName	string
+	Ip            net.IP
+	Mask          net.IP
+	TcpPort       int
+	LeaseDuration time.Duration
+	ServerName    string
+	DNS           net.IP
+	Router        net.IP
+	DomainName    string
 
 	//Data management
-	MachineLeases	dbase.Leases
-	DeviceLeases	dbase.Leases
-	Pxe		dbase.PxeTable
-	NewHardware	dbase.Hardwares
-	DBase		*sql.DB
-	TablesAccess	chan bool
+	MachineLeases dbase.Leases
+	DeviceLeases  dbase.Leases
+	Pxe           dbase.PxeTable
+	NewHardware   dbase.Hardwares
+	DBase         *sql.DB
+	TablesAccess  chan bool
 
 	//connections
-	TcpConn		[]*net.TCPConn
-	UdpConn		*net.UDPConn
-	TcpQuit		chan bool
-	DHCPOn		chan bool
+	TcpConn []*net.TCPConn
+	UdpConn *net.UDPConn
+	TcpQuit chan bool
+	DHCPOn  chan bool
 
 	//Logging
-	Logger		*log.Logger
-	LogAccess	chan bool
+	Logger    *log.Logger
+	LogAccess chan bool
 }
 
-//NewServer 
+//NewServer
 func NewServer(ip, mask net.IP, port int, duration time.Duration, hostname string, dns, router net.IP, domainName string) *Server {
 	s := new(Server)
 	s.Ip = ip
@@ -53,104 +54,119 @@ func NewServer(ip, mask net.IP, port int, duration time.Duration, hostname strin
 	s.TcpPort = port
 	s.LeaseDuration = duration
 	s.ServerName = hostname
-	if dns==nil { dns=ip }
+	if dns == nil {
+		dns = ip
+	}
 	s.DNS = dns
-	if router==nil {router=ip}
+	if router == nil {
+		router = ip
+	}
 	s.Router = router
-	s.DomainName=domainName
-	s.NewHardware=make(dbase.Hardwares)
-	s.Pxe=make(dbase.PxeTable,0,10)
+	s.DomainName = domainName
+	s.NewHardware = make(dbase.Hardwares)
+	s.Pxe = make(dbase.PxeTable, 0, 10)
 
-	s.TablesAccess = make(chan bool,1)
-	s.TablesAccess<-true
-	s.LogAccess = make(chan bool,1)
-	s.LogAccess <-true
-	s.DHCPOn = make(chan bool,1)
-	s.DHCPOn <-false
-	s.Logger=nil
+	s.TablesAccess = make(chan bool, 1)
+	s.TablesAccess <- true
+	s.LogAccess = make(chan bool, 1)
+	s.LogAccess <- true
+	s.DHCPOn = make(chan bool, 1)
+	s.DHCPOn <- false
+	s.Logger = nil
 	return s
 }
 
 //StartTCPServer run a TCP server
 func (s *Server) StartTCPServer() error {
-	service := ":"+strconv.Itoa(s.TcpPort)
-	tcpAddr, err:= net.ResolveTCPAddr("tcp4",service)
-	if err !=nil { return err  }
-	listener, err:= net.ListenTCP("tcp4",tcpAddr)
-	if err !=nil { return err }
-	s.TcpConn = make([]*net.TCPConn,0,10)
+	service := ":" + strconv.Itoa(s.TcpPort)
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
+	if err != nil {
+		return err
+	}
+	listener, err := net.ListenTCP("tcp4", tcpAddr)
+	if err != nil {
+		return err
+	}
+	s.TcpConn = make([]*net.TCPConn, 0, 10)
 	s.TcpQuit = make(chan bool)
 
 	s.WriteLog("INFO\tClowder is running on port " + strconv.Itoa(s.TcpPort))
 
-
 	for {
 		conn, err := listener.AcceptTCP()
-		if err !=nil {
+		if err != nil {
 
 			select {
-			case <-s.TcpQuit:	//error happened because the listener is closed
-				for i:= range s.TcpConn {
-					if s.TcpConn[i]!=nil { s.TcpConn[i].Close() }
+			case <-s.TcpQuit: //error happened because the listener is closed
+				for i := range s.TcpConn {
+					if s.TcpConn[i] != nil {
+						s.TcpConn[i].Close()
+					}
 				}
 				return nil
-			default:		//other errors
+			default: //other errors
 			}
 			continue
 		}
 
-		s.TcpConn=append(s.TcpConn,conn)
+		s.TcpConn = append(s.TcpConn, conn)
 		//handle connection
-		go func(conn *net.TCPConn){
+		go func(conn *net.TCPConn) {
 			defer conn.Close()
 			var buf [512]byte
-			addr:=conn.RemoteAddr().String()
-			s.WriteLog("INFO\tNew connection from "+conn.RemoteAddr().String())
+			addr := conn.RemoteAddr().String()
+			s.WriteLog("INFO\tNew connection from " + conn.RemoteAddr().String())
 			for {
-				n, err:= conn.Read(buf[0:])
-				if err!=nil {
-					s.WriteLog("ERROR\t"+err.Error())
+				n, err := conn.Read(buf[0:])
+				if err != nil {
+					s.WriteLog("ERROR\t" + err.Error())
 					return
 				}
-				if n<=2 { continue }
-				cmd:=string(buf[:n])
-				if cmd[n-2:]==string([]byte{13,10}){ cmd=cmd[:n-2] }
-				s.WriteLog("INFO\tGet command "+string(cmd)+" from "+addr )
+				if n <= 2 {
+					continue
+				}
+				cmd := string(buf[:n])
+				if cmd[n-2:] == string([]byte{13, 10}) {
+					cmd = cmd[:n-2]
+				}
+				s.WriteLog("INFO\tGet command " + string(cmd) + " from " + addr)
 				switch cmd {
-					case "DHCPON":
-						go s.StartDHCPServer()
-						conn.Write([]byte("DONE"))
-						time.Sleep(time.Second*5)
+				case "DHCPON":
+					go s.StartDHCPServer()
+					conn.Write([]byte("DONE"))
+					time.Sleep(time.Second * 5)
 
-					case "DHCPOFF":
+				case "DHCPOFF":
+					s.StopDHCPServer()
+					conn.Write([]byte("DONE"))
+
+				case "LEASES":
+					msg := s.ExportLeaseTable()
+					fmt.Println(msg)
+					conn.Write([]byte(msg))
+				case "STOPCLOWDER":
+					conn.Write([]byte("CLOWDER closing..."))
+					on := <-s.DHCPOn
+					s.DHCPOn <- on
+					if on {
 						s.StopDHCPServer()
-						conn.Write([]byte("DONE"))
-
-					case "LEASES":
-						msg:=s.ExportLeaseTable()
-						fmt.Println(msg)
-						conn.Write([]byte(msg))
-					case "STOPCLOWDER":
-						conn.Write([]byte("CLOWDER closing..."))
-						on:=<-s.DHCPOn
-						s.DHCPOn<-on
-						if on { s.StopDHCPServer() }
-						close(s.TcpQuit)
-						listener.Close()
-					case "NEWHARDWARE":
-						msg:=s.NewHardware.String()
-						fmt.Println(msg)
-						conn.Write([]byte(msg))
-					case "STATUS":
-						msg:=s.GetStatus()
-						fmt.Println(msg)
-						conn.Write([]byte(msg))
-					case "CLOSECONN":
-						conn.Write([]byte("DONE"))
-						return
-					default:
-						conn.Write([]byte("INVALID COMMAND.\nUSE: DHCPON, DHCPOFF, LEASES, NEWHARDWARE, STATUS, CLOSECONN, STOPCLOWDER"))
-						continue
+					}
+					close(s.TcpQuit)
+					listener.Close()
+				case "NEWHARDWARE":
+					msg := s.NewHardware.String()
+					fmt.Println(msg)
+					conn.Write([]byte(msg))
+				case "STATUS":
+					msg := s.GetStatus()
+					fmt.Println(msg)
+					conn.Write([]byte(msg))
+				case "CLOSECONN":
+					conn.Write([]byte("DONE"))
+					return
+				default:
+					conn.Write([]byte("INVALID COMMAND.\nUSE: DHCPON, DHCPOFF, LEASES, NEWHARDWARE, STATUS, CLOSECONN, STOPCLOWDER"))
+					continue
 				}
 			}
 		}(conn)
@@ -161,27 +177,27 @@ func (s *Server) StartTCPServer() error {
 
 func (s *Server) StartDHCPServer() {
 	//check DHCP server status
-	on:=<-s.DHCPOn
+	on := <-s.DHCPOn
 	if on {
-		s.DHCPOn<-true
+		s.DHCPOn <- true
 		s.WriteLog("ERROR\tTried to start a DHCP server which is running")
 		return
 	}
 
-	udpAddr,_ := net.ResolveUDPAddr("udp4",":67")
-	conn, err := net.ListenUDP("udp4",udpAddr)
+	udpAddr, _ := net.ResolveUDPAddr("udp4", ":67")
+	conn, err := net.ListenUDP("udp4", udpAddr)
 	if err != nil {
-		s.DHCPOn<-false
-		s.WriteLog("ERROR\t"+err.Error())
+		s.DHCPOn <- false
+		s.WriteLog("ERROR\t" + err.Error())
 		return
 	}
 
 	s.UdpConn = conn
-	s.DHCPOn<-true
+	s.DHCPOn <- true
 
-	defer func(){
+	defer func() {
 		<-s.DHCPOn
-		s.DHCPOn<-false
+		s.DHCPOn <- false
 	}()
 
 	buffer := make([]byte, 1500)
@@ -192,10 +208,10 @@ func (s *Server) StartDHCPServer() {
 		n, addr, err := s.UdpConn.ReadFrom(buffer)
 		//check error, s.DHCPOn==false means the listener is closed by user
 		if err != nil {
-			on=<-s.DHCPOn
-			s.DHCPOn<-on
+			on = <-s.DHCPOn
+			s.DHCPOn <- on
 			if on {
-				s.WriteLog("ERROR\t"+err.Error())
+				s.WriteLog("ERROR\t" + err.Error())
 			}
 			return
 
@@ -205,7 +221,7 @@ func (s *Server) StartDHCPServer() {
 		}
 		ipStr, portStr, err := net.SplitHostPort(addr.String())
 		if err != nil {
-			s.WriteLog("ERROR\t"+err.Error())
+			s.WriteLog("ERROR\t" + err.Error())
 			return
 		}
 
@@ -220,7 +236,7 @@ func (s *Server) StartDHCPServer() {
 			addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
 		}
 		if _, err := conn.WriteTo(responsePacket, addr); err != nil {
-			s.WriteLog("ERROR\t"+err.Error())
+			s.WriteLog("ERROR\t" + err.Error())
 			return
 		}
 		//if _, err := conn.WriteTo(responsePacket, &net.UDPAddr{IP: net.IPv4bcast, Port: 68}); err != nil {
@@ -231,21 +247,21 @@ func (s *Server) StartDHCPServer() {
 }
 
 func (s *Server) StopDHCPServer() {
-	on:=<-s.DHCPOn
+	on := <-s.DHCPOn
 	if on {
 		s.UdpConn.Close()
 		s.WriteLog("INFO\tDHCP server is disabled")
 	} else {
 		s.WriteLog("ERROR\tTried to stop a DHCP server without being started")
 	}
-	s.DHCPOn<-false
+	s.DHCPOn <- false
 }
 
 func (s *Server) WriteLog(message string) {
 	<-s.LogAccess
 	s.Logger.Println(message)
 	fmt.Println(message)
-	s.LogAccess<-true
+	s.LogAccess <- true
 }
 
 func (s *Server) ExportLeaseTable() string {
@@ -253,44 +269,50 @@ func (s *Server) ExportLeaseTable() string {
 	//if str:=s.MachineLeases.String();str!="" {result+=str+"\n"}
 	//result+=s.DeviceLeases.String()
 	//return result
-	return s.MachineLeases.String()+"\n"+s.DeviceLeases.String()
+	return s.MachineLeases.String() + "\n" + s.DeviceLeases.String()
 }
 
 func (s *Server) GetStatus() string {
-	on:=<-s.DHCPOn
+	on := <-s.DHCPOn
 	<-s.TablesAccess
-	msg:="Clowder server:\n\tHostname: "+s.ServerName+"\n\tIP Address: "+s.Ip.String()+"\n\tSubnet mask: "+s.Mask.String()+"\n\tPort: "+ strconv.Itoa(s.TcpPort)+"\n\tDNS: "+s.DNS.String()
-	msg+="\nDHCP server is "
+	msg := "Clowder server:\n\tHostname: " + s.ServerName + "\n\tIP Address: " + s.Ip.String() + "\n\tSubnet mask: " + s.Mask.String() + "\n\tPort: " + strconv.Itoa(s.TcpPort) + "\n\tDNS: " + s.DNS.String()
+	msg += "\nDHCP server is "
 	if on {
-		msg+="active."
+		msg += "active."
 	} else {
-		msg+="inactive."
+		msg += "inactive."
 	}
-	msg+="\nCurrent leases(IP, Status, MAC, Expiry):\n"+s.MachineLeases.String()+"\n"+s.DeviceLeases.String()
-	msg+="\nPXE Information(UUID, RootPath, BootFile):\n"+s.Pxe.String()
-	s.DHCPOn<-on
-	s.TablesAccess<-true
+	msg += "\nCurrent leases(IP, Status, MAC, Expiry):\n" + s.MachineLeases.String() + "\n" + s.DeviceLeases.String()
+	msg += "\nPXE Information(UUID, RootPath, BootFile):\n" + s.Pxe.String()
+	s.DHCPOn <- on
+	s.TablesAccess <- true
 	return msg
 }
 
-
-func SendCommand(addr,cmd string) (string, error) {
+func SendCommand(addr, cmd string) (string, error) {
 	var (
-		tcpAddr	*net.TCPAddr
-		conn	*net.TCPConn
-		err	error
-		buf	[2048]byte
-		n	int
+		tcpAddr *net.TCPAddr
+		conn    *net.TCPConn
+		err     error
+		buf     [2048]byte
+		n       int
 	)
-	if tcpAddr, err=net.ResolveTCPAddr("tcp4",addr); err!=nil { return "", err }
-	if conn, err = net.DialTCP("tcp4",nil,tcpAddr); err!=nil { return "", err }
-	if _, err = conn.Write([]byte(cmd)); err!=nil { return "", err }
-	if n,err = conn.Read(buf[0:]); err!=nil { return "", err }
-	if cmd!="CLOSECONN" {
-		if _, err = conn.Write([]byte("CLOSECONN")); err!=nil {
+	if tcpAddr, err = net.ResolveTCPAddr("tcp4", addr); err != nil {
+		return "", err
+	}
+	if conn, err = net.DialTCP("tcp4", nil, tcpAddr); err != nil {
+		return "", err
+	}
+	if _, err = conn.Write([]byte(cmd)); err != nil {
+		return "", err
+	}
+	if n, err = conn.Read(buf[0:]); err != nil {
+		return "", err
+	}
+	if cmd != "CLOSECONN" {
+		if _, err = conn.Write([]byte("CLOSECONN")); err != nil {
 			return "", err
 		}
 	}
-	return string(buf[:n]),nil
+	return string(buf[:n]), nil
 }
-

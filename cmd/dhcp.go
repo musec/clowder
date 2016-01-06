@@ -1,14 +1,15 @@
 package cmd
 
 import (
-        "github.com/spf13/cobra"
-        "fmt"
+	"fmt"
 	"github.com/musec/clowder/server"
+	"github.com/spf13/cobra"
 	"strconv"
 )
+
 var tcpAddr string
 
-var dhcpCmd = &cobra.Command{Use:"dhcp"}
+var dhcpCmd = &cobra.Command{Use: "dhcp"}
 
 func init() {
 	RootCmd.AddCommand(dhcpCmd)
@@ -22,7 +23,7 @@ func init() {
 var dhcpOnCmd = &cobra.Command{
 	Use:   "on",
 	Short: "Enable DHCP service",
-	Long:  `Enable DHCP service.
+	Long: `Enable DHCP service.
 	`,
 	Run: dhcpOnRun,
 }
@@ -30,25 +31,24 @@ var dhcpOnCmd = &cobra.Command{
 var dhcpOffCmd = &cobra.Command{
 	Use:   "off",
 	Short: "Disable DHCP service",
-	Long:  `Disable DHCP service.
+	Long: `Disable DHCP service.
 	`,
 	Run: dhcpOffRun,
 }
 
-
 var statCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Show Clowder's status",
-	Long:  `Show Clowder's status".
+	Long: `Show Clowder's status".
 	Show current leases, new machines and new devices.`,
 	Run: statRun,
 }
 
 func dhcpOnRun(cmd *cobra.Command, args []string) {
-	addr:=tcpAddr+":"+strconv.Itoa(tcpPort)
-	fmt.Println("Connected to ",addr)
+	addr := tcpAddr + ":" + strconv.Itoa(tcpPort)
+	fmt.Println("Connected to ", addr)
 
-	if msg,err:=server.SendCommand(addr,"DHCPON"); err==nil {
+	if msg, err := server.SendCommand(addr, "DHCPON"); err == nil {
 		fmt.Println(msg)
 	} else {
 		fmt.Println(err.Error())
@@ -57,8 +57,8 @@ func dhcpOnRun(cmd *cobra.Command, args []string) {
 }
 
 func dhcpOffRun(cmd *cobra.Command, args []string) {
-	addr:=tcpAddr+":"+strconv.Itoa(tcpPort)
-	if msg,err:=server.SendCommand(addr,"DHCPOFF"); err==nil {
+	addr := tcpAddr + ":" + strconv.Itoa(tcpPort)
+	if msg, err := server.SendCommand(addr, "DHCPOFF"); err == nil {
 		fmt.Println(msg)
 	} else {
 		fmt.Println(err.Error())
@@ -67,13 +67,11 @@ func dhcpOffRun(cmd *cobra.Command, args []string) {
 }
 
 func statRun(cmd *cobra.Command, args []string) {
-	addr:=tcpAddr+":"+strconv.Itoa(tcpPort)
-	if msg,err:=server.SendCommand(addr,"STATUS"); err==nil {
+	addr := tcpAddr + ":" + strconv.Itoa(tcpPort)
+	if msg, err := server.SendCommand(addr, "STATUS"); err == nil {
 		fmt.Println(msg)
 	} else {
 		fmt.Println(err.Error())
 	}
 
 }
-
-
