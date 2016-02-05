@@ -9,6 +9,7 @@ var tcpPort int
 var RootCmd = &cobra.Command{Use: "clowder"}
 
 func init() {
-	RootCmd.PersistentFlags().IntVarP(&tcpPort, "port", "p", 5000, "TCP port to connect")
+	var flags = RootCmd.PersistentFlags()
+	flags.IntVarP(&tcpPort, "port", "p", 5000, "TCP port to connect")
 
 }
