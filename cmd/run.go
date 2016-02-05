@@ -40,9 +40,6 @@ func runRun(cmd *cobra.Command, args []string) {
 	if err != nil { // Handle errors reading the config file
 		fmt.Println("Fatal error config file: ", err.Error())
 	}
-	//	if tcpPort<1024 || tcpPort > 65535 {
-	//		panic(fmt.Errorf("Cannot use port %d. TCP port must be a registered port.", tcpPort))
-	//	}
 
 	//Create server
 	fmt.Println("Starting Clowder...")
