@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/mitchellh/go-homedir"
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/server"
 	"github.com/spf13/cobra"
@@ -12,7 +11,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"path"
 	"strconv"
 )
 
@@ -32,41 +30,7 @@ var stopCmd = &cobra.Command{
 	Run: stopRun,
 }
 
-func readConfigurationFile() error {
-	viper.SetConfigName("clowder")
-
-	// Prefer user configuration to local configuration
-	// to distribution configuration, etc.
-	homedir, err := homedir.Dir()
-	if err != nil {
-		return err
-	}
-
-	viper.AddConfigPath(homedir)
-	viper.AddConfigPath(".")
-	viper.AddConfigPath(path.Join(homedir, ".clowder"))
-	viper.AddConfigPath(path.Join(homedir, "clowder"))
-	viper.AddConfigPath(path.Join(homedir, ".config"))
-	viper.AddConfigPath(path.Join(homedir, ".config", "clowder"))
-	viper.AddConfigPath("/usr/local/etc")
-	viper.AddConfigPath("/etc")
-
-	err = viper.ReadInConfig()
-	if notfound, ok := err.(*viper.ConfigFileNotFoundError); ok {
-		fmt.Println(notfound, "- using default settings")
-	}
-
-	return err
-}
-
 func runRun(cmd *cobra.Command, args []string) {
-	err := readConfigurationFile()
-
-	if err != nil {
-		fmt.Println("Unable to open configuration file: ", err)
-		os.Exit(1)
-	}
-
 	//Create server
 	fmt.Println("Starting Clowder...")
 	serverIP := net.ParseIP(viper.GetString("server.ip")).To4()
