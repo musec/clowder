@@ -40,7 +40,6 @@ func runRun(cmd *cobra.Command, args []string) {
 	dns := net.ParseIP(viper.GetString("server.dns")).To4()
 	router := net.ParseIP(viper.GetString("server.router")).To4()
 	domainName := viper.GetString("server.domainname")
-	dbFile := viper.GetString("database.filename")
 	s := server.NewServer(serverIP, serverMask, tcpPort, duration, hostname, dns, router, domainName)
 
 	//Create log file
@@ -53,7 +52,15 @@ func runRun(cmd *cobra.Command, args []string) {
 	s.Logger = log.New(file, "", log.Ldate|log.Ltime)
 
 	//Open databse
-	if db, err := sql.Open("sqlite3", dbFile); err == nil && db != nil {
+	dbType := viper.GetString("server.dbtype")
+	dbFile := viper.GetString("server.database")
+
+	if dbType == "" || dbFile == "" {
+		log.Printf("Invalid database type/name: %v:%v\n", dbType, dbFile)
+	}
+
+	fmt.Printf("INFO\tUsing '%v' database '%v'\n", dbType, dbFile)
+	if db, err := sql.Open(dbType, dbFile); err == nil && db != nil {
 		s.DBase = db
 	} else {
 		s.WriteLog("ERROR\t" + err.Error())

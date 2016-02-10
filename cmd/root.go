@@ -15,8 +15,14 @@ var RootCmd = &cobra.Command{Use: "clowder"}
 
 func init() {
 	var flags = RootCmd.PersistentFlags()
+
 	flags.StringP("config", "c", "", "Configuration file")
+	flags.StringP("database", "d", "/var/db/clowder.db", "Machine database")
+	flags.StringP("dbtype", "t", "sqlite3", "Database type (default: sqlite3)")
 	flags.IntVarP(&tcpPort, "port", "p", 5000, "TCP control port")
+
+	viper.BindPFlag("server.database", flags.Lookup("database"))
+	viper.BindPFlag("server.dbtype", flags.Lookup("dbtype"))
 
 	err := readConfigurationFile()
 	if err != nil {
