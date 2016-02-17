@@ -19,12 +19,15 @@ func init() {
 	config = viper.New()
 
 	flags.StringP("config", "c", "", "Configuration file")
-	flags.StringP("database", "d", "/var/db/clowder.db", "Machine database")
-	flags.StringP("dbtype", "t", "sqlite3", "Database type (default: sqlite3)")
-	flags.IntVarP(&tcpPort, "port", "p", 5000, "TCP control port")
 
+	flags.StringP("database", "d", "/var/db/clowder.db", "Machine database")
 	config.BindPFlag("server.database", flags.Lookup("database"))
+
+	flags.StringP("dbtype", "t", "sqlite3", "Database type (default: sqlite3)")
 	config.BindPFlag("server.dbtype", flags.Lookup("dbtype"))
+
+	flags.IntVarP(&tcpPort, "port", "p", 5000, "TCP control port")
+	config.BindPFlag("server.controlPort", flags.Lookup("port"))
 
 	err := readConfigurationFile()
 	if err != nil {
