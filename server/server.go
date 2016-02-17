@@ -22,7 +22,7 @@ type Server struct {
 	//Server information
 	Ip            net.IP
 	Mask          net.IP
-	TcpPort       int
+	controlPort   int
 	LeaseDuration time.Duration
 	ServerName    string
 	DNS           net.IP
@@ -38,14 +38,14 @@ type Server struct {
 	TablesAccess  chan bool
 
 	//connections
-	TcpConn []*net.TCPConn
-	UdpConn *net.UDPConn
-	TcpQuit chan bool
-	DHCPOn  chan bool
+	tcpConn []*net.TCPConn
+	udpConn *net.UDPConn
+	tcpQuit chan bool
+	dhcpOn  chan bool
 
 	//Logging
 	Logger    *log.Logger
-	LogAccess chan bool
+	logAccess chan bool
 }
 
 // Create a new Clowder server using Viper-provided configuration values.
@@ -60,7 +60,7 @@ func New(config *viper.Viper) (*Server, error) {
 
 	s.Ip = net.ParseIP(config.GetString("server.ip")).To4()
 	s.Mask = net.ParseIP(config.GetString("server.subnetmask")).To4()
-	s.TcpPort = config.GetInt("server.controlPort")
+	s.controlPort = config.GetInt("server.controlPort")
 	s.LeaseDuration = config.GetDuration("server.duration")
 
 	s.ServerName, err = os.Hostname()
@@ -77,10 +77,10 @@ func New(config *viper.Viper) (*Server, error) {
 
 	s.TablesAccess = make(chan bool, 1)
 	s.TablesAccess <- true
-	s.LogAccess = make(chan bool, 1)
-	s.LogAccess <- true
-	s.DHCPOn = make(chan bool, 1)
-	s.DHCPOn <- false
+	s.logAccess = make(chan bool, 1)
+	s.logAccess <- true
+	s.dhcpOn = make(chan bool, 1)
+	s.dhcpOn <- false
 	s.Logger = nil
 
 	return s, err
@@ -88,7 +88,7 @@ func New(config *viper.Viper) (*Server, error) {
 
 //StartTCPServer run a TCP server
 func (s *Server) StartTCPServer() error {
-	service := ":" + strconv.Itoa(s.TcpPort)
+	service := ":" + strconv.Itoa(s.controlPort)
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
 	if err != nil {
 		return err
@@ -97,20 +97,20 @@ func (s *Server) StartTCPServer() error {
 	if err != nil {
 		return err
 	}
-	s.TcpConn = make([]*net.TCPConn, 0, 10)
-	s.TcpQuit = make(chan bool)
+	s.tcpConn = make([]*net.TCPConn, 0, 10)
+	s.tcpQuit = make(chan bool)
 
-	s.WriteLog("INFO\tClowder is running on port " + strconv.Itoa(s.TcpPort))
+	s.WriteLog("INFO\tClowder is running on port " + strconv.Itoa(s.controlPort))
 
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
 
 			select {
-			case <-s.TcpQuit: //error happened because the listener is closed
-				for i := range s.TcpConn {
-					if s.TcpConn[i] != nil {
-						s.TcpConn[i].Close()
+			case <-s.tcpQuit: //error happened because the listener is closed
+				for i := range s.tcpConn {
+					if s.tcpConn[i] != nil {
+						s.tcpConn[i].Close()
 					}
 				}
 				return nil
@@ -119,7 +119,7 @@ func (s *Server) StartTCPServer() error {
 			continue
 		}
 
-		s.TcpConn = append(s.TcpConn, conn)
+		s.tcpConn = append(s.tcpConn, conn)
 		//handle connection
 		go func(conn *net.TCPConn) {
 			defer conn.Close()
@@ -156,12 +156,12 @@ func (s *Server) StartTCPServer() error {
 					conn.Write([]byte(msg))
 				case "STOPCLOWDER":
 					conn.Write([]byte("CLOWDER closing..."))
-					on := <-s.DHCPOn
-					s.DHCPOn <- on
+					on := <-s.dhcpOn
+					s.dhcpOn <- on
 					if on {
 						s.StopDHCPServer()
 					}
-					close(s.TcpQuit)
+					close(s.tcpQuit)
 					listener.Close()
 				case "NEWHARDWARE":
 					msg := s.NewHardware.String()
@@ -187,9 +187,9 @@ func (s *Server) StartTCPServer() error {
 
 func (s *Server) StartDHCPServer() {
 	//check DHCP server status
-	on := <-s.DHCPOn
+	on := <-s.dhcpOn
 	if on {
-		s.DHCPOn <- true
+		s.dhcpOn <- true
 		s.WriteLog("ERROR\tTried to start a DHCP server which is running")
 		return
 	}
@@ -197,17 +197,17 @@ func (s *Server) StartDHCPServer() {
 	udpAddr, _ := net.ResolveUDPAddr("udp4", ":67")
 	conn, err := net.ListenUDP("udp4", udpAddr)
 	if err != nil {
-		s.DHCPOn <- false
+		s.dhcpOn <- false
 		s.WriteLog("ERROR\t" + err.Error())
 		return
 	}
 
-	s.UdpConn = conn
-	s.DHCPOn <- true
+	s.udpConn = conn
+	s.dhcpOn <- true
 
 	defer func() {
-		<-s.DHCPOn
-		s.DHCPOn <- false
+		<-s.dhcpOn
+		s.dhcpOn <- false
 	}()
 
 	buffer := make([]byte, 1500)
@@ -215,11 +215,11 @@ func (s *Server) StartDHCPServer() {
 	s.WriteLog("INFO\tDHCP server is enabled")
 
 	for {
-		n, addr, err := s.UdpConn.ReadFrom(buffer)
-		//check error, s.DHCPOn==false means the listener is closed by user
+		n, addr, err := s.udpConn.ReadFrom(buffer)
+		//check error, s.dhcpOn==false means the listener is closed by user
 		if err != nil {
-			on = <-s.DHCPOn
-			s.DHCPOn <- on
+			on = <-s.dhcpOn
+			s.dhcpOn <- on
 			if on {
 				s.WriteLog("ERROR\t" + err.Error())
 			}
@@ -257,21 +257,21 @@ func (s *Server) StartDHCPServer() {
 }
 
 func (s *Server) StopDHCPServer() {
-	on := <-s.DHCPOn
+	on := <-s.dhcpOn
 	if on {
-		s.UdpConn.Close()
+		s.udpConn.Close()
 		s.WriteLog("INFO\tDHCP server is disabled")
 	} else {
 		s.WriteLog("ERROR\tTried to stop a DHCP server without being started")
 	}
-	s.DHCPOn <- false
+	s.dhcpOn <- false
 }
 
 func (s *Server) WriteLog(message string) {
-	<-s.LogAccess
+	<-s.logAccess
 	s.Logger.Println(message)
 	fmt.Println(message)
-	s.LogAccess <- true
+	s.logAccess <- true
 }
 
 func (s *Server) ExportLeaseTable() string {
@@ -283,9 +283,9 @@ func (s *Server) ExportLeaseTable() string {
 }
 
 func (s *Server) GetStatus() string {
-	on := <-s.DHCPOn
+	on := <-s.dhcpOn
 	<-s.TablesAccess
-	msg := "Clowder server:\n\tHostname: " + s.ServerName + "\n\tIP Address: " + s.Ip.String() + "\n\tSubnet mask: " + s.Mask.String() + "\n\tPort: " + strconv.Itoa(s.TcpPort) + "\n\tDNS: " + s.DNS.String()
+	msg := "Clowder server:\n\tHostname: " + s.ServerName + "\n\tIP Address: " + s.Ip.String() + "\n\tSubnet mask: " + s.Mask.String() + "\n\tPort: " + strconv.Itoa(s.controlPort) + "\n\tDNS: " + s.DNS.String()
 	msg += "\nDHCP server is "
 	if on {
 		msg += "active."
@@ -294,7 +294,7 @@ func (s *Server) GetStatus() string {
 	}
 	msg += "\nCurrent leases(IP, Status, MAC, Expiry):\n" + s.MachineLeases.String() + "\n" + s.DeviceLeases.String()
 	msg += "\nPXE Information(UUID, RootPath, BootFile):\n" + s.Pxe.String()
-	s.DHCPOn <- on
+	s.dhcpOn <- on
 	s.TablesAccess <- true
 	return msg
 }
