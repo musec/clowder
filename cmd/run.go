@@ -6,7 +6,6 @@ import (
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/server"
 	"github.com/spf13/cobra"
-	"log"
 	"net"
 	"os"
 )
@@ -35,21 +34,6 @@ func runRun(cmd *cobra.Command, args []string) {
 		fmt.Println("error:", err.Error())
 		return
 	}
-
-	//Create log file
-	logFile := config.GetString("server.log")
-
-	var file *os.File
-	if logFile == "" {
-		file = os.Stdout
-	} else {
-		file, err = os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			log.Println("Failed to open log file", logFile, ":", err)
-			file = os.Stdout
-		}
-	}
-	s.Logger = log.New(file, "", log.Ldate|log.Ltime)
 
 	//Open databse
 	dbType := config.GetString("server.dbtype")

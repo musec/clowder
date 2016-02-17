@@ -44,7 +44,7 @@ type Server struct {
 	dhcpOn  chan bool
 
 	//Logging
-	Logger    *log.Logger
+	logger    *log.Logger
 	logAccess chan bool
 }
 
@@ -57,6 +57,21 @@ func New(config *viper.Viper) (*Server, error) {
 
 	config.SetDefault("server.dns", ip)
 	config.SetDefault("server.router", ip)
+
+	logFileName := config.GetString("server.log")
+
+	var logFile *os.File
+	if logFileName == "" {
+		logFile = os.Stdout
+	} else {
+		logFileOptions := os.O_CREATE | os.O_WRONLY | os.O_APPEND
+		logFile, err = os.OpenFile(logFileName, logFileOptions, 0666)
+		if err != nil {
+			log.Println("Error opening log file", logFileName, ":", err)
+			logFile = os.Stdout
+		}
+	}
+	s.logger = log.New(logFile, "", log.Ldate|log.Ltime)
 
 	s.Ip = net.ParseIP(config.GetString("server.ip")).To4()
 	s.Mask = net.ParseIP(config.GetString("server.subnetmask")).To4()
@@ -81,7 +96,6 @@ func New(config *viper.Viper) (*Server, error) {
 	s.logAccess <- true
 	s.dhcpOn = make(chan bool, 1)
 	s.dhcpOn <- false
-	s.Logger = nil
 
 	return s, err
 }
@@ -269,7 +283,7 @@ func (s *Server) StopDHCPServer() {
 
 func (s *Server) WriteLog(message string) {
 	<-s.logAccess
-	s.Logger.Println(message)
+	s.logger.Println(message)
 	fmt.Println(message)
 	s.logAccess <- true
 }

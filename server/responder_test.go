@@ -5,9 +5,7 @@ import (
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
 	"github.com/spf13/viper"
-	"log"
 	"net"
-	"os"
 	"testing"
 )
 
@@ -207,7 +205,6 @@ func TestResponder(t *testing.T) {
 		t.Fatal("error creating server:", err)
 	}
 
-	s.Logger = log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	s.Pxe = make(dbase.PxeTable, 10, 10)
 
 	for i := range dhcpPackets {
