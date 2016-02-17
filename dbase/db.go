@@ -18,7 +18,16 @@ func Connect(dbType string, dbFile string) (*sql.DB, error) {
 
 	fmt.Printf("INFO\tUsing '%v' database '%v'\n", dbType, dbFile)
 
-	return sql.Open(dbType, dbFile)
+	db, err := sql.Open(dbType, dbFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
 
 //ReadBindingFromDB reads MAC address binding infromation from database
