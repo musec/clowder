@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"strconv"
 )
 
 var runCmd = &cobra.Command{
@@ -84,8 +83,9 @@ func runRun(cmd *cobra.Command, args []string) {
 }
 
 func stopRun(cmd *cobra.Command, args []string) {
-	addr := tcpAddr + ":" + strconv.Itoa(tcpPort)
-	if msg, err := server.SendCommand(addr, "STOPCLOWDER"); err == nil {
+	c := server.ConnectOrDie(config)
+
+	if msg, err := c.SendCommand("STOPCLOWDER"); err == nil {
 		fmt.Println(msg)
 	} else {
 		fmt.Println(err.Error())
@@ -94,7 +94,6 @@ func stopRun(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	stopCmd.PersistentFlags().StringVarP(&tcpAddr, "addr", "a", "localhost", "IP Address of Clowder server")
 	RootCmd.AddCommand(runCmd)
 	RootCmd.AddCommand(stopCmd)
 }

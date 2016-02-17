@@ -298,31 +298,3 @@ func (s *Server) GetStatus() string {
 	s.TablesAccess <- true
 	return msg
 }
-
-func SendCommand(addr, cmd string) (string, error) {
-	var (
-		tcpAddr *net.TCPAddr
-		conn    *net.TCPConn
-		err     error
-		buf     [2048]byte
-		n       int
-	)
-	if tcpAddr, err = net.ResolveTCPAddr("tcp4", addr); err != nil {
-		return "", err
-	}
-	if conn, err = net.DialTCP("tcp4", nil, tcpAddr); err != nil {
-		return "", err
-	}
-	if _, err = conn.Write([]byte(cmd)); err != nil {
-		return "", err
-	}
-	if n, err = conn.Read(buf[0:]); err != nil {
-		return "", err
-	}
-	if cmd != "CLOSECONN" {
-		if _, err = conn.Write([]byte("CLOSECONN")); err != nil {
-			return "", err
-		}
-	}
-	return string(buf[:n]), nil
-}

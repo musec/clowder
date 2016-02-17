@@ -10,7 +10,6 @@ import (
 )
 
 var config *viper.Viper
-var tcpPort int
 
 var RootCmd = &cobra.Command{Use: "clowder"}
 
@@ -26,7 +25,10 @@ func init() {
 	flags.StringP("dbtype", "t", "sqlite3", "Database type (default: sqlite3)")
 	config.BindPFlag("server.dbtype", flags.Lookup("dbtype"))
 
-	flags.IntVarP(&tcpPort, "port", "p", 5000, "TCP control port")
+	flags.String("host", "localhost", "Clowder server")
+	config.BindPFlag("server.host", flags.Lookup("host"))
+
+	flags.IntP("port", "p", 5000, "TCP control port")
 	config.BindPFlag("server.controlPort", flags.Lookup("port"))
 
 	err := readConfigurationFile()
