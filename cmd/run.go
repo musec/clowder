@@ -37,11 +37,17 @@ func runRun(cmd *cobra.Command, args []string) {
 	}
 
 	//Create log file
-	logFile := "clowder.log"
-	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Println("Failed to open log file", logFile, ":", err)
+	logFile := config.GetString("server.log")
+
+	var file *os.File
+	if logFile == "" {
 		file = os.Stdout
+	} else {
+		file, err = os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			log.Println("Failed to open log file", logFile, ":", err)
+			file = os.Stdout
+		}
 	}
 	s.Logger = log.New(file, "", log.Ldate|log.Ltime)
 
