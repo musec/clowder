@@ -196,18 +196,6 @@ var dhcpPackets = [][]byte{
 }
 
 func TestResponder(t *testing.T) {
-
-	/*
-		//Create server
-		serverIP := net.IP{192, 168, 1, 1}
-		serverMask := net.IP{255, 255, 255, 0}
-		duration := time.Minute * 10
-		hostname, _ := os.Hostname()
-		dns := net.IP{192, 168, 1, 1}
-		router := net.IP{192, 168, 1, 1}
-		domainName := "musec.engr.mun.ca"
-	*/
-
 	config := viper.New()
 	config.Set("server.ip", "192.168.1.1")
 	config.Set("server.subnetmask", "255.255.255.0")
