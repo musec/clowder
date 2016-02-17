@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/musec/clowder/dbase"
@@ -55,14 +54,8 @@ func runRun(cmd *cobra.Command, args []string) {
 	dbType := viper.GetString("server.dbtype")
 	dbFile := viper.GetString("server.database")
 
-	if dbType == "" || dbFile == "" {
-		log.Printf("Invalid database type/name: %v:%v\n", dbType, dbFile)
-	}
-
-	fmt.Printf("INFO\tUsing '%v' database '%v'\n", dbType, dbFile)
-	if db, err := sql.Open(dbType, dbFile); err == nil && db != nil {
-		s.DBase = db
-	} else {
+	s.DBase, err = dbase.Connect(dbType, dbFile)
+	if err != nil {
 		s.WriteLog("ERROR\t" + err.Error())
 		os.Exit(1)
 	}

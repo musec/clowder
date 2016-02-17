@@ -2,9 +2,24 @@ package dbase
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"net"
 )
+
+func Connect(dbType string, dbFile string) (*sql.DB, error) {
+	if dbType == "" {
+		return nil, fmt.Errorf("Invalid database type: %v", dbType)
+	}
+
+	if dbFile == "" {
+		return nil, fmt.Errorf("Invalid database: %v", dbFile)
+	}
+
+	fmt.Printf("INFO\tUsing '%v' database '%v'\n", dbType, dbFile)
+
+	return sql.Open(dbType, dbFile)
+}
 
 //ReadBindingFromDB reads MAC address binding infromation from database
 func (l Leases) ReadBindingFromDB(db *sql.DB) error {
