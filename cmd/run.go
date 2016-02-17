@@ -6,7 +6,6 @@ import (
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/server"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"log"
 	"net"
 	"os"
@@ -32,14 +31,11 @@ var stopCmd = &cobra.Command{
 func runRun(cmd *cobra.Command, args []string) {
 	//Create server
 	fmt.Println("Starting Clowder...")
-	serverIP := net.ParseIP(viper.GetString("server.ip")).To4()
-	serverMask := net.ParseIP(viper.GetString("server.subnetmask")).To4()
-	duration := viper.GetDuration("server.duration")
-	hostname, _ := os.Hostname()
-	dns := net.ParseIP(viper.GetString("server.dns")).To4()
-	router := net.ParseIP(viper.GetString("server.router")).To4()
-	domainName := viper.GetString("server.domainname")
-	s := server.NewServer(serverIP, serverMask, tcpPort, duration, hostname, dns, router, domainName)
+	s, err := server.New(config)
+	if err != nil {
+		fmt.Println("error:", err.Error())
+		return
+	}
 
 	//Create log file
 	logFile := "clowder.log"
@@ -51,8 +47,8 @@ func runRun(cmd *cobra.Command, args []string) {
 	s.Logger = log.New(file, "", log.Ldate|log.Ltime)
 
 	//Open databse
-	dbType := viper.GetString("server.dbtype")
-	dbFile := viper.GetString("server.database")
+	dbType := config.GetString("server.dbtype")
+	dbFile := config.GetString("server.database")
 
 	s.DBase, err = dbase.Connect(dbType, dbFile)
 	if err != nil {
@@ -61,8 +57,8 @@ func runRun(cmd *cobra.Command, args []string) {
 	}
 
 	//Setup machine IP pool
-	machineIP := net.ParseIP(viper.GetString("machines.ipstart"))
-	machineRange := viper.GetInt("machines.iprange")
+	machineIP := net.ParseIP(config.GetString("machines.ipstart"))
+	machineRange := config.GetInt("machines.iprange")
 	s.MachineLeases = dbase.NewLeases(machineIP, machineRange)
 	if err := s.MachineLeases.ReadBindingFromDB(s.DBase); err != nil {
 		s.WriteLog("ERROR\t" + err.Error())
@@ -70,8 +66,8 @@ func runRun(cmd *cobra.Command, args []string) {
 	}
 
 	//Setup device IP pool
-	deviceIP := net.ParseIP(viper.GetString("devices.ipstart"))
-	deviceRange := viper.GetInt("devices.iprange")
+	deviceIP := net.ParseIP(config.GetString("devices.ipstart"))
+	deviceRange := config.GetInt("devices.iprange")
 	s.DeviceLeases = dbase.NewLeases(deviceIP, deviceRange)
 	if err := s.DeviceLeases.ReadBindingFromDB(s.DBase); err != nil {
 		s.WriteLog("ERROR\t" + err.Error())

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
+	"github.com/spf13/viper"
 	"log"
 	"net"
+	"os"
 	"strconv"
 	"time"
 )
@@ -46,23 +48,30 @@ type Server struct {
 	LogAccess chan bool
 }
 
-//NewServer
-func NewServer(ip, mask net.IP, port int, duration time.Duration, hostname string, dns, router net.IP, domainName string) *Server {
+// Create a new Clowder server using Viper-provided configuration values.
+func New(config *viper.Viper) (*Server, error) {
 	s := new(Server)
-	s.Ip = ip
-	s.Mask = mask
-	s.TcpPort = port
-	s.LeaseDuration = duration
-	s.ServerName = hostname
-	if dns == nil {
-		dns = ip
+	var err error = nil
+
+	ip := config.GetString("server.ip")
+
+	config.SetDefault("server.dns", ip)
+	config.SetDefault("server.router", ip)
+
+	s.Ip = net.ParseIP(config.GetString("server.ip")).To4()
+	s.Mask = net.ParseIP(config.GetString("server.subnetmask")).To4()
+	s.TcpPort = config.GetInt("server.controlPort")
+	s.LeaseDuration = config.GetDuration("server.duration")
+
+	s.ServerName, err = os.Hostname()
+	if err != nil {
+		return nil, err
 	}
-	s.DNS = dns
-	if router == nil {
-		router = ip
-	}
-	s.Router = router
-	s.DomainName = domainName
+
+	s.DNS = net.ParseIP(config.GetString("server.dns")).To4()
+	s.Router = net.ParseIP(config.GetString("server.router")).To4()
+	s.DomainName = config.GetString("server.domainname")
+
 	s.NewHardware = make(dbase.Hardwares)
 	s.Pxe = make(dbase.PxeTable, 0, 10)
 
@@ -73,7 +82,8 @@ func NewServer(ip, mask net.IP, port int, duration time.Duration, hostname strin
 	s.DHCPOn = make(chan bool, 1)
 	s.DHCPOn <- false
 	s.Logger = nil
-	return s
+
+	return s, err
 }
 
 //StartTCPServer run a TCP server

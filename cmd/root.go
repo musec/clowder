@@ -9,20 +9,22 @@ import (
 	"path"
 )
 
+var config *viper.Viper
 var tcpPort int
 
 var RootCmd = &cobra.Command{Use: "clowder"}
 
 func init() {
 	var flags = RootCmd.PersistentFlags()
+	config = viper.New()
 
 	flags.StringP("config", "c", "", "Configuration file")
 	flags.StringP("database", "d", "/var/db/clowder.db", "Machine database")
 	flags.StringP("dbtype", "t", "sqlite3", "Database type (default: sqlite3)")
 	flags.IntVarP(&tcpPort, "port", "p", 5000, "TCP control port")
 
-	viper.BindPFlag("server.database", flags.Lookup("database"))
-	viper.BindPFlag("server.dbtype", flags.Lookup("dbtype"))
+	config.BindPFlag("server.database", flags.Lookup("database"))
+	config.BindPFlag("server.dbtype", flags.Lookup("dbtype"))
 
 	err := readConfigurationFile()
 	if err != nil {
@@ -32,7 +34,7 @@ func init() {
 }
 
 func readConfigurationFile() error {
-	viper.SetConfigName("clowder")
+	config.SetConfigName("clowder")
 
 	// Prefer user configuration to local configuration
 	// to distribution configuration, etc.
@@ -41,16 +43,16 @@ func readConfigurationFile() error {
 		return err
 	}
 
-	viper.AddConfigPath(homedir)
-	viper.AddConfigPath(".")
-	viper.AddConfigPath(path.Join(homedir, ".clowder"))
-	viper.AddConfigPath(path.Join(homedir, "clowder"))
-	viper.AddConfigPath(path.Join(homedir, ".config"))
-	viper.AddConfigPath(path.Join(homedir, ".config", "clowder"))
-	viper.AddConfigPath("/usr/local/etc")
-	viper.AddConfigPath("/etc")
+	config.AddConfigPath(homedir)
+	config.AddConfigPath(".")
+	config.AddConfigPath(path.Join(homedir, ".clowder"))
+	config.AddConfigPath(path.Join(homedir, "clowder"))
+	config.AddConfigPath(path.Join(homedir, ".config"))
+	config.AddConfigPath(path.Join(homedir, ".config", "clowder"))
+	config.AddConfigPath("/usr/local/etc")
+	config.AddConfigPath("/etc")
 
-	err = viper.ReadInConfig()
+	err = config.ReadInConfig()
 	if notfound, ok := err.(*viper.ConfigFileNotFoundError); ok {
 		fmt.Println(notfound, "- using default settings")
 	}
