@@ -10,20 +10,19 @@ type HasLogger struct {
 }
 
 func (h *HasLogger) InitLog(filename string) error {
-	var file *os.File
-	var err error
-
 	if filename == "" {
-		file = os.Stdout
-	} else {
-		fileOptions := os.O_CREATE | os.O_WRONLY | os.O_APPEND
-		file, err = os.OpenFile(filename, fileOptions, 0666)
-		if err != nil {
-			return err
-		}
+		// Use a simple format for stdout: no prefix, date or time
+		h.logger = log.New(os.Stdout, "", 0)
+		return nil
 	}
 
-	h.logger = log.New(file, "", log.Ldate|log.Ltime)
+	fileOptions := os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	file, err := os.OpenFile(filename, fileOptions, 0666)
+	if err != nil {
+		return err
+	}
+
+	h.logger = log.New(file, "", log.LstdFlags|log.Lmicroseconds)
 	return nil
 }
 
