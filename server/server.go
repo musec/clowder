@@ -6,7 +6,6 @@ import (
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
 	"github.com/spf13/viper"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -19,6 +18,8 @@ type Hardware struct {
 }
 
 type Server struct {
+	HasLogger
+
 	//Server information
 	Ip            net.IP
 	Mask          net.IP
@@ -42,10 +43,6 @@ type Server struct {
 	udpConn *net.UDPConn
 	tcpQuit chan bool
 	dhcpOn  chan bool
-
-	//Logging
-	logger    *log.Logger
-	logAccess chan bool
 }
 
 // Create a new Clowder server using Viper-provided configuration values.
@@ -58,20 +55,10 @@ func New(config *viper.Viper) (*Server, error) {
 	config.SetDefault("server.dns", ip)
 	config.SetDefault("server.router", ip)
 
-	logFileName := config.GetString("server.log")
-
-	var logFile *os.File
-	if logFileName == "" {
-		logFile = os.Stdout
-	} else {
-		logFileOptions := os.O_CREATE | os.O_WRONLY | os.O_APPEND
-		logFile, err = os.OpenFile(logFileName, logFileOptions, 0666)
-		if err != nil {
-			log.Println("Error opening log file", logFileName, ":", err)
-			logFile = os.Stdout
-		}
+	err = s.InitLog(config.GetString("server.log"))
+	if err != nil {
+		return nil, err
 	}
-	s.logger = log.New(logFile, "", log.Ldate|log.Ltime)
 
 	s.Ip = net.ParseIP(config.GetString("server.ip")).To4()
 	s.Mask = net.ParseIP(config.GetString("server.subnetmask")).To4()
@@ -92,8 +79,6 @@ func New(config *viper.Viper) (*Server, error) {
 
 	s.TablesAccess = make(chan bool, 1)
 	s.TablesAccess <- true
-	s.logAccess = make(chan bool, 1)
-	s.logAccess <- true
 	s.dhcpOn = make(chan bool, 1)
 	s.dhcpOn <- false
 
@@ -114,7 +99,7 @@ func (s *Server) StartTCPServer() error {
 	s.tcpConn = make([]*net.TCPConn, 0, 10)
 	s.tcpQuit = make(chan bool)
 
-	s.WriteLog("INFO\tClowder is running on port " + strconv.Itoa(s.controlPort))
+	s.Log("Clowder is running on port " + strconv.Itoa(s.controlPort))
 
 	for {
 		conn, err := listener.AcceptTCP()
@@ -139,11 +124,11 @@ func (s *Server) StartTCPServer() error {
 			defer conn.Close()
 			var buf [512]byte
 			addr := conn.RemoteAddr().String()
-			s.WriteLog("INFO\tNew connection from " + conn.RemoteAddr().String())
+			s.Log("New connection from " + conn.RemoteAddr().String())
 			for {
 				n, err := conn.Read(buf[0:])
 				if err != nil {
-					s.WriteLog("ERROR\t" + err.Error())
+					s.Error("" + err.Error())
 					return
 				}
 				if n <= 2 {
@@ -153,7 +138,7 @@ func (s *Server) StartTCPServer() error {
 				if cmd[n-2:] == string([]byte{13, 10}) {
 					cmd = cmd[:n-2]
 				}
-				s.WriteLog("INFO\tGet command " + string(cmd) + " from " + addr)
+				s.Log("Get command " + string(cmd) + " from " + addr)
 				switch cmd {
 				case "DHCPON":
 					go s.StartDHCPServer()
@@ -204,7 +189,7 @@ func (s *Server) StartDHCPServer() {
 	on := <-s.dhcpOn
 	if on {
 		s.dhcpOn <- true
-		s.WriteLog("ERROR\tTried to start a DHCP server which is running")
+		s.Error("Tried to start a DHCP server which is running")
 		return
 	}
 
@@ -212,7 +197,7 @@ func (s *Server) StartDHCPServer() {
 	conn, err := net.ListenUDP("udp4", udpAddr)
 	if err != nil {
 		s.dhcpOn <- false
-		s.WriteLog("ERROR\t" + err.Error())
+		s.Error("" + err.Error())
 		return
 	}
 
@@ -226,7 +211,7 @@ func (s *Server) StartDHCPServer() {
 
 	buffer := make([]byte, 1500)
 
-	s.WriteLog("INFO\tDHCP server is enabled")
+	s.Log("DHCP server is enabled")
 
 	for {
 		n, addr, err := s.udpConn.ReadFrom(buffer)
@@ -235,7 +220,7 @@ func (s *Server) StartDHCPServer() {
 			on = <-s.dhcpOn
 			s.dhcpOn <- on
 			if on {
-				s.WriteLog("ERROR\t" + err.Error())
+				s.Error("" + err.Error())
 			}
 			return
 
@@ -245,7 +230,7 @@ func (s *Server) StartDHCPServer() {
 		}
 		ipStr, portStr, err := net.SplitHostPort(addr.String())
 		if err != nil {
-			s.WriteLog("ERROR\t" + err.Error())
+			s.Error("" + err.Error())
 			return
 		}
 
@@ -260,11 +245,11 @@ func (s *Server) StartDHCPServer() {
 			addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
 		}
 		if _, err := conn.WriteTo(responsePacket, addr); err != nil {
-			s.WriteLog("ERROR\t" + err.Error())
+			s.Error("" + err.Error())
 			return
 		}
 		//if _, err := conn.WriteTo(responsePacket, &net.UDPAddr{IP: net.IPv4bcast, Port: 68}); err != nil {
-		//	s.WriteLog("ERROR\t"+err.Error())
+		//	s.Error(""+err.Error())
 		//	return
 		//}
 	}
@@ -274,18 +259,11 @@ func (s *Server) StopDHCPServer() {
 	on := <-s.dhcpOn
 	if on {
 		s.udpConn.Close()
-		s.WriteLog("INFO\tDHCP server is disabled")
+		s.Log("DHCP server is disabled")
 	} else {
-		s.WriteLog("ERROR\tTried to stop a DHCP server without being started")
+		s.Error("Tried to stop a DHCP server without being started")
 	}
 	s.dhcpOn <- false
-}
-
-func (s *Server) WriteLog(message string) {
-	<-s.logAccess
-	s.logger.Println(message)
-	fmt.Println(message)
-	s.logAccess <- true
 }
 
 func (s *Server) ExportLeaseTable() string {

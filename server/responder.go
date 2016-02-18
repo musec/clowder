@@ -51,7 +51,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 	switch msgType {
 	case pxedhcp.DISCOVER:
-		s.WriteLog("INFO\tGet DISCOVER message from " + mac.String())
+		s.Log("Get DISCOVER message from " + mac.String())
 		if lease == nil { //no record of this MAC address
 			s.NewHardware[mac.String()] = uuid
 			return nil
@@ -77,7 +77,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 				response.SetBootFile(pxe.BootFile)
 				response.AddOption(pxedhcp.OptRootPath, []byte(pxe.RootPath))
 			} else {
-				s.WriteLog("WARN Receive PXE DHCP DISCOVER packet from a known MAC address: " + mac.String() + ". But there isn't PXE information to response.")
+				s.Warn("Receive PXE DHCP DISCOVER packet from a known MAC address: " + mac.String() + ". But there isn't PXE information to response.")
 				return nil
 			}
 		}
@@ -91,7 +91,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		return response
 
 	case pxedhcp.REQUEST:
-		s.WriteLog("INFO\tGet REQUEST message from " + mac.String())
+		s.Log("Get REQUEST message from " + mac.String())
 		//Is the packet for this server
 		if serverId, ok := options[pxedhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip) {
 			return nil
@@ -99,7 +99,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 		if lease == nil { //no record of this MAC address
 			//s.NewMachines=append(s.NewMachines,Machines{mac,time.Now(),pxeRequest})
-			s.WriteLog("WARN Receive a DHCP REQUEST packet from an unknown MAC address: " + mac.String() + ".")
+			s.Warn("Receive a DHCP REQUEST packet from an unknown MAC address: " + mac.String() + ".")
 			return nil
 		}
 
@@ -112,13 +112,13 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 		//If the request IP is different the offer IP
 		if requestIP.Equal(net.IPv4zero) || !requestIP.Equal(lease.Ip) {
-			s.WriteLog("Request IP " + requestIP.String() + " is different to offer IP " + lease.Ip.String())
+			s.Log("Request IP " + requestIP.String() + " is different to offer IP " + lease.Ip.String())
 			response.AddOption(pxedhcp.OptDHCPMsgType, []byte{pxedhcp.NAK})
 			return response
 		}
 
 		if pxeRequest && pxe == nil {
-			s.WriteLog("WARN Receive PXE DHCP REQUEST packet from a known MAC address: " + mac.String() + ". But there isn't PXE information to response.")
+			s.Warn("Receive PXE DHCP REQUEST packet from a known MAC address: " + mac.String() + ". But there isn't PXE information to response.")
 			response.AddOption(pxedhcp.OptDHCPMsgType, []byte{pxedhcp.NAK})
 			return response
 		}

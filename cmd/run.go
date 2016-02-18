@@ -41,7 +41,7 @@ func runRun(cmd *cobra.Command, args []string) {
 
 	s.DBase, err = dbase.Connect(dbType, dbFile)
 	if err != nil {
-		s.WriteLog("ERROR\t" + err.Error())
+		s.Error("" + err.Error())
 		os.Exit(1)
 	}
 
@@ -50,7 +50,7 @@ func runRun(cmd *cobra.Command, args []string) {
 	machineRange := config.GetInt("machines.iprange")
 	s.MachineLeases = dbase.NewLeases(machineIP, machineRange)
 	if err := s.MachineLeases.ReadBindingFromDB(s.DBase); err != nil {
-		s.WriteLog("ERROR\t" + err.Error())
+		s.Error("" + err.Error())
 		os.Exit(1)
 	}
 
@@ -59,7 +59,7 @@ func runRun(cmd *cobra.Command, args []string) {
 	deviceRange := config.GetInt("devices.iprange")
 	s.DeviceLeases = dbase.NewLeases(deviceIP, deviceRange)
 	if err := s.DeviceLeases.ReadBindingFromDB(s.DBase); err != nil {
-		s.WriteLog("ERROR\t" + err.Error())
+		s.Error("" + err.Error())
 		os.Exit(1)
 	}
 
@@ -67,7 +67,7 @@ func runRun(cmd *cobra.Command, args []string) {
 	s.Pxe.ReadPxeFromDB(s.DBase)
 
 	if err := s.StartTCPServer(); err != nil {
-		s.WriteLog("ERROR\t" + err.Error())
+		s.Error("" + err.Error())
 		os.Exit(1)
 	}
 }
