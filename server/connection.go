@@ -35,18 +35,23 @@ func Connect(config *viper.Viper) (Connection, error) {
 	return c, nil
 }
 
-// Connect to a server or terminate the application.
-func ConnectOrDie(config *viper.Viper) Connection {
+// Run a command by sending it to the server and logging the response/error).
+func Exec(command string, config *viper.Viper) {
 	c, err := Connect(config)
 
 	if err != nil {
 		c.FatalError(err)
 	}
 
-	return c
+	response, err := c.sendCommand(command)
+	if err == nil {
+		c.Log(response)
+	} else {
+		c.FatalError(err)
+	}
 }
 
-func (c Connection) SendCommand(cmd string) (string, error) {
+func (c Connection) sendCommand(cmd string) (string, error) {
 	var buffer [2048]byte
 
 	if _, err := c.connection.Write([]byte(cmd)); err != nil {

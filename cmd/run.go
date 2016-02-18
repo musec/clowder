@@ -73,14 +73,7 @@ func runRun(cmd *cobra.Command, args []string) {
 }
 
 func stopRun(cmd *cobra.Command, args []string) {
-	c := server.ConnectOrDie(config)
-
-	if msg, err := c.SendCommand("STOPCLOWDER"); err == nil {
-		c.Log(msg)
-	} else {
-		c.FatalError(err)
-	}
-
+	server.Exec("STOPCLOWDER", config)
 }
 
 func init() {

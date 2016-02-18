@@ -40,34 +40,13 @@ var statCmd = &cobra.Command{
 }
 
 func dhcpOnRun(cmd *cobra.Command, args []string) {
-	c := server.ConnectOrDie(config)
-
-	if msg, err := c.SendCommand("DHCPON"); err == nil {
-		c.Log(msg)
-	} else {
-		c.FatalError(err)
-	}
-
+	server.Exec("DHCPON", config)
 }
 
 func dhcpOffRun(cmd *cobra.Command, args []string) {
-	c := server.ConnectOrDie(config)
-
-	if msg, err := c.SendCommand("DHCPOFF"); err == nil {
-		c.Log(msg)
-	} else {
-		c.FatalError(err)
-	}
-
+	server.Exec("DHCPOFF", config)
 }
 
 func statRun(cmd *cobra.Command, args []string) {
-	c := server.ConnectOrDie(config)
-
-	if msg, err := c.SendCommand("STATUS"); err == nil {
-		c.Log(msg)
-	} else {
-		c.FatalError(err)
-	}
-
+	server.Exec("STATUS", config)
 }
