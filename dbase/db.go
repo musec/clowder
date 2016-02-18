@@ -7,18 +7,18 @@ import (
 	"net"
 )
 
-func Connect(dbType string, dbFile string) (*sql.DB, error) {
+func Connect(dbType string, name string) (*sql.DB, error) {
 	if dbType == "" {
 		return nil, fmt.Errorf("Invalid database type: %v", dbType)
 	}
 
-	if dbFile == "" {
-		return nil, fmt.Errorf("Invalid database: %v", dbFile)
+	if name == "" {
+		return nil, fmt.Errorf("Invalid database: %v", name)
 	}
 
-	fmt.Printf("INFO\tUsing '%v' database '%v'\n", dbType, dbFile)
+	fmt.Printf("INFO\tUsing '%v' database '%v'\n", dbType, name)
 
-	db, err := sql.Open(dbType, dbFile)
+	db, err := sql.Open(dbType, name)
 	if err != nil {
 		return nil, err
 	}

@@ -26,6 +26,10 @@ func (h *HasLogger) InitLog(filename string) error {
 	return nil
 }
 
+func (h HasLogger) DefaultLogger() log.Logger {
+	return *h.logger
+}
+
 // Output an ordinary ("info") message to the log.
 func (h HasLogger) Log(message ...interface{}) {
 	h.logger.Println("INFO:  ", message)
