@@ -1,4 +1,4 @@
-package dbase
+package server
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 	"net"
 )
 
-func Connect(dbType string, name string, log log.Logger) (*sql.DB, error) {
+func OpenDB(dbType string, name string, log log.Logger) (*sql.DB, error) {
 	if dbType == "" {
 		return nil, fmt.Errorf("Invalid database type: %v", dbType)
 	}

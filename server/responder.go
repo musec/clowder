@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/binary"
-	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
 	"net"
 	"time"
@@ -27,9 +26,9 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 	//Is a PXE DHCP Packet
 	pxeRequest := options[pxedhcp.OptClassId] != nil && options[pxedhcp.OptClientSystemArchitecture] != nil && options[pxedhcp.OptClientNetworkDeviceInterface] != nil && options[pxedhcp.OptUUIDGUID] != nil
-	var pool dbase.Leases
-	var uuid dbase.UUID
-	var pxe *dbase.PxeRecord
+	var pool Leases
+	var uuid UUID
+	var pxe *PxeRecord
 	if pxeRequest {
 		if len(options[pxedhcp.OptUUIDGUID]) == 17 {
 			uuid = options[pxedhcp.OptUUIDGUID][1:]
@@ -143,7 +142,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		}
 
 		//update lease information
-		lease.Stat = dbase.ALLOCATED
+		lease.Stat = ALLOCATED
 		lease.Expiry = time.Now().Add(s.LeaseDuration)
 
 		return response
@@ -156,10 +155,10 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 			return nil
 		}
 		//set the IP address to NOTAVAILABLE
-		lease.Stat = dbase.NOTAVAILABLE
+		lease.Stat = NOTAVAILABLE
 		lease.Mac = net.HardwareAddr{}
 		newLease := pool.GetAvailLease()
-		newLease.Stat = dbase.RESERVED
+		newLease.Stat = RESERVED
 		newLease.Mac = mac
 		//Update database
 		//db.UpdateBindingTable(mac,newLease.Ip)
@@ -173,7 +172,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 			return nil
 		}
 		//set the IP address to RESERVED
-		lease.Stat = dbase.RESERVED
+		lease.Stat = RESERVED
 		return nil
 	}
 

@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
 	"github.com/spf13/viper"
 	"net"
@@ -205,27 +204,27 @@ func TestResponder(t *testing.T) {
 		t.Fatal("error creating server:", err)
 	}
 
-	s.Pxe = make(dbase.PxeTable, 10, 10)
+	s.Pxe = make(PxeTable, 10, 10)
 
 	for i := range dhcpPackets {
 		fmt.Println("******************************************\nTest case", i, "\n******************************************\n")
-		s.MachineLeases = dbase.NewLeases(net.IP{192, 168, 1, 10}, 50)
-		s.DeviceLeases = dbase.NewLeases(net.IP{192, 168, 1, 100}, 50)
+		s.MachineLeases = NewLeases(net.IP{192, 168, 1, 10}, 50)
+		s.DeviceLeases = NewLeases(net.IP{192, 168, 1, 100}, 50)
 
 		req := pxedhcp.Packet(dhcpPackets[i])
 		options := req.ParseOptions()
 		mac := req.GetHardwareAddr()
 		uuid, ok := options[97]
 		if ok {
-			s.Pxe[0] = dbase.PxeRecord{uuid, "blackmarsh1", "pxeboot"}
+			s.Pxe[0] = PxeRecord{uuid, "blackmarsh1", "pxeboot"}
 			pool := s.MachineLeases
 			ip := net.IP{192, 168, 1, 21}
-			pool.SetIPStat(ip, dbase.RESERVED)
+			pool.SetIPStat(ip, RESERVED)
 			//pool.SetMac(ip,mac)
 		} else {
 			pool := s.DeviceLeases
 			ip := net.IP{192, 168, 1, 100}
-			pool.SetIPStat(ip, dbase.RESERVED)
+			pool.SetIPStat(ip, RESERVED)
 			pool.SetMac(ip, mac)
 		}
 		rep := s.DHCPResponder(req)

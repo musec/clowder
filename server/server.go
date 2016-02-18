@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
 	"github.com/spf13/viper"
 	"net"
@@ -29,10 +28,10 @@ type Server struct {
 	DomainName    string
 
 	//Data management
-	MachineLeases dbase.Leases
-	DeviceLeases  dbase.Leases
-	Pxe           dbase.PxeTable
-	NewHardware   dbase.Hardwares
+	MachineLeases Leases
+	DeviceLeases  Leases
+	Pxe           PxeTable
+	NewHardware   Hardwares
 	TablesAccess  chan bool
 
 	//connections
@@ -71,8 +70,8 @@ func New(config *viper.Viper) (*Server, error) {
 	s.Router = net.ParseIP(config.GetString("server.router")).To4()
 	s.DomainName = config.GetString("server.domainname")
 
-	s.NewHardware = make(dbase.Hardwares)
-	s.Pxe = make(dbase.PxeTable, 0, 10)
+	s.NewHardware = make(Hardwares)
+	s.Pxe = make(PxeTable, 0, 10)
 
 	s.TablesAccess = make(chan bool, 1)
 	s.TablesAccess <- true
@@ -89,7 +88,7 @@ func (s *Server) LoadPersistentData(config *viper.Viper) error {
 	dbType := config.GetString("server.dbtype")
 	dbFile := config.GetString("server.database")
 
-	db, err := dbase.Connect(dbType, dbFile, s.DefaultLogger())
+	db, err := OpenDB(dbType, dbFile, s.DefaultLogger())
 	if err != nil {
 		return err
 	}
@@ -97,7 +96,7 @@ func (s *Server) LoadPersistentData(config *viper.Viper) error {
 	// Set up machine IP pool
 	machineIP := net.ParseIP(config.GetString("machines.ipstart"))
 	machineRange := config.GetInt("machines.iprange")
-	s.MachineLeases = dbase.NewLeases(machineIP, machineRange)
+	s.MachineLeases = NewLeases(machineIP, machineRange)
 	if err := s.MachineLeases.ReadBindingFromDB(db); err != nil {
 		s.Error("" + err.Error())
 		os.Exit(1)
@@ -106,7 +105,7 @@ func (s *Server) LoadPersistentData(config *viper.Viper) error {
 	// Setup device IP pool
 	deviceIP := net.ParseIP(config.GetString("devices.ipstart"))
 	deviceRange := config.GetInt("devices.iprange")
-	s.DeviceLeases = dbase.NewLeases(deviceIP, deviceRange)
+	s.DeviceLeases = NewLeases(deviceIP, deviceRange)
 	if err := s.DeviceLeases.ReadBindingFromDB(db); err != nil {
 		s.Error("" + err.Error())
 		os.Exit(1)
