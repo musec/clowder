@@ -39,7 +39,7 @@ func runRun(cmd *cobra.Command, args []string) {
 	}
 
 	if err := s.StartTCPServer(); err != nil {
-		s.Error("" + err.Error())
+		s.FatalError(err)
 		os.Exit(1)
 	}
 }
