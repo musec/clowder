@@ -39,7 +39,7 @@ func runRun(cmd *cobra.Command, args []string) {
 	dbType := config.GetString("server.dbtype")
 	dbFile := config.GetString("server.database")
 
-	s.DBase, err = dbase.Connect(dbType, dbFile)
+	s.DBase, err = dbase.Connect(dbType, dbFile, s.DefaultLogger())
 	if err != nil {
 		s.Error("" + err.Error())
 		os.Exit(1)

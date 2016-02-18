@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"log"
 	"net"
 )
 
-func Connect(dbType string, name string) (*sql.DB, error) {
+func Connect(dbType string, name string, log log.Logger) (*sql.DB, error) {
 	if dbType == "" {
 		return nil, fmt.Errorf("Invalid database type: %v", dbType)
 	}
@@ -16,7 +17,7 @@ func Connect(dbType string, name string) (*sql.DB, error) {
 		return nil, fmt.Errorf("Invalid database: %v", name)
 	}
 
-	fmt.Printf("INFO\tUsing '%v' database '%v'\n", dbType, name)
+	log.Printf("Using %v database '%v'\n", dbType, name)
 
 	db, err := sql.Open(dbType, name)
 	if err != nil {
