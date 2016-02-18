@@ -3,10 +3,8 @@ package cmd
 import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/server"
 	"github.com/spf13/cobra"
-	"net"
 	"os"
 )
 
@@ -35,36 +33,10 @@ func runRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	//Open databse
-	dbType := config.GetString("server.dbtype")
-	dbFile := config.GetString("server.database")
-
-	s.DBase, err = dbase.Connect(dbType, dbFile, s.DefaultLogger())
+	err = s.LoadPersistentData(config)
 	if err != nil {
-		s.Error("" + err.Error())
-		os.Exit(1)
+		s.FatalError(err)
 	}
-
-	//Setup machine IP pool
-	machineIP := net.ParseIP(config.GetString("machines.ipstart"))
-	machineRange := config.GetInt("machines.iprange")
-	s.MachineLeases = dbase.NewLeases(machineIP, machineRange)
-	if err := s.MachineLeases.ReadBindingFromDB(s.DBase); err != nil {
-		s.Error("" + err.Error())
-		os.Exit(1)
-	}
-
-	//Setup device IP pool
-	deviceIP := net.ParseIP(config.GetString("devices.ipstart"))
-	deviceRange := config.GetInt("devices.iprange")
-	s.DeviceLeases = dbase.NewLeases(deviceIP, deviceRange)
-	if err := s.DeviceLeases.ReadBindingFromDB(s.DBase); err != nil {
-		s.Error("" + err.Error())
-		os.Exit(1)
-	}
-
-	//Read PXE information
-	s.Pxe.ReadPxeFromDB(s.DBase)
 
 	if err := s.StartTCPServer(); err != nil {
 		s.Error("" + err.Error())

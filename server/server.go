@@ -1,7 +1,6 @@
 package server
 
 import (
-	"database/sql"
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
 	"github.com/spf13/viper"
@@ -34,7 +33,6 @@ type Server struct {
 	DeviceLeases  dbase.Leases
 	Pxe           dbase.PxeTable
 	NewHardware   dbase.Hardwares
-	DBase         *sql.DB
 	TablesAccess  chan bool
 
 	//connections
@@ -82,6 +80,42 @@ func New(config *viper.Viper) (*Server, error) {
 	s.dhcpOn <- false
 
 	return s, err
+}
+
+func (s *Server) LoadPersistentData(config *viper.Viper) error {
+	//
+	// Connect to database and load persistent information:
+	//
+	dbType := config.GetString("server.dbtype")
+	dbFile := config.GetString("server.database")
+
+	db, err := dbase.Connect(dbType, dbFile, s.DefaultLogger())
+	if err != nil {
+		return err
+	}
+
+	// Set up machine IP pool
+	machineIP := net.ParseIP(config.GetString("machines.ipstart"))
+	machineRange := config.GetInt("machines.iprange")
+	s.MachineLeases = dbase.NewLeases(machineIP, machineRange)
+	if err := s.MachineLeases.ReadBindingFromDB(db); err != nil {
+		s.Error("" + err.Error())
+		os.Exit(1)
+	}
+
+	// Setup device IP pool
+	deviceIP := net.ParseIP(config.GetString("devices.ipstart"))
+	deviceRange := config.GetInt("devices.iprange")
+	s.DeviceLeases = dbase.NewLeases(deviceIP, deviceRange)
+	if err := s.DeviceLeases.ReadBindingFromDB(db); err != nil {
+		s.Error("" + err.Error())
+		os.Exit(1)
+	}
+
+	// Read PXE information
+	s.Pxe.ReadPxeFromDB(db)
+
+	return nil
 }
 
 //StartTCPServer run a TCP server
