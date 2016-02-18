@@ -12,7 +12,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 	//Get lock
 	<-s.TablesAccess
 	defer func() { s.TablesAccess <- true }()
-	options := p.ParseOptions()
+	options := p.Options()
 
 	//Get DHCP Message Type
 	val, ok := options[pxedhcp.OptDHCPMsgType]
@@ -45,7 +45,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 	binary.BigEndian.PutUint32(duration, uint32(s.LeaseDuration/time.Second))
 
 	//Get MAC address of packet and looking for lease having that address
-	mac := p.GetHardwareAddr()
+	mac := p.HardwareAddress()
 	lease := pool.GetLeaseFromMac(mac)
 
 	switch msgType {
@@ -58,7 +58,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 		response := pxedhcp.NewReplyPacket(p)
 		//set packet header
-		response.SetYIAddr(lease.Ip)
+		response.SetClientIP(lease.Ip)
 		response.SetServerName(s.ServerName)
 		//set packet options
 		//MUST
@@ -104,7 +104,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 		requestIP := net.IP(options[pxedhcp.OptAddressRequest])
 		if requestIP == nil { //the request packet is for extending its lease
-			requestIP = p.GetCIAddr()
+			requestIP = p.CurrentClientIP()
 		}
 
 		response := pxedhcp.NewReplyPacket(p)
@@ -123,7 +123,7 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		}
 
 		//set packet header
-		response.SetYIAddr(lease.Ip)
+		response.SetClientIP(lease.Ip)
 		response.SetServerName(s.ServerName)
 		//set packet options
 		//MUST

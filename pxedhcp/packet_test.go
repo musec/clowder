@@ -167,15 +167,15 @@ func TestNewPacket(t *testing.T) {
 		if c.op == BOOTREPLY {
 			p.SetReply()
 		}
-		p.SetYIAddr(c.yiaddr)
+		p.SetClientIP(c.yiaddr)
 		p.SetSecsElapsed(c.secs)
 		p.SetServerName(c.sname)
 		p.SetBootFile(c.file)
 
-		if p.HType()[0] != ETHERNET {
-			t.Fatalf("error :  HType")
+		if p.HWAddrType() != ETHERNET {
+			t.Fatalf("error :  HWAddrType")
 		}
-		if !p.IsBroadcast() {
+		if !p.Broadcast() {
 			t.Fatal("Error : Expected broadcast")
 		}
 		if !bytes.Equal(p[:240], dhcpPackets[i][:240]) {
@@ -197,7 +197,7 @@ func TestPadding(t *testing.T) {
 func TestAddOptions(t *testing.T) {
 	c := tests[0]
 	p := NewRequestPacket(c.xid, c.broadcast, c.ciaddr, c.chaddr)
-	p.SetYIAddr(c.yiaddr)
+	p.SetClientIP(c.yiaddr)
 	p.SetSecsElapsed(c.secs)
 	p.SetServerName(c.sname)
 	p.SetBootFile(c.file)
@@ -215,9 +215,9 @@ func TestAddOptions(t *testing.T) {
 
 }
 
-func TestParseOptions(t *testing.T) {
+func TestOptions(t *testing.T) {
 	p := Packet(dhcpPackets[0][:])
-	opts := p.ParseOptions()
+	opts := p.Options()
 	for o, v := range opts {
 		fmt.Printf("%x, %d, % x \n", o, len(v), v)
 	}

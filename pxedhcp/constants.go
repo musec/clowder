@@ -1,18 +1,23 @@
 package pxedhcp
 
-//***************************************************************************************************
-//****************************************     CONSTANTS     ****************************************
-//***************************************************************************************************
-
-//op code
 const (
 	BOOTREQUEST byte = 1
 	BOOTREPLY   byte = 2
 )
 
-//htype
 const (
 	ETHERNET byte = 1
+)
+
+const (
+	DISCOVER byte = 1
+	OFFER    byte = 2
+	REQUEST  byte = 3
+	DECLINE  byte = 4
+	ACK      byte = 5
+	NAK      byte = 6
+	RELEASE  byte = 7
+	INFORM   byte = 8
 )
 
 // Option codes
@@ -190,15 +195,4 @@ const ( // Data Length		Meaning
 	// 222-223			    Unassigned
 	// 224-254			    Reserved (Private Use)
 	END byte = 255 //	None        END
-)
-
-const (
-	DISCOVER byte = 1
-	OFFER    byte = 2
-	REQUEST  byte = 3
-	DECLINE  byte = 4
-	ACK      byte = 5
-	NAK      byte = 6
-	RELEASE  byte = 7
-	INFORM   byte = 8
 )

@@ -212,8 +212,8 @@ func TestResponder(t *testing.T) {
 		s.DeviceLeases = NewLeases(net.IP{192, 168, 1, 100}, 50)
 
 		req := pxedhcp.Packet(dhcpPackets[i])
-		options := req.ParseOptions()
-		mac := req.GetHardwareAddr()
+		options := req.Options()
+		mac := req.HardwareAddress()
 		uuid, ok := options[97]
 		if ok {
 			s.Pxe[0] = PxeRecord{uuid, "blackmarsh1", "pxeboot"}
@@ -231,7 +231,7 @@ func TestResponder(t *testing.T) {
 
 		if rep != nil {
 			fmt.Println(rep)
-			repOpt := rep.ParseOptions()
+			repOpt := rep.Options()
 			for k := range repOpt {
 				switch k {
 				case 15, 17:

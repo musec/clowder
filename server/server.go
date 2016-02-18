@@ -272,7 +272,7 @@ func (s *Server) StartDHCPServer() {
 			continue
 		}
 
-		if net.ParseIP(ipStr).Equal(net.IPv4zero) || responsePacket.IsBroadcast() {
+		if net.ParseIP(ipStr).Equal(net.IPv4zero) || responsePacket.Broadcast() {
 			port, _ := strconv.Atoi(portStr)
 			addr = &net.UDPAddr{IP: net.IPv4bcast, Port: port}
 		}
