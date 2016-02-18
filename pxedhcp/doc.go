@@ -16,7 +16,7 @@
 
 A library for parsing and constructing DHCP packets.
 
-Reference: [RFC 2131](https://tools.ietf.org/html/rfc2131)
+Reference: RFC 2131
 
 Sample usage
 
