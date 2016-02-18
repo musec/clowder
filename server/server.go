@@ -2,7 +2,6 @@ package server
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/musec/clowder/dbase"
 	"github.com/musec/clowder/pxedhcp"
 	"github.com/spf13/viper"
@@ -151,7 +150,7 @@ func (s *Server) StartTCPServer() error {
 
 				case "LEASES":
 					msg := s.ExportLeaseTable()
-					fmt.Println(msg)
+					s.Log("Lease table:", msg)
 					conn.Write([]byte(msg))
 				case "STOPCLOWDER":
 					conn.Write([]byte("CLOWDER closing..."))
@@ -164,11 +163,11 @@ func (s *Server) StartTCPServer() error {
 					listener.Close()
 				case "NEWHARDWARE":
 					msg := s.NewHardware.String()
-					fmt.Println(msg)
+					s.Log("New hardware:", msg)
 					conn.Write([]byte(msg))
 				case "STATUS":
 					msg := s.GetStatus()
-					fmt.Println(msg)
+					s.Log("Status:", msg)
 					conn.Write([]byte(msg))
 				case "CLOSECONN":
 					conn.Write([]byte("DONE"))

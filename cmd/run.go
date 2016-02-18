@@ -76,9 +76,9 @@ func stopRun(cmd *cobra.Command, args []string) {
 	c := server.ConnectOrDie(config)
 
 	if msg, err := c.SendCommand("STOPCLOWDER"); err == nil {
-		fmt.Println(msg)
+		c.Log(msg)
 	} else {
-		fmt.Println(err.Error())
+		c.FatalError(err)
 	}
 
 }

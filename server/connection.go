@@ -1,41 +1,46 @@
 package server
 
 import (
-	"fmt"
 	"github.com/spf13/viper"
 	"net"
-	"os"
 )
 
 //
 // A connection to a server (wraps an internal TCP connection).
 //
 type Connection struct {
+	HasLogger
+
 	connection net.Conn
 }
 
 // Connect to a server named in a Viper configuration.
-func Connect(config *viper.Viper) (*Connection, error) {
+func Connect(config *viper.Viper) (Connection, error) {
+	var c Connection
+
+	err := c.InitLog("")
+	if err != nil {
+		return c, err
+	}
+
 	host := config.GetString("server.host")
 	port := config.GetString("server.controlPort")
 
 	server := host + ":" + port
-
-	connection, err := net.Dial("tcp", server)
+	c.connection, err = net.Dial("tcp", server)
 	if err != nil {
-		return nil, err
+		return c, err
 	}
 
-	return &Connection{connection}, nil
+	return c, nil
 }
 
 // Connect to a server or terminate the application.
-func ConnectOrDie(config *viper.Viper) *Connection {
+func ConnectOrDie(config *viper.Viper) Connection {
 	c, err := Connect(config)
 
 	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
+		c.FatalError(err)
 	}
 
 	return c

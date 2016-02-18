@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/musec/clowder/server"
 	"github.com/spf13/cobra"
 )
@@ -44,9 +43,9 @@ func dhcpOnRun(cmd *cobra.Command, args []string) {
 	c := server.ConnectOrDie(config)
 
 	if msg, err := c.SendCommand("DHCPON"); err == nil {
-		fmt.Println(msg)
+		c.Log(msg)
 	} else {
-		fmt.Println(err.Error())
+		c.FatalError(err)
 	}
 
 }
@@ -55,9 +54,9 @@ func dhcpOffRun(cmd *cobra.Command, args []string) {
 	c := server.ConnectOrDie(config)
 
 	if msg, err := c.SendCommand("DHCPOFF"); err == nil {
-		fmt.Println(msg)
+		c.Log(msg)
 	} else {
-		fmt.Println(err.Error())
+		c.FatalError(err)
 	}
 
 }
@@ -66,9 +65,9 @@ func statRun(cmd *cobra.Command, args []string) {
 	c := server.ConnectOrDie(config)
 
 	if msg, err := c.SendCommand("STATUS"); err == nil {
-		fmt.Println(msg)
+		c.Log(msg)
 	} else {
-		fmt.Println(err.Error())
+		c.FatalError(err)
 	}
 
 }
