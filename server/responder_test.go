@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"github.com/musec/clowder/pxedhcp"
+	"github.com/musec/go-dhcp"
 	"github.com/spf13/viper"
 	"net"
 	"testing"
@@ -211,7 +211,7 @@ func TestResponder(t *testing.T) {
 		s.MachineLeases = NewLeases(net.IP{192, 168, 1, 10}, 50)
 		s.DeviceLeases = NewLeases(net.IP{192, 168, 1, 100}, 50)
 
-		req := pxedhcp.Packet(dhcpPackets[i])
+		req := dhcp.Packet(dhcpPackets[i])
 		options := req.Options()
 		mac := req.HardwareAddress()
 		uuid, ok := options[97]

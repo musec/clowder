@@ -2,12 +2,12 @@ package server
 
 import (
 	"encoding/binary"
-	"github.com/musec/clowder/pxedhcp"
+	"github.com/musec/go-dhcp"
 	"net"
 	"time"
 )
 
-func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
+func (s *Server) DHCPResponder(p dhcp.Packet) dhcp.Packet {
 
 	//Get lock
 	<-s.TablesAccess
@@ -15,23 +15,23 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 	options := p.Options()
 
 	//Get DHCP Message Type
-	val, ok := options[pxedhcp.OptDHCPMsgType]
+	val, ok := options[dhcp.OptDHCPMsgType]
 	if !ok || len(val) != 1 {
 		return nil
 	}
 	msgType := val[0]
-	if msgType < pxedhcp.DISCOVER || msgType > pxedhcp.INFORM {
+	if msgType < dhcp.DISCOVER || msgType > dhcp.INFORM {
 		return nil
 	}
 
 	//Is a PXE DHCP Packet
-	pxeRequest := options[pxedhcp.OptClassId] != nil && options[pxedhcp.OptClientSystemArchitecture] != nil && options[pxedhcp.OptClientNetworkDeviceInterface] != nil && options[pxedhcp.OptUUIDGUID] != nil
+	pxeRequest := options[dhcp.OptClassId] != nil && options[dhcp.OptClientSystemArchitecture] != nil && options[dhcp.OptClientNetworkDeviceInterface] != nil && options[dhcp.OptUUIDGUID] != nil
 	var pool Leases
 	var uuid UUID
 	var pxe *PxeRecord
 	if pxeRequest {
-		if len(options[pxedhcp.OptUUIDGUID]) == 17 {
-			uuid = options[pxedhcp.OptUUIDGUID][1:]
+		if len(options[dhcp.OptUUIDGUID]) == 17 {
+			uuid = options[dhcp.OptUUIDGUID][1:]
 		}
 		pool = s.MachineLeases
 		pxe = s.Pxe.GetRecord(uuid)
@@ -49,32 +49,32 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 	lease := pool.GetLeaseFromMac(mac)
 
 	switch msgType {
-	case pxedhcp.DISCOVER:
+	case dhcp.DISCOVER:
 		s.Log("Get DISCOVER message from " + mac.String())
 		if lease == nil { //no record of this MAC address
 			s.NewHardware[mac.String()] = uuid
 			return nil
 		}
 
-		response := pxedhcp.NewReplyPacket(p)
+		response := dhcp.NewReplyPacket(p)
 		//set packet header
 		response.SetClientIP(lease.Ip)
 		response.SetServerName(s.ServerName)
 		//set packet options
 		//MUST
-		response.AddOption(pxedhcp.OptDHCPMsgType, []byte{pxedhcp.OFFER}) //Message Type
-		response.AddOption(pxedhcp.OptAddressTime, duration)              //Lease time
-		response.AddOption(pxedhcp.OptDHCPServerId, []byte(s.Ip))         //Server identifier
+		response.AddOption(dhcp.OptDHCPMsgType, []byte{dhcp.OFFER}) //Message Type
+		response.AddOption(dhcp.OptAddressTime, duration)           //Lease time
+		response.AddOption(dhcp.OptDHCPServerId, []byte(s.Ip))      //Server identifier
 		//MAY
-		response.AddOption(pxedhcp.OptSubnetMask, []byte(s.Mask))
-		response.AddOption(pxedhcp.OptRouter, []byte(s.Router))
-		response.AddOption(pxedhcp.OptDomainServer, []byte(s.DNS))
-		response.AddOption(pxedhcp.OptDomainName, []byte(s.DomainName))
+		response.AddOption(dhcp.OptSubnetMask, []byte(s.Mask))
+		response.AddOption(dhcp.OptRouter, []byte(s.Router))
+		response.AddOption(dhcp.OptDomainServer, []byte(s.DNS))
+		response.AddOption(dhcp.OptDomainName, []byte(s.DomainName))
 
 		if pxeRequest {
 			if pxe != nil {
 				response.SetBootFile(pxe.BootFile)
-				response.AddOption(pxedhcp.OptRootPath, []byte(pxe.RootPath))
+				response.AddOption(dhcp.OptRootPath, []byte(pxe.RootPath))
 			} else {
 				s.Warn("Receive PXE DHCP DISCOVER packet from a known MAC address: " + mac.String() + ". But there isn't PXE information to response.")
 				return nil
@@ -89,10 +89,10 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 		return response
 
-	case pxedhcp.REQUEST:
+	case dhcp.REQUEST:
 		s.Log("Get REQUEST message from " + mac.String())
 		//Is the packet for this server
-		if serverId, ok := options[pxedhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip) {
+		if serverId, ok := options[dhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip) {
 			return nil
 		}
 
@@ -102,23 +102,23 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 			return nil
 		}
 
-		requestIP := net.IP(options[pxedhcp.OptAddressRequest])
+		requestIP := net.IP(options[dhcp.OptAddressRequest])
 		if requestIP == nil { //the request packet is for extending its lease
 			requestIP = p.CurrentClientIP()
 		}
 
-		response := pxedhcp.NewReplyPacket(p)
+		response := dhcp.NewReplyPacket(p)
 
 		//If the request IP is different the offer IP
 		if requestIP.Equal(net.IPv4zero) || !requestIP.Equal(lease.Ip) {
 			s.Log("Request IP " + requestIP.String() + " is different to offer IP " + lease.Ip.String())
-			response.AddOption(pxedhcp.OptDHCPMsgType, []byte{pxedhcp.NAK})
+			response.AddOption(dhcp.OptDHCPMsgType, []byte{dhcp.NAK})
 			return response
 		}
 
 		if pxeRequest && pxe == nil {
 			s.Warn("Receive PXE DHCP REQUEST packet from a known MAC address: " + mac.String() + ". But there isn't PXE information to response.")
-			response.AddOption(pxedhcp.OptDHCPMsgType, []byte{pxedhcp.NAK})
+			response.AddOption(dhcp.OptDHCPMsgType, []byte{dhcp.NAK})
 			return response
 		}
 
@@ -127,18 +127,18 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		response.SetServerName(s.ServerName)
 		//set packet options
 		//MUST
-		response.AddOption(pxedhcp.OptDHCPMsgType, []byte{pxedhcp.ACK}) //Message Type
-		response.AddOption(pxedhcp.OptAddressTime, duration)            //Lease time
-		response.AddOption(pxedhcp.OptDHCPServerId, []byte(s.Ip))       //Server identifier
+		response.AddOption(dhcp.OptDHCPMsgType, []byte{dhcp.ACK}) //Message Type
+		response.AddOption(dhcp.OptAddressTime, duration)         //Lease time
+		response.AddOption(dhcp.OptDHCPServerId, []byte(s.Ip))    //Server identifier
 		//MAY
-		response.AddOption(pxedhcp.OptSubnetMask, []byte(s.Mask))
-		response.AddOption(pxedhcp.OptRouter, []byte(s.Router))
-		response.AddOption(pxedhcp.OptDomainServer, []byte(s.DNS))
-		response.AddOption(pxedhcp.OptDomainName, []byte(s.DomainName))
+		response.AddOption(dhcp.OptSubnetMask, []byte(s.Mask))
+		response.AddOption(dhcp.OptRouter, []byte(s.Router))
+		response.AddOption(dhcp.OptDomainServer, []byte(s.DNS))
+		response.AddOption(dhcp.OptDomainName, []byte(s.DomainName))
 
 		if pxeRequest {
 			response.SetBootFile(pxe.BootFile)
-			response.AddOption(pxedhcp.OptRootPath, []byte(pxe.RootPath))
+			response.AddOption(dhcp.OptRootPath, []byte(pxe.RootPath))
 		}
 
 		//update lease information
@@ -147,8 +147,8 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 
 		return response
 
-	case pxedhcp.DECLINE:
-		if serverId, ok := options[pxedhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip) {
+	case dhcp.DECLINE:
+		if serverId, ok := options[dhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip) {
 			return nil
 		}
 		if lease == nil {
@@ -164,8 +164,8 @@ func (s *Server) DHCPResponder(p pxedhcp.Packet) pxedhcp.Packet {
 		//db.UpdateBindingTable(mac,newLease.Ip)
 		return nil
 
-	case pxedhcp.RELEASE:
-		if serverId, ok := options[pxedhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip) {
+	case dhcp.RELEASE:
+		if serverId, ok := options[dhcp.OptDHCPServerId]; ok && !net.IP(serverId).Equal(s.Ip) {
 			return nil
 		}
 		if lease == nil {

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/musec/clowder/pxedhcp"
+	"github.com/musec/go-dhcp"
 	"github.com/spf13/viper"
 	"net"
 	"os"
@@ -266,7 +266,7 @@ func (s *Server) StartDHCPServer() {
 			return
 		}
 
-		requestPacket := pxedhcp.Packet(buffer[:n])
+		requestPacket := dhcp.Packet(buffer[:n])
 		responsePacket := s.DHCPResponder(requestPacket)
 		if responsePacket == nil {
 			continue
