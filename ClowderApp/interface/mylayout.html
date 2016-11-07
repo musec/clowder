@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title> Computer Manager</title>
+  <link rel="stylesheet" href="/stylesheets/main.css">
+  <style>
+  table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+   } 
+
+   td, th {
+    border: 2px solid black;
+    text-align: left;
+    padding: 8px;
+    }
+
+    tr:nth-child(odd) {
+    background-color: #dddddd;
+    }
+   </style>
+</head>
+<body>
+<table>
+  <tr>
+	<h1> WELCOME TO MUN CLOWDER SYSTEM</h1>
+	<th>LIST OF MACHINES</th>
+  </tr>
+
+  <tr>
+    <th>ID</th>
+    <th>COMPUTER NAME</th>
+    <th>MEMORY SIZE</th>
+    <th>STATUS</th>
+  </tr>
+  {{range .}}
+  <tr>
+	<td>{{.Id}}</td> 
+	<td><a href= "computer.html">{{.Name}}</a></td>
+	<td>{{.MemorySize}}</td>
+	<td>{{.Status}}
+	
+  </tr>
+  {{end}}
+</table>
+</body>
+</html>
