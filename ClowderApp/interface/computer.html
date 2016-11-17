@@ -4,15 +4,50 @@
 		<meta charset="utf-8">
 		<title> Computer details</title>
 		<link rel="stylesheet" href="/stylesheets/main.css">
+		<style>
+  table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 50%;
+   } 
+
+   td, th {
+    border: 2px solid black;
+    text-align: left;
+    padding: 8px;
+    }
+
+    tr:nth-child(odd) {
+    background-color: #dddddd;
+    }
+   </style>
 	</head>
-
-
 	<body>
-		<h2> Computer Details</h2>
-		<tr>
-			{{range .}}
-			{{.c}}
-			{{end}}
-		</tr>
+	<table>
+ 	 <tr>
+		<h1> WELCOME TO MUN CLOWDER SYSTEM</h1>
+		<th>MECHINE DETAILS</th>
+ 	</tr>
+	<tr>
+		<th>NAME</th>
+		<th>MAC ADDRESS</th>
+		<th>ARCHITECTURE</th>
+		<th>MICROARCHITECTURE</th>
+		<th>MEMORYSIZE</th>
+		<th>PXE</th>
+		<th>NFSROOT</th>
+	</tr>
+ 	{{range .}}
+  	<tr>
+		<td>{{.Name}}</td>
+		<td>{{.MACaddress}}</td>
+		<td>{{.Architecture}}</td>
+		<td>{{.Microarchitecture}}</td>
+		<td>{{.MemoreySize}}</td>
+		<td>{{.Pxe}}</td>
+		<td>{{.Nfsroot}}</td>	
+  	</tr>
+	{{end}}
+	</table>
 	</body>
 </html>

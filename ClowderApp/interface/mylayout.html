@@ -8,7 +8,7 @@
   table {
     font-family: arial, sans-serif;
     border-collapse: collapse;
-    width: 100%;
+    width: 50%;
    } 
 
    td, th {
@@ -28,22 +28,36 @@
 	<h1> WELCOME TO MUN CLOWDER SYSTEM</h1>
 	<th>LIST OF MACHINES</th>
   </tr>
-
-  <tr>
-    <th>ID</th>
-    <th>COMPUTER NAME</th>
-    <th>MEMORY SIZE</th>
-    <th>STATUS</th>
-  </tr>
   {{range .}}
   <tr>
-	<td>{{.Id}}</td> 
-	<td><a href= "computer.html">{{.Name}}</a></td>
-	<td>{{.MemorySize}}</td>
-	<td>{{.Status}}
+	  <td><a href="computer.html">{{.Name}}</a></td>	
+  </tr>
+  {{end}}
+</table>
+<p></p>
+<table>
+  <tr>
+	<th>LIST OF RESERVATIONS</th>
+  </tr>
+
+  <!--<tr>
+    <th>USER</th>
+    <th>MACHINE</th>
+    <th>START</th>
+    <th>END</th>
+    <th>ENDED</th>
+  </tr>//-->
+  {{range .}}
+  <tr>
+	<td>{{.User}}</td> 
+	<td>{{.Machine}}</td>
+	<td>{{.Start}}</td>
+	<td>{{.End}}</td>
+	<td>{{.Ended}}</td>
 	
   </tr>
   {{end}}
 </table>
+
 </body>
 </html>
