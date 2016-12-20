@@ -28,36 +28,38 @@
 	<h1> WELCOME TO MUN CLOWDER SYSTEM</h1>
 	<th>LIST OF MACHINES</th>
   </tr>
-  {{range .}}
+  {{range .}} 
   <tr>
 	  <td><a href="computer.html">{{.Name}}</a></td>	
   </tr>
   {{end}}
 </table>
 <p></p>
+
+<h2><a href= "available.html">RESERVED MACHINES</a></h2>
+
+<p></p>
+
 <table>
   <tr>
 	<th>LIST OF RESERVATIONS</th>
   </tr>
-
- <!-- <tr>
-    <th>USER</th>
-    <th>MACHINE</th>
-    <th>START</th>
-    <th>END</th>
-    <th>ENDED</th>
- </tr>//-->
-  {{range .}}
+    <th>User</th>
+    <th>Machine</th>
+    <th>Start</th>
+    <th>End</th>
+    <th>End</th>
+  </tr>
+ {{range .}}
   <tr>
-	<td>{{.User}}</td> 
+        <td>{{.User}}</td> 
 	<td>{{.Machine}}</td>
 	<td>{{.Start}}</td>
 	<td>{{.End}}</td>
 	<td>{{.Ended}}</td>
-	
+
   </tr>
   {{end}}
-</table>
-
+ </table>
 </body>
 </html>
