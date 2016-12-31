@@ -44,8 +44,8 @@ func initReservations(tx *sql.Tx) error {
 		start datetime,
 		end datetime,
 		ended datetime,
-		pxepath text,
-		nfsroot text,
+		pxepath text not null,
+		nfsroot text not null,
 
 		FOREIGN KEY(user) REFERENCES Users(id),
 		FOREIGN KEY(machine) REFERENCES Machines(id)
