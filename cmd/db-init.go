@@ -25,8 +25,6 @@ import (
 )
 
 func runInit(cmd *cobra.Command, args []string) {
-	fmt.Println("Initializing database...")
-
 	db := getDB()
 
 	err := db.Init()
@@ -34,6 +32,8 @@ func runInit(cmd *cobra.Command, args []string) {
 		fmt.Println("Error initializing database: ", err)
 		os.Exit(1)
 	}
+
+	fmt.Println("Initialized", db.Kind, "database at", db.Name)
 }
 
 func init() {

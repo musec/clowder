@@ -27,12 +27,14 @@ import (
 // A database of machines, reservations, etc., managed by Clowder
 type DB struct {
 	sql  *sql.DB
-	name string
+	Kind string
+	Name string
 }
 
 func Open(dbType string, name string) (DB, error) {
 	db := DB{
-		name: name,
+		Kind: dbType,
+		Name: name,
 	}
 
 	if dbType == "" {
