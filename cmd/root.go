@@ -46,6 +46,9 @@ func init() {
 	flags.IntP("port", "p", 5000, "TCP control port")
 	config.BindPFlag("server.controlPort", flags.Lookup("port"))
 
+	flags.IntP("web-port", "w", 8080, "Web-based control port")
+	config.BindPFlag("server.http.port", flags.Lookup("web-port"))
+
 	err := readConfigurationFile()
 	if err != nil {
 		fmt.Println("Unable to open configuration file: ", err)
