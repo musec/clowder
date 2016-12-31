@@ -29,8 +29,6 @@ type Machine struct {
 	Microarchitecture string
 	Cores             int
 	MemoryGB          int
-	PxePath           string
-	NfsRoot           string
 }
 
 func initMachines(tx *sql.Tx) error {
@@ -41,9 +39,7 @@ func initMachines(tx *sql.Tx) error {
 		arch varchar(255),
 		microarch varchar(255),
 		cores integer not null,
-		memory integer not null,
-		pxeboot text,
-		nfsroot text
+		memory integer not null
 	);
 	`)
 
@@ -52,14 +48,14 @@ func initMachines(tx *sql.Tx) error {
 
 func (d DB) GetMachine(id int) (*Machine, error) {
 	row := d.sql.QueryRow(`
-		SELECT name, arch, microarch, cores, memory, pxeboot, nfsroot
+		SELECT name, arch, microarch, cores, memory
 		FROM Machines
 		WHERE id = $1`, id)
 
 	var m Machine
 	err := row.Scan(
 		&m.Name, &m.Architecture, &m.Microarchitecture,
-		&m.Cores, &m.MemoryGB, &m.PxePath, &m.NfsRoot,
+		&m.Cores, &m.MemoryGB,
 	)
 
 	if err != nil {
@@ -70,9 +66,8 @@ func (d DB) GetMachine(id int) (*Machine, error) {
 }
 
 func (d DB) GetMachines() ([]Machine, error) {
-	// pxeboot, nfsroot
 	rows, err := d.sql.Query(`
-		SELECT name, arch, microarch, cores, memory, pxeboot, nfsroot
+		SELECT name, arch, microarch, cores, memory
 		FROM Machines
 		ORDER BY name`)
 
@@ -87,7 +82,7 @@ func (d DB) GetMachines() ([]Machine, error) {
 		var m Machine
 		err = rows.Scan(
 			&m.Name, &m.Architecture, &m.Microarchitecture,
-			&m.Cores, &m.MemoryGB, &m.PxePath, &m.NfsRoot,
+			&m.Cores, &m.MemoryGB,
 		)
 		if err != nil {
 			return nil, err

@@ -31,6 +31,8 @@ type Reservation struct {
 	Start       time.Time
 	End         time.Time
 	Ended       time.Time
+	PxePath     string
+	NfsRoot     string
 }
 
 func initReservations(tx *sql.Tx) error {
@@ -42,6 +44,8 @@ func initReservations(tx *sql.Tx) error {
 		start datetime,
 		end datetime,
 		ended datetime,
+		pxepath text,
+		nfsroot text,
 
 		FOREIGN KEY(user) REFERENCES Users(id),
 		FOREIGN KEY(machine) REFERENCES Machines(id)
@@ -53,7 +57,7 @@ func initReservations(tx *sql.Tx) error {
 
 func (d DB) GetReservations() ([]Reservation, error) {
 	rows, err := d.sql.Query(`
-		SELECT user, machine, start, end, ended
+		SELECT user, machine, start, end, ended, pxepath, nfsroot
 		FROM Reservations
 		ORDER BY start DESC
 	`)
@@ -70,9 +74,14 @@ func (d DB) GetReservations() ([]Reservation, error) {
 		var r Reservation
 		var ended *time.Time
 
-		err = rows.Scan(&userID, &machineID, &r.Start, &r.End, &ended)
+		err = rows.Scan(&userID, &machineID,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
 		if err != nil {
 			return nil, err
+		}
+
+		if ended != nil {
+			r.Ended = *ended
 		}
 
 		r.User, err = d.GetUser(userID)
@@ -92,9 +101,14 @@ func (d DB) GetReservations() ([]Reservation, error) {
 }
 
 func (r Reservation) String() string {
-	return fmt.Sprintf("%-15s %-10s  %12s   %12s   %12s",
+	end := r.End
+	if !r.Ended.IsZero() {
+		end = r.Ended
+	}
+
+	return fmt.Sprintf("%-12s %-8s %12s to %12s  %-s",
 		r.Machine.Name, r.User.Username,
 		r.Start.Format("1504h 02 Jan"),
-		r.End.Format("1504h 02 Jan"),
-		r.Ended.Format("1504h 02 Jan"))
+		end.Format("1504h 02 Jan"),
+		r.NfsRoot)
 }
