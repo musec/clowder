@@ -30,13 +30,22 @@ func formatters() template.FuncMap {
 }
 
 func formatDate(t *time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	return t.Format("02 Jan")
 }
 
 func formatTime(t *time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	return t.Format("1504h NDT")
 }
 
 func formatDateTime(t *time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	return t.Format("1504h 02 Jan")
 }
