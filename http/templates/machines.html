@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Clowder: Machines</title>
+	<link type="text/css" rel="stylesheet" href="/static/musec.css"/>
+</head>
+
+<body>
+
+<h1>Clowder</h1>
+<h2>Machine inventory</h2>
+
+<table>
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Arch</th>
+			<th>Microarch</th>
+			<th>Cores</th>
+			<th>Memory</th>
+		</tr>
+	</thead>
+
+	<tbody>
+		{{ range . }}
+			<tr>
+				<td><a href="machine/?name={{ .Name }}">{{.Name}}</a></td>	
+				<td>{{ .Architecture }}</td>
+				<td>{{ .Microarchitecture }}</td>
+				<td>{{ .Cores }}</td>
+				<td>{{ .MemoryGB }} GB</td>
+			</tr>
+		{{ end }}
+	</tbody>
+</table>
+
+</body>
+</html>

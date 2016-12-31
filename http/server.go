@@ -36,15 +36,7 @@ func Run(config *viper.Viper, db *db.DB, logfile string) {
 
 	http.Handle("/static/", http.FileServer(http.Dir("http")))
 	http.HandleFunc("/", server.frontPage)
-
-	/*
-		//http.Handle("/interface",fd)
-		http.HandleFunc("/", output)
-		http.HandleFunc("/mylayout.html", getreserves)
-		http.HandleFunc("/computer.html", getdetails)
-		log.Println("Loading....")
-		http.ListenAndServe(":8030", nil)
-	*/
+	http.HandleFunc("/machines/", server.machinesPage)
 
 	hostname := config.GetString("server.hostname")
 	port := config.GetInt("server.http.port")

@@ -28,26 +28,34 @@ func getTemplate(name string) (*template.Template, error) {
 		"http/templates/" + name)
 }
 
+func templateError(w http.ResponseWriter, tname string, err error) {
+	renderError(w, "Error opening template",
+		fmt.Sprintf("Unable to open template '%s': %s", tname, err))
+}
+
 func (s Server) frontPage(w http.ResponseWriter, r *http.Request) {
-	t, err := getTemplate("frontpage.html")
+	s.logRequest(r)
+
+	tname := "frontpage.html"
+	t, err := getTemplate(tname)
 	if err != nil {
-		http.Error(w,
-			fmt.Sprintf("Error opening template: %s", err), 500)
+		templateError(w, tname, err)
 		return
 	}
 
 	machines, err := s.db.GetMachines()
 	if err != nil {
 		renderError(w, "Error retrieving machines",
-			fmt.Sprintf("Unable to get machines from database: ",
+			fmt.Sprintf("Unable to get machines from database: %s",
 				err))
 		return
 	}
 
 	reservations, err := s.db.GetReservations()
 	if err != nil {
-		http.Error(w,
-			fmt.Sprintf("Error getting reservations: %s", err), 500)
+		renderError(w, "Error retrieving reservations",
+			fmt.Sprintf("Unable to get template from database: %s",
+				err))
 		return
 	}
 
@@ -60,4 +68,30 @@ func (s Server) frontPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t.Execute(w, data)
+}
+
+func (s Server) machinesPage(w http.ResponseWriter, r *http.Request) {
+	s.logRequest(r)
+
+	tname := "machines.html"
+	t, err := getTemplate(tname)
+	if err != nil {
+		templateError(w, tname, err)
+		return
+	}
+
+	machines, err := s.db.GetMachines()
+	if err != nil {
+		renderError(w, "Error retrieving machines",
+			fmt.Sprintf("Unable to get machines from database: ",
+				err))
+		return
+	}
+
+	t.Execute(w, machines)
+}
+
+func (s Server) logRequest(r *http.Request) {
+	s.Log(fmt.Sprintf("%s %s%s %s",
+		r.Method, r.Host, r.RequestURI, r.RemoteAddr))
 }
