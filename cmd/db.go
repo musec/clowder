@@ -24,12 +24,13 @@ import (
 )
 
 func getDB() db.DB {
-	db, err := db.Open(
-		config.GetString("server.dbtype"),
-		config.GetString("server.database"))
+	dbtype := config.GetString("server.dbtype")
+	dbname := config.GetString("server.database")
 
+	db, err := db.Open(dbtype, dbname)
 	if err != nil {
-		fmt.Println("Unable to open database: ", err)
+		fmt.Println("Error opening", dbtype, "database at", dbname,
+			":", err)
 		os.Exit(1)
 	}
 
