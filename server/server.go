@@ -96,6 +96,7 @@ func New(config *viper.Viper) (*Server, error) {
 	return s, err
 }
 
+/*
 func (s *Server) LoadPersistentData(config *viper.Viper) error {
 	//
 	// Connect to database and load persistent information:
@@ -103,7 +104,7 @@ func (s *Server) LoadPersistentData(config *viper.Viper) error {
 	dbType := config.GetString("server.dbtype")
 	dbFile := config.GetString("server.database")
 
-	db, err := OpenDB(dbType, dbFile, s.DefaultLogger())
+	db, err := db.Open(dbType, dbFile)
 	if err != nil {
 		return err
 	}
@@ -131,6 +132,7 @@ func (s *Server) LoadPersistentData(config *viper.Viper) error {
 
 	return nil
 }
+*/
 
 //StartTCPServer run a TCP server
 func (s *Server) StartTCPServer() error {

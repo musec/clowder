@@ -1,51 +1,96 @@
 /*
-Copyright 2015 Nhac Nguyen
+ * Copyright (c) 2015 Nhac Nguyen
+ * Copyright (C) 2016 Samson Ugwuodo
+ * Copyright (c) 2016 Jonathan Anderson
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-package server
+package db
 
 import (
 	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
-	"log"
-	"net"
 )
 
-func OpenDB(dbType string, name string, log log.Logger) (*sql.DB, error) {
+// A database of machines, reservations, etc., managed by Clowder
+type DB struct {
+	sql  *sql.DB
+	name string
+}
+
+func Open(dbType string, name string) (DB, error) {
+	db := DB{
+		name: name,
+	}
+
 	if dbType == "" {
-		return nil, fmt.Errorf("Invalid database type: %v", dbType)
+		return db, fmt.Errorf("Invalid database type: %v", dbType)
 	}
 
 	if name == "" {
-		return nil, fmt.Errorf("Invalid database: %v", name)
+		return db, fmt.Errorf("Invalid database: %v", name)
 	}
 
-	log.Printf("Using %v database '%v'\n", dbType, name)
-
-	db, err := sql.Open(dbType, name)
+	sqlDB, err := sql.Open(dbType, name)
 	if err != nil {
-		return nil, err
+		return db, err
 	}
+	db.sql = sqlDB
 
-	if err := db.Ping(); err != nil {
-		return nil, err
+	if err := db.sql.Ping(); err != nil {
+		return db, err
 	}
 
 	return db, nil
 }
 
+func (d *DB) Init() error {
+	tx, err := d.sql.Begin()
+	if err != nil {
+		return nil
+	}
+
+	err = initMachines(tx)
+	if err != nil {
+		return err
+	}
+
+	err = initUsers(tx)
+	if err != nil {
+		return err
+	}
+
+	err = initReservations(tx)
+	if err != nil {
+		return err
+	}
+
+	err = initDisks(tx)
+	if err != nil {
+		return err
+	}
+
+	err = initNICs(tx)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+/*
 //ReadBindingFromDB reads MAC address binding infromation from database
 func (l Leases) ReadBindingFromDB(db *sql.DB) error {
 	rows, err := db.Query("SELECT * FROM Binding")
@@ -166,3 +211,4 @@ func DeletePxeRecord(db *sql.DB, uuid string) error {
 	}
 	return nil
 }
+*/

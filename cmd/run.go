@@ -48,10 +48,12 @@ func runRun(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	err = s.LoadPersistentData(config)
-	if err != nil {
-		s.FatalError(err)
-	}
+	/*
+		err = s.LoadPersistentData(config)
+		if err != nil {
+			s.FatalError(err)
+		}
+	*/
 
 	if err := s.StartTCPServer(); err != nil {
 		s.FatalError(err)
