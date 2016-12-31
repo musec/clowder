@@ -1,19 +1,22 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
 	<meta charset="utf-8">
 	<title>Clowder</title>
+	<link type="text/css" rel="stylesheet" href="/static/musec.css"/>
 </head>
 
 <body>
 
 <h1>Clowder</h1>
 
-<h2>Machine inventory</h2>
+<h2><a href="machines">Machine inventory</a></h2>
 <table>
 	<thead>
 		<tr>
-			<td>Name</td>
+			<th>Name</th>
+			<th>Arch</th>
+			<th>Microarch</th>
 		</tr>
 	</thead>
 
@@ -21,12 +24,14 @@
 		{{ range .Machines }}
 			<tr>
 				<td><a href="machine/?name={{ .Name }}">{{.Name}}</a></td>	
+				<td>{{ .Architecture }}</td>
+				<td>{{ .Microarchitecture }}</td>
 			</tr>
 		{{ end }}
 	</tbody>
 </table>
 
-<h2><a href= "available.html">Reservations</a></h2>
+<h2><a href="reservations">Reservations</a></h2>
 
 <table>
 	<thead>
@@ -43,9 +48,9 @@
 			<tr>
 				<td>{{ .User.Username }}</td> 
 				<td>{{ .Machine.Name }}</td>
-				<td>{{ .Start }}</td>
-				<td>{{ .End }}</td>
-				<td>{{ .Ended }}</td>
+				<td>{{ .Start | fdatetime }}</td>
+				<td>{{ .End | fdatetime }}</td>
+				<td>{{ .Ended | fdatetime }}</td>
 			</tr>
 		{{ end }}
 	</tbody>

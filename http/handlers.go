@@ -24,14 +24,23 @@ import (
 )
 
 func getTemplate(name string) (*template.Template, error) {
-	return template.ParseFiles("http/templates/" + name)
+	return template.New(name).Funcs(formatters()).ParseFiles(
+		"http/templates/" + name)
 }
 
 func (s Server) frontPage(w http.ResponseWriter, r *http.Request) {
-	machines, err := s.db.GetMachines()
+	t, err := getTemplate("frontpage.html")
 	if err != nil {
 		http.Error(w,
-			fmt.Sprintf("Error getting machines: %s", err), 500)
+			fmt.Sprintf("Error opening template: %s", err), 500)
+		return
+	}
+
+	machines, err := s.db.GetMachines()
+	if err != nil {
+		renderError(w, "Error retrieving machines",
+			fmt.Sprintf("Unable to get machines from database: ",
+				err))
 		return
 	}
 
@@ -39,13 +48,6 @@ func (s Server) frontPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w,
 			fmt.Sprintf("Error getting reservations: %s", err), 500)
-		return
-	}
-
-	t, err := getTemplate("frontpage.html")
-	if err != nil {
-		http.Error(w,
-			fmt.Sprintf("Error opening template: %s", err), 500)
 		return
 	}
 
