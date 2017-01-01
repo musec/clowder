@@ -34,9 +34,9 @@ func initUsers(tx *sql.Tx) error {
 	_, err := tx.Exec(`
 	CREATE TABLE Users(
 		id integer primary key,
-		username varchar(32),
-		name text,
-		email text,
+		username varchar(32) not null,
+		name text not null,
+		email text not null,
 		phone varchar(24)
 	);
 	`)
