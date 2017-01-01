@@ -17,6 +17,9 @@
 			<th>Name</th>
 			<th>Arch</th>
 			<th>Microarch</th>
+			<th>Cores</th>
+			<th>Memory</th>
+			<th>Reserved by</th>
 		</tr>
 	</thead>
 
@@ -26,12 +29,15 @@
 				<td><a href="machine/?name={{ .Name }}">{{.Name}}</a></td>	
 				<td>{{ .Architecture }}</td>
 				<td>{{ .Microarchitecture }}</td>
+				<td>{{ .Cores }}</td>
+				<td>{{ .MemoryGB }} GB</td>
+				<td>{{ .ReservedBy }}</td>
 			</tr>
 		{{ end }}
 	</tbody>
 </table>
 
-<h2><a href="reservations">Reservations</a></h2>
+<h2><a href="reservations">All reservations</a></h2>
 
 <table>
 	<thead>
