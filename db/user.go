@@ -37,7 +37,7 @@ func initUsers(tx *sql.Tx) error {
 		username varchar(32) not null,
 		name text not null,
 		email text not null,
-		phone varchar(24)
+		phone varchar(24) not null
 	);
 	`)
 
