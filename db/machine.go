@@ -21,6 +21,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 type Machine struct {
@@ -29,6 +30,7 @@ type Machine struct {
 	Microarchitecture string
 	Cores             int
 	MemoryGB          int
+	Reservations      []Reservation
 }
 
 func initMachines(tx *sql.Tx) error {
@@ -46,18 +48,23 @@ func initMachines(tx *sql.Tx) error {
 	return err
 }
 
-func (d DB) GetMachine(id int) (*Machine, error) {
+func (d DB) GetMachine(column string, val interface{}) (*Machine, error) {
 	row := d.sql.QueryRow(`
-		SELECT name, arch, microarch, cores, memory
+		SELECT id, name, arch, microarch, cores, memory
 		FROM Machines
-		WHERE id = $1`, id)
+		WHERE Machines.`+column+` = $1`, val)
 
+	var id int
 	var m Machine
 	err := row.Scan(
-		&m.Name, &m.Architecture, &m.Microarchitecture,
+		&id, &m.Name, &m.Architecture, &m.Microarchitecture,
 		&m.Cores, &m.MemoryGB,
 	)
+	if err != nil {
+		return nil, err
+	}
 
+	m.Reservations, err = d.GetReservationsFor("machine", id, time.Time{})
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +99,10 @@ func (d DB) GetMachines() ([]Machine, error) {
 	}
 
 	return machines, rows.Err()
+}
+
+func (m Machine) ReservedBy() string {
+	return "nobody"
 }
 
 func (m Machine) String() string {

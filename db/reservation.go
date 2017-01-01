@@ -25,14 +25,14 @@ import (
 )
 
 type Reservation struct {
-	Reservation *Reservation
-	User        *User
-	Machine     *Machine
-	Start       time.Time
-	End         time.Time
-	Ended       time.Time
-	PxePath     string
-	NfsRoot     string
+	db      *DB
+	user    int
+	machine int
+	Start   time.Time
+	End     time.Time
+	Ended   time.Time
+	PxePath string
+	NfsRoot string
 }
 
 func initReservations(tx *sql.Tx) error {
@@ -41,8 +41,8 @@ func initReservations(tx *sql.Tx) error {
 		id integer primary key,
 		user integer,
 		machine integer,
-		start datetime,
-		end datetime,
+		start datetime not null,
+		end datetime not null,
 		ended datetime,
 		pxepath text not null,
 		nfsroot text not null,
@@ -69,12 +69,10 @@ func (d DB) GetReservations() ([]Reservation, error) {
 
 	reservations := []Reservation{}
 	for rows.Next() {
-		var userID int
-		var machineID int
-		var r Reservation
+		r := Reservation{db: &d}
 		var ended *time.Time
 
-		err = rows.Scan(&userID, &machineID,
+		err = rows.Scan(&r.user, &r.machine,
 			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
 		if err != nil {
 			return nil, err
@@ -84,14 +82,39 @@ func (d DB) GetReservations() ([]Reservation, error) {
 			r.Ended = *ended
 		}
 
-		r.User, err = d.GetUser(userID)
+		reservations = append(reservations, r)
+	}
+
+	return reservations, rows.Err()
+}
+
+func (d DB) GetReservationsFor(col string, id int, start time.Time) ([]Reservation, error) {
+
+	rows, err := d.sql.Query(`
+		SELECT user, machine, start, end, ended, pxepath, nfsroot
+		FROM Reservations
+		WHERE `+col+` = ? AND end >= ?
+		ORDER BY end DESC
+	`, id, start)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	reservations := []Reservation{}
+	for rows.Next() {
+		r := Reservation{db: &d}
+		var ended *time.Time
+
+		err = rows.Scan(&r.user, &r.machine,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
 		if err != nil {
 			return nil, err
 		}
 
-		r.Machine, err = d.GetMachine(machineID)
-		if err != nil {
-			return nil, err
+		if ended != nil {
+			r.Ended = *ended
 		}
 
 		reservations = append(reservations, r)
@@ -100,14 +123,38 @@ func (d DB) GetReservations() ([]Reservation, error) {
 	return reservations, rows.Err()
 }
 
+func (r Reservation) User() (*User, error) {
+	return r.db.GetUser(r.user)
+}
+
+func (r Reservation) Machine() (*Machine, error) {
+	return r.db.GetMachine("id", r.machine)
+}
+
 func (r Reservation) String() string {
 	end := r.End
 	if !r.Ended.IsZero() {
 		end = r.Ended
 	}
 
+	var username string
+	user, err := r.User()
+	if err != nil {
+		username = fmt.Sprintf("<error: %s>", err)
+	} else {
+		username = user.Username
+	}
+
+	var machineName string
+	machine, err := r.Machine()
+	if err != nil {
+		machineName = fmt.Sprintf("<error: %s>", err)
+	} else {
+		machineName = machine.Name
+	}
+
 	return fmt.Sprintf("%-12s %-8s %12s to %12s  %-s",
-		r.Machine.Name, r.User.Username,
+		machineName, username,
 		r.Start.Format("1504h 02 Jan"),
 		end.Format("1504h 02 Jan"),
 		r.NfsRoot)
