@@ -88,14 +88,23 @@ func (d DB) GetReservations() ([]Reservation, error) {
 	return reservations, rows.Err()
 }
 
-func (d DB) GetReservationsFor(col string, id int, start time.Time) ([]Reservation, error) {
+func (d DB) GetReservationsFor(col string, id int,
+	start time.Time, end time.Time) ([]Reservation, error) {
+
+	var err error
+	if end.IsZero() {
+		end, err = time.Parse("02 Jan 2006", "01 Jan 3000")
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	rows, err := d.sql.Query(`
 		SELECT user, machine, start, end, ended, pxepath, nfsroot
 		FROM Reservations
-		WHERE `+col+` = ? AND end >= ?
+		WHERE `+col+` = ? AND end >= ? AND start <= ?
 		ORDER BY end DESC
-	`, id, start)
+	`, id, start, end)
 	if err != nil {
 		return nil, err
 	}
