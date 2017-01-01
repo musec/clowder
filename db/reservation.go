@@ -55,6 +55,24 @@ func initReservations(tx *sql.Tx) error {
 	return err
 }
 
+func (d DB) CreateReservation(machine string, user string,
+	start time.Time, end time.Time) error {
+
+	_, err := d.sql.Exec(`
+			INSERT INTO Reservations(machine,user,start,end,pxepath,nfsroot)
+			VALUES (
+				(SELECT id from Machines where name=?),
+				(SELECT id from Users where username=?),
+				?,
+				?,
+				"",
+				""
+			)`,
+		machine, user, start, end)
+
+	return err
+}
+
 func (d DB) GetReservations() ([]Reservation, error) {
 	rows, err := d.sql.Query(`
 		SELECT user, machine, start, end, ended, pxepath, nfsroot

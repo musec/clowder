@@ -21,6 +21,7 @@ import (
 	"github.com/musec/clowder/db"
 	"html/template"
 	"net/http"
+	"time"
 )
 
 func getTemplate(name string) (*template.Template, error) {
@@ -39,6 +40,7 @@ func (s Server) frontPage(w http.ResponseWriter, r *http.Request) {
 	tname := "frontpage.html"
 	t, err := getTemplate(tname)
 	if err != nil {
+		s.Error(err)
 		templateError(w, tname, err)
 		return
 	}
@@ -76,6 +78,7 @@ func (s Server) machinePage(w http.ResponseWriter, r *http.Request) {
 	tname := "machine.html"
 	t, err := getTemplate(tname)
 	if err != nil {
+		s.Error(err)
 		templateError(w, tname, err)
 		return
 	}
@@ -118,12 +121,14 @@ func (s Server) machinesPage(w http.ResponseWriter, r *http.Request) {
 	tname := "machines.html"
 	t, err := getTemplate(tname)
 	if err != nil {
+		s.Error(err)
 		templateError(w, tname, err)
 		return
 	}
 
 	machines, err := s.db.GetMachines()
 	if err != nil {
+		s.db.Error(err)
 		renderError(w, "Error retrieving machines",
 			fmt.Sprintf("Unable to get machines from database: ",
 				err))
@@ -133,20 +138,118 @@ func (s Server) machinesPage(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, machines)
 }
 
+func (s Server) createReservation(w http.ResponseWriter, r *http.Request) {
+	s.logRequest(r)
+
+	if r.Method == "POST" {
+		err := r.ParseForm()
+		if err != nil {
+			s.Error(err)
+			renderError(w, "Error parsing form input",
+				fmt.Sprint("Bad form data: ", err))
+		}
+
+		form := r.PostForm
+
+		if form["machine"] == nil || form["user"] == nil ||
+			form["start"] == nil || form["end"] == nil {
+
+			renderError(w, "Missing reservation details",
+				fmt.Sprint("Expected machine,user,start,end,",
+					"got", form))
+		}
+
+		machine := form["machine"][0]
+		user := form["user"][0]
+
+		start, err := time.Parse("15:04 02-01-2006", form["start"][0])
+		if err != nil {
+			renderError(w, "Incorrect date/time format",
+				fmt.Sprint("Expected hh:mm dd-mm-yyyy, got:",
+					err))
+		}
+
+		end, err := time.Parse("15:04 02-01-2006", form["end"][0])
+		if err != nil {
+			renderError(w, "Incorrect date/time format",
+				fmt.Sprint("Expected hh:mm dd-mm-yyyy, got:",
+					err))
+		}
+
+		err = s.db.CreateReservation(machine, user, start, end)
+		if err != nil {
+			renderError(w, "Error creating reservation",
+				fmt.Sprint("Unable to make reservation:", err))
+		}
+
+		fmt.Fprint(w, `<html><head>
+		<meta http-equiv="refresh" content="0; url=/reservations/" />
+		</head></html>`)
+
+	} else {
+		tname := "reservation-new.html"
+		t, err := getTemplate(tname)
+		if err != nil {
+			s.Error(err)
+			templateError(w, tname, err)
+			return
+		}
+
+		machines, err := s.db.GetMachines()
+		if err != nil {
+			s.db.Error(err)
+			renderError(w, "Error retrieving machines",
+				fmt.Sprint(
+					"Unable to get machines from database: ",
+					err))
+			return
+		}
+
+		users, err := s.db.GetUsers()
+		if err != nil {
+			s.db.Error(err)
+			renderError(w, "Error retrieving users",
+				fmt.Sprint(
+					"Unable to get users from database: ",
+					err))
+			return
+		}
+
+		templateData := struct {
+			User     string
+			Machine  string
+			Machines []db.Machine
+			Users    []db.User
+		}{"", "", machines, users}
+
+		query := r.URL.Query()
+		if u := query["user"]; u != nil {
+			templateData.User = u[0]
+		}
+		if m := query["machine"]; m != nil {
+			templateData.Machine = m[0]
+		}
+
+		t.Execute(w, templateData)
+	}
+}
+
 func (s Server) reservationsPage(w http.ResponseWriter, r *http.Request) {
 	s.logRequest(r)
 
 	tname := "reservations.html"
 	t, err := getTemplate(tname)
 	if err != nil {
+		s.Error(err)
 		templateError(w, tname, err)
 		return
 	}
 
 	reservations, err := s.db.GetReservations()
 	if err != nil {
+		s.db.Error(err)
 		renderError(w, "Error retrieving reservations",
-			fmt.Sprintf(
+			fmt.Sprint(
 				"Unable to get reservations from database: ",
 				err))
 		return

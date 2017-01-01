@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Clowder: New reservation</title>
+	<link type="text/css" rel="stylesheet" href="/static/musec.css"/>
+</head>
+
+<body>
+
+<h1>Clowder</h1>
+<h2>Reserve a machine</h2>
+
+<form action="." method="post">
+	<table>
+		<tr>
+			<th>User</th>
+			<td>
+				<select name="user">
+					{{ range .Users }}
+						<option value="{{ .Username }}"{{ if eq .Username $.User }} selected {{ end }}>{{ .Username }}</option>
+					{{ end }}
+				</select>
+			</td>
+		</tr>
+
+		<tr>
+			<th>Machine</th>
+			<td>
+				<select name="machine">
+					{{ range .Machines }}
+						<option value="{{ .Name }}"{{ if eq .Name $.Machine }} selected{{ end }}>{{ .Name }}</option>
+					{{ end }}
+				</select>
+			</td>
+		</tr>
+
+		<tr>
+			<th>Start</th>
+			<td>
+				<input name="start"></input>
+				(hh:mm dd-mm-yyyy)
+			</td>
+		</tr>
+
+		<tr>
+			<th>End</th>
+			<td>
+				<input name="end"></input>
+				(hh:mm dd-mm-yyyy)
+			</td>
+		</tr>
+
+		<tr>
+			<th>PXE loader</th>
+			<td><input name="pxe"></input></td>
+		</tr>
+
+		<tr>
+			<th>NFS root</th>
+			<td><input name="nfs"></input></td>
+		</tr>
+
+		<tr>
+			<th></th>
+			<td><input type="submit" value="Reserve"/></td>
+		</tr>
+	</table>
+</form>
+
+</body>
+</html>
