@@ -25,12 +25,13 @@ import (
 )
 
 type Machine struct {
+	db                *DB
+	id                int
 	Name              string
 	Architecture      string
 	Microarchitecture string
 	Cores             int
 	MemoryGB          int
-	Reservations      []Reservation
 }
 
 func initMachines(tx *sql.Tx) error {
@@ -54,17 +55,11 @@ func (d DB) GetMachine(column string, val interface{}) (*Machine, error) {
 		FROM Machines
 		WHERE Machines.`+column+` = $1`, val)
 
-	var id int
-	var m Machine
+	m := Machine{db: &d}
 	err := row.Scan(
-		&id, &m.Name, &m.Architecture, &m.Microarchitecture,
+		&m.id, &m.Name, &m.Architecture, &m.Microarchitecture,
 		&m.Cores, &m.MemoryGB,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	m.Reservations, err = d.GetReservationsFor("machine", id, time.Time{})
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +69,7 @@ func (d DB) GetMachine(column string, val interface{}) (*Machine, error) {
 
 func (d DB) GetMachines() ([]Machine, error) {
 	rows, err := d.sql.Query(`
-		SELECT name, arch, microarch, cores, memory
+		SELECT id, name, arch, microarch, cores, memory
 		FROM Machines
 		ORDER BY name`)
 
@@ -86,9 +81,9 @@ func (d DB) GetMachines() ([]Machine, error) {
 
 	machines := []Machine{}
 	for rows.Next() {
-		var m Machine
+		m := Machine{db: &d}
 		err = rows.Scan(
-			&m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.id, &m.Name, &m.Architecture, &m.Microarchitecture,
 			&m.Cores, &m.MemoryGB,
 		)
 		if err != nil {
@@ -101,8 +96,39 @@ func (d DB) GetMachines() ([]Machine, error) {
 	return machines, rows.Err()
 }
 
-func (m Machine) ReservedBy() string {
-	return "nobody"
+func (m Machine) ReservedBy() (string, error) {
+	r, err := m.db.GetReservationsFor(
+		"machine", m.id, time.Now(), time.Now())
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(r) == 0 {
+		return "nobody", nil
+
+	} else if len(r) == 1 {
+		user, err := r[0].User()
+		if err != nil {
+			return "", err
+		}
+
+		return user.Username, nil
+
+	} else {
+		return "mnultiple users!?", err
+	}
+}
+
+func (m Machine) Reservations() []Reservation {
+	r, err := m.db.GetReservationsFor(
+		"machine", m.id, time.Time{}, time.Time{})
+
+	if err != nil {
+		m.db.Error(err)
+	}
+
+	return r
 }
 
 func (m Machine) String() string {
