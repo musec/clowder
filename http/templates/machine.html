@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Clowder: {{ .Name }}</title>
+	<link type="text/css" rel="stylesheet" href="/static/musec.css"/>
+</head>
+
+<body>
+
+<h1>Clowder</h1>
+<h2>{{ .Name }}</h2>
+
+<p>
+	{{ .Architecture }} ({{ .Microarchitecture }}),
+	{{ .Cores }} cores, {{ .MemoryGB }} GB RAM
+</p>
+
+
+<h3>Reservations</h3>
+
+<table>
+	<thead>
+		<tr>
+			<th>User</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Ended</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{ range .Reservations }}
+			<tr>
+				<td>{{ .User.Username }}</td> 
+				<td>{{ .Start | fdatetime }}</td>
+				<td>{{ .End | fdatetime }}</td>
+				<td>{{ .Ended | fdatetime }}</td>
+			</tr>
+		{{ end }}
+	</tbody>
+</table>
+
+</body>
+</html>

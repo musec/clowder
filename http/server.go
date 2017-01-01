@@ -36,6 +36,7 @@ func Run(config *viper.Viper, db *db.DB, logfile string) {
 
 	http.Handle("/static/", http.FileServer(http.Dir("http")))
 	http.HandleFunc("/", server.frontPage)
+	http.HandleFunc("/machine/", server.machinePage)
 	http.HandleFunc("/machines/", server.machinesPage)
 
 	hostname := config.GetString("server.hostname")

@@ -70,6 +70,48 @@ func (s Server) frontPage(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, data)
 }
 
+func (s Server) machinePage(w http.ResponseWriter, r *http.Request) {
+	s.logRequest(r)
+
+	tname := "machine.html"
+	t, err := getTemplate(tname)
+	if err != nil {
+		templateError(w, tname, err)
+		return
+	}
+
+	var column string
+	var value interface{}
+
+	query := r.URL.Query()
+	if id, exists := query["id"]; exists {
+		column = "id"
+		value = id[0]
+
+	} else if name, exists := query["name"]; exists {
+		column = "name"
+		value = name[0]
+
+	} else {
+		renderError(w, "No machine specified",
+			`This page is used to retrieve the details of a
+			specific machine, but no machine has been requested.
+			This page should be accessed with id=XX or name=XX.`)
+		return
+	}
+
+	machine, err := s.db.GetMachine(column, value)
+	if err != nil {
+		s.Error(err)
+		renderError(w, "Error retrieving machine",
+			fmt.Sprintf("Unable to get machines from database: %s",
+				err))
+		return
+	}
+
+	t.Execute(w, machine)
+}
+
 func (s Server) machinesPage(w http.ResponseWriter, r *http.Request) {
 	s.logRequest(r)
 
