@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Clowder: reservations</title>
+	<link type="text/css" rel="stylesheet" href="/static/musec.css"/>
+</head>
+
+<body>
+
+<h1>Clowder</h1>
+<h2>Reservations</h2>
+
+<table>
+	<thead>
+		<tr>
+			<th>User</th>
+			<th>Machine</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Ended</th>
+			<th>PXE</th>
+			<th>NFS</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{ range . }}
+			<tr>
+				<td>{{ .User.Username }}</td> 
+				<td>{{ .Machine.Name }}</td>
+				<td>{{ .Start | fdatetime }}</td>
+				<td>{{ .End | fdatetime }}</td>
+				<td>{{ .Ended | fdatetime }}</td>
+				<td>{{ .PxePath }}</td>
+				<td>{{ .NfsRoot }}</td>
+			</tr>
+		{{ end }}
+	</tbody>
+</table>
+
+</body>
+</html>

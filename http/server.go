@@ -38,6 +38,7 @@ func Run(config *viper.Viper, db *db.DB, logfile string) {
 	http.HandleFunc("/", server.frontPage)
 	http.HandleFunc("/machine/", server.machinePage)
 	http.HandleFunc("/machines/", server.machinesPage)
+	http.HandleFunc("/reservations/", server.reservationsPage)
 
 	hostname := config.GetString("server.hostname")
 	port := config.GetInt("server.http.port")

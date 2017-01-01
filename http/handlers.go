@@ -133,6 +133,28 @@ func (s Server) machinesPage(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, machines)
 }
 
+func (s Server) reservationsPage(w http.ResponseWriter, r *http.Request) {
+	s.logRequest(r)
+
+	tname := "reservations.html"
+	t, err := getTemplate(tname)
+	if err != nil {
+		templateError(w, tname, err)
+		return
+	}
+
+	reservations, err := s.db.GetReservations()
+	if err != nil {
+		renderError(w, "Error retrieving reservations",
+			fmt.Sprintf(
+				"Unable to get reservations from database: ",
+				err))
+		return
+	}
+
+	t.Execute(w, reservations)
+}
+
 func (s Server) logRequest(r *http.Request) {
 	s.Log(fmt.Sprintf("%s %s%s %s",
 		r.Method, r.Host, r.RequestURI, r.RemoteAddr))
