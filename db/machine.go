@@ -21,6 +21,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -100,12 +101,8 @@ func (m Machine) ReservedBy() (string, error) {
 	r, err := m.db.GetReservationsFor(
 		"machine", m.id, time.Now(), time.Now())
 
-	if err != nil {
+	if err != nil || len(r) == 0 {
 		return "", err
-	}
-
-	if len(r) == 0 {
-		return "nobody", nil
 
 	} else if len(r) == 1 {
 		user, err := r[0].User()
@@ -116,7 +113,17 @@ func (m Machine) ReservedBy() (string, error) {
 		return user.Username, nil
 
 	} else {
-		return "mnultiple users!?", err
+		var names []string
+		for _, reservation := range r {
+			user, err := reservation.User()
+			if err != nil {
+				return "", err
+			}
+
+			names = append(names, user.Username)
+		}
+
+		return strings.Join(names, ","), nil
 	}
 }
 
