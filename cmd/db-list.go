@@ -30,7 +30,7 @@ func runList(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	db := getDB()
+	db := getDB(stdoutLog)
 
 	for _, arg := range args {
 		if arg == "machines" {

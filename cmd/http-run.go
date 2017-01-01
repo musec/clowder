@@ -23,7 +23,7 @@ import (
 )
 
 func runHttp(cmd *cobra.Command, args []string) {
-	db := getDB()
+	db := getDB(stdoutLog)
 	http.Run(config, &db, "")
 }
 

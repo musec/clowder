@@ -20,15 +20,19 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"log"
 	"os"
 	"path"
 )
 
 var config *viper.Viper
+var stdoutLog *log.Logger
 
 var RootCmd = &cobra.Command{Use: "clowder"}
 
 func init() {
+	stdoutLog = log.New(os.Stdout, "", 0)
+
 	var flags = RootCmd.PersistentFlags()
 	config = viper.New()
 

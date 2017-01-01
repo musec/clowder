@@ -20,14 +20,15 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/musec/clowder/db"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
-func getDB() db.DB {
+func getDB(log *log.Logger) db.DB {
 	dbtype := config.GetString("server.dbtype")
 	dbname := config.GetString("server.database")
 
-	db, err := db.Open(dbtype, dbname)
+	db, err := db.Open(dbtype, dbname, log)
 	if err != nil {
 		fmt.Println("Error opening", dbtype, "database at", dbname,
 			":", err)

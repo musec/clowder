@@ -22,20 +22,26 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/musec/clowder/server"
+	"log"
 )
 
 // A database of machines, reservations, etc., managed by Clowder
 type DB struct {
+	server.HasLogger
+
 	sql  *sql.DB
 	Kind string
 	Name string
 }
 
-func Open(dbType string, name string) (DB, error) {
+func Open(dbType string, name string, log *log.Logger) (DB, error) {
 	db := DB{
 		Kind: dbType,
 		Name: name,
 	}
+
+	db.SetLogger(log)
 
 	if dbType == "" {
 		return db, fmt.Errorf("Invalid database type: %v", dbType)

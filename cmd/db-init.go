@@ -25,7 +25,7 @@ import (
 )
 
 func runInit(cmd *cobra.Command, args []string) {
-	db := getDB()
+	db := getDB(stdoutLog)
 
 	err := db.Init()
 	if err != nil {

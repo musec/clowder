@@ -45,6 +45,10 @@ func (h HasLogger) DefaultLogger() log.Logger {
 	return *h.logger
 }
 
+func (h *HasLogger) SetLogger(l *log.Logger) {
+	h.logger = l
+}
+
 // Output an ordinary ("info") message to the log.
 func (h HasLogger) Log(message ...interface{}) {
 	h.logger.Println("INFO:  ", message)
