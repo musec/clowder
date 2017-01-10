@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Clowder</title>
+	<link type="text/css" rel="stylesheet" href="/static/musec.css"/>
+</head>
+
+<body>
+
+<h1>Clowder</h1>
+
+<h2><a href="machines">Machine inventory</a></h2>
+<table>
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Arch</th>
+			<th>Microarch</th>
+			<th>Cores</th>
+			<th>Memory</th>
+			<th>Reserved by</th>
+		</tr>
+	</thead>
+
+	<tbody>
+		{{ range .Machines }}
+			<tr>
+				<td><a href="machine/?name={{ .Name }}">{{.Name}}</a></td>	
+				<td>{{ .Architecture }}</td>
+				<td>{{ .Microarchitecture }}</td>
+				<td>{{ .Cores }}</td>
+				<td>{{ .MemoryGB }} GB</td>
+				<td>{{ .ReservedBy }}</td>
+			</tr>
+		{{ end }}
+	</tbody>
+</table>
+
+<h2><a href="reservations">All reservations</a></h2>
+
+<table>
+	<thead>
+		<tr>
+			<th>User</th>
+			<th>Machine</th>
+			<th>Start</th>
+			<th>End</th>
+			<th>Ended</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{ range .Reservations }}
+			<tr>
+				<td>{{ .User.Username }}</td> 
+				<td>{{ .Machine.Name }}</td>
+				<td>{{ .Start | fdatetime }}</td>
+				<td>{{ .End | fdatetime }}</td>
+				<td>{{ .Ended | fdatetime }}</td>
+			</tr>
+		{{ end }}
+	</tbody>
+</table>
+
+</body>
+</html>

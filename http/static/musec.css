@@ -1,0 +1,43 @@
+html
+{
+	font-family: Avenir, Helvetica, sans-serif;
+}
+
+body
+{
+	background-attachment: fixed;
+	background-image: url('https://allendale.engr.mun.ca/musec.png');
+	background-position: 98% 2%;
+	background-repeat: no-repeat;
+	background-size: 120px;
+	width: 50em;
+	margin: 0 auto;
+}
+
+a
+{
+	color: #862633;
+	font-weight: bold;
+	text-decoration: none;
+}
+
+a:visited
+{
+	color: #862633;
+}
+
+a:hover
+{
+	color: #cc9999;
+}
+
+th
+{
+	text-align: left;
+}
+
+td
+{
+	padding-left: 0.5em;
+	padding-right: 0.5em;
+}
