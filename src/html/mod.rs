@@ -97,12 +97,10 @@ fn index(ctx: Context) -> WebResult {
 
 #[get("/machine/<machine_name>")]
 fn machine(machine_name: &str, ctx: Context) -> WebResult {
-    let conn = db::establish_connection();
-
     let m: Machine = try![{
         use self::machines::dsl::*;
         machines.filter(name.eq(machine_name))
-                .first(&conn)
+                .first(&ctx.conn)
     }];
 
     let reserv: Vec<(Reservation, User)> = try![{
@@ -111,7 +109,7 @@ fn machine(machine_name: &str, ctx: Context) -> WebResult {
                     .filter(machine_id.eq(m.id))
                     .filter(user_id.eq(users::dsl::id))
                     .order(scheduled_start.desc())
-                    .load(&conn)
+                    .load(&ctx.conn)
     }];
 
     Ok(bootstrap::render(format!["Clowder: {}", m.name], &ctx, None, html! {
@@ -153,12 +151,10 @@ fn machine(machine_name: &str, ctx: Context) -> WebResult {
 
 #[get("/machines")]
 fn machines(ctx: Context) -> WebResult {
-    let conn = db::establish_connection();
-
     let machines = try![{
         use self::machines::dsl::*;
         machines.order(name)
-                .load::<Machine>(&conn)
+                .load::<Machine>(&ctx.conn)
     }];
 
     Ok(bootstrap::render("Clowder: Machines", &ctx, None, tables::machines(&machines)))
@@ -166,11 +162,9 @@ fn machines(ctx: Context) -> WebResult {
 
 #[get("/reservation/<id>")]
 fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> WebResult {
-    let conn = db::establish_connection();
-
-    let r: Reservation = try![reservations::table.find(id).first(&conn)];
-    let machine: Machine = try![machines::table.find(r.machine_id).first(&conn)];
-    let user: User = try![users::table.find(r.user_id).first(&conn)];
+    let r: Reservation = try![reservations::table.find(id).first(&ctx.conn)];
+    let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
+    let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
 
     let can_end = match (r.scheduled_start, r.actual_end) {
         (s, None) if s <= UTC::now() => true,
@@ -228,11 +222,9 @@ fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> WebResult 
 
 #[get("/reservation/end/<id>")]
 fn reservation_end(id: i32, ctx: Context) -> WebResult {
-    let conn = db::establish_connection();
-
-    let r: Reservation = try![reservations::table.find(id).first(&conn)];
-    let machine: Machine = try![machines::table.find(r.machine_id).first(&conn)];
-    let user: User = try![users::table.find(r.user_id).first(&conn)];
+    let r: Reservation = try![reservations::table.find(id).first(&ctx.conn)];
+    let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
+    let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
 
     Ok(bootstrap::render(format!["Clowder: end reservation {}", r.id], &ctx, None, html! {
         h2 "End reservation"
@@ -274,11 +266,9 @@ fn reservation_end(id: i32, ctx: Context) -> WebResult {
 
 #[get("/reservation/end/confirm/<res_id>")]
 fn reservation_end_confirm(res_id: i32, ctx: Context) -> Redirection {
-    let conn = db::establish_connection();
-
     use db::schema::reservations::dsl::*;
 
-    let r: Reservation = try![reservations.find(res_id).first(&conn)];
+    let r: Reservation = try![reservations.find(res_id).first(&ctx.conn)];
 
     try! {
         diesel::update(&r)
@@ -292,8 +282,6 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Redirection {
 
 #[get("/reservations")]
 fn reservations(ctx: Context) -> WebResult {
-    let conn = db::establish_connection();
-
     // TODO: use multiple joins once Diesel supports it
     let reservations: Vec<(Reservation, Machine)> = try![{
         use db::schema::reservations::dsl::*;
@@ -301,7 +289,7 @@ fn reservations(ctx: Context) -> WebResult {
         reservations
             .inner_join(machines::table)
             .order(scheduled_start.desc())
-            .load(&conn)
+            .load(&ctx.conn)
     }];
 
     Ok(bootstrap::render("Clowder: Reservations", &ctx, None,
