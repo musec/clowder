@@ -237,7 +237,7 @@ fn reservation_end(id: i32, ctx: Context) -> WebResult {
     Ok(bootstrap::render(format!["Clowder: end reservation {}", r.id], &ctx, None, html! {
         h2 "End reservation"
 
-        (bootstrap::callout("warning", "Are you sure you want to end this reservation?", false,
+        (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
             html! {
                 table {
                     tr { th "User"       td (Link::from(&user)) }

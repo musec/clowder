@@ -6,24 +6,24 @@ use html::link::Link;
 use html::Context;
 
 
-pub fn callout<S1, S2>(kind: S1, title: S2, closeable: bool, content: Markup) -> Markup
+pub fn alert<S1, S2>(kind: S1, msg: S2) -> Markup
     where S1: Into<String>, S2: Into<String>
 {
-    let k = kind.into();
-    let t = title.into();
-    let same = &k == &t;
-
     html! {
-        div#flash class={ "mb-3 bs-callout bs-callout-" (k) } {
-            @if closeable {
-                button type="botton" class="close" aria-label="Close"
-                       span aria-hidden="true"
-                       onclick="document.getElementById('flash').style['display'] = 'none';"
-                        (::maud::PreEscaped("&times;"))
-            }
+        div class={ "alert alert-dismissable alert-" (kind.into()) } role="alert" {
+            (PreEscaped(msg.into()))
+            button.close type="button" data-dismiss="alert" aria-label="Close"
+                span aria-hidden="true" (PreEscaped("&times;".to_string()))
+        }
+    }
+}
 
-            @if !same { h4 (t) }
-
+pub fn callout<S1, S2>(kind: S1, title: S2, content: Markup) -> Markup
+    where S1: Into<String>, S2: Into<String>
+{
+    html! {
+        div#flash class={ "mb-3 bs-callout bs-callout-" (kind.into()) } {
+            h4 (title.into())
             (content)
         }
     }
@@ -79,8 +79,7 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
                     div.row {
                         // Check for a flash (one-time) message:
                         (match &flash {
-                            &Some(ref f) => callout(f.name(), f.name(), true,
-                                                    ::maud::PreEscaped(f.msg().to_string())),
+                            &Some(ref f) => alert(f.name(), f.msg()),
                             &None => html![],
                         })
                     }
