@@ -1,0 +1,13 @@
+body
+{
+	font-family: Avenir, Helvetica, sans-serif;
+}
+
+a           { color: #862633; font-weight: bold; }
+a:visited   { color: #862633; }
+a:hover     { color: #cc9999; }
+
+td.numeric
+{
+	text-align: right;
+}
