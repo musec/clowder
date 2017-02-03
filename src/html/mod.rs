@@ -130,7 +130,7 @@ fn machine(machine_name: &str, ctx: Context) -> WebResult {
             div class="col-md-5" {
                 h3 "Reservations"
 
-                table.table.table-hover.table-responsive {
+                table.table.table-responsive {
                     (tables::TableHeader::from_str(
                         &[ "", "User", "Started", "Ends" ]))
 

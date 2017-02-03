@@ -14,7 +14,7 @@ type MarkupOrDieselError = Result<Markup, DieselError>;
 
 pub fn machines(machines: &Vec<Machine>) -> Markup {
     html! {
-        table.table.table-hover.table-responsive {
+        table.table.table-responsive {
             (TableHeader::from_str(
                 &[ "Name", "Arch", "Microarch", "Cores", "Memory" ]))
 
@@ -62,7 +62,7 @@ pub fn reservations_with_machines(reservations: &Vec<(Reservation, Machine)>,
     };
 
     Ok(html! {
-        table.table.table-hover.table-responsive {
+        table.table.table-responsive {
             (TableHeader::from_str(&headings))
 
             tbody {
