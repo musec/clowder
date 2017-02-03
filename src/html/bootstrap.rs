@@ -76,17 +76,14 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
                 }
 
                 div.container {
-                    div.row {
+                    div.row div class="col-md-12"
                         // Check for a flash (one-time) message:
                         (match &flash {
                             &Some(ref f) => alert(f.name(), f.msg()),
                             &None => html![],
                         })
-                    }
 
-                    div.row {
-                        div.container (content)
-                    }
+                    div.row div class="col-md-12" div.container (content)
                 }
 
                 footer.footer {
