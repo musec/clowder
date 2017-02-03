@@ -36,12 +36,12 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
     where S: Into<String>
 {
     html! {
-        html {
-            (DOCTYPE)
+        (DOCTYPE)
 
+        html {
             head {
-                meta charset="utf-8"
-                meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"
+                meta charset="utf-8" /
+                meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" /
 
                 title (title.into())
 
@@ -56,7 +56,7 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
                            data-toggle="collapse" data-target="#navbarSupportedContent"
                            aria-controls="navbarSupportedContent" aria-expanded="false"
                            aria-label="Toggle navigation" {
-                        span.navbar-toggler-icon /
+                        span.navbar-toggler-icon {}
                     }
 
                     a class="navbar-brand" href="/" "Clowder"
@@ -71,7 +71,7 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
                             (Link::to("/profile", ctx.user.username.as_str()))
                         }
 
-                        img src="https://allendale.engr.mun.ca/musec.png" 
+                        img src="https://allendale.engr.mun.ca/musec.png" alt="MUSEC logo"
                             width="40" /
                 }
 
@@ -101,15 +101,15 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
                     }
                 }
 
-                script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js" /
+                script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js" {}
                 script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
                        integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
-                       crossorigin="anonymous"
+                       crossorigin="anonymous" {}
                 script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
                        integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
-                       crossorigin="anonymous"
+                       crossorigin="anonymous" {}
 
-                script src="/static/js/bootstrap.min.js" /
+                script src="/static/js/bootstrap.min.js" {}
             }
         }
     }
