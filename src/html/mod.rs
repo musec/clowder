@@ -9,6 +9,7 @@ use db::schema::*;
 use ::diesel;
 use diesel::*;
 use diesel::pg::PgConnection as Connection;
+use marksman_escape::Escape;
 use maud::*;
 use rocket::*;
 use rocket::http::Status;
@@ -61,6 +62,11 @@ pub fn all_routes() -> Vec<Route> {
         static_css, static_js,
         user,
     }
+}
+
+pub fn escape(dangerous: &str) -> String {
+    String::from_utf8(Escape::new(dangerous.bytes()).collect())
+           .unwrap_or(String::from("&lt;error&gt;"))
 }
 
 #[get("/")]

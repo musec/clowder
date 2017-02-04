@@ -9,6 +9,7 @@ chrono-humanize = "0.0.6"
 diesel = { version = "0.9.0", features = ["chrono"] }
 diesel_codegen = { version = "0.9.0", features = ["postgres"] }
 dotenv = "0.8.0"
+marksman_escape = "0.1.2"
 maud = { version = "*", features = ["rocket"] }
 maud_macros = "*"
 rocket = "0.1.6"

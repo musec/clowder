@@ -1,3 +1,4 @@
+#![feature(custom_derive)]
 #![feature(plugin)]
 #![plugin(maud_macros)]
 #![plugin(rocket_codegen)]
@@ -8,6 +9,7 @@ extern crate chrono_humanize;
 #[macro_use] extern crate diesel_codegen;
 extern crate dotenv;
 extern crate maud;
+extern crate marksman_escape;
 extern crate rocket;
 
 mod db;
