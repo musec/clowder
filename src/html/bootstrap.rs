@@ -67,8 +67,19 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
                             li.nav-item a.nav-link href="/reservations" "Reservations"
                         }
 
-                        span style="margin-right: 1em" {
-                            (Link::to("/profile", ctx.user.username.as_str()))
+                        div.dropdown {
+                            a.btn.dropdown-toggle#userDropdown
+                                href="#"
+                                data-toggle="dropdown" data-target="fubar"
+                                aria-haspopup="true" aria-expanded="false"
+                                (ctx.user.name)
+
+                            div.dropdown-menu.dropdown-menu-right#fubar aria-labelledby="userDropdown" {
+                                h6.dropdown-header (ctx.user.username)
+                                a.dropdown-item href="/profile" "Profile"
+                                div.dropdown-divider {}
+                                a.dropdown-item href="/logout" "Log out"
+                            }
                         }
 
                         img src="https://allendale.engr.mun.ca/musec.png" alt="MUSEC logo"
