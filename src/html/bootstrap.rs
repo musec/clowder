@@ -76,7 +76,7 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
 
                             div.dropdown-menu.dropdown-menu-right#fubar aria-labelledby="userDropdown" {
                                 h6.dropdown-header (ctx.user.username)
-                                a.dropdown-item href="/profile" "Profile"
+                                a.dropdown-item href={ "/user/" (ctx.user.username) } "Profile"
                                 div.dropdown-divider {}
                                 a.dropdown-item href="/logout" "Log out"
                             }

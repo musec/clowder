@@ -17,6 +17,7 @@ use rocket::request::FlashMessage;
 use rocket::response::{Flash, Redirect};
 
 mod bootstrap;
+mod forms;
 mod link;
 mod tables;
 
@@ -56,7 +57,7 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for Context {
 /// All of the routes that we can handle.
 pub fn all_routes() -> Vec<Route> {
     routes! {
-        index, logout, profile,
+        index, logout,
         machine, machines,
         reservation, reservation_end, reservation_end_confirm, reservations,
         static_css, static_js,
@@ -108,51 +109,6 @@ fn logout(ctx: Context) -> WebResult {
     Ok(bootstrap::render("Logout", &ctx, None,
             bootstrap::callout("warning", "Unhandled operation",
                     PreEscaped("We don't handle logout just yet.".to_string()))))
-}
-
-#[get("/profile")]
-fn profile(ctx: Context) -> WebResult {
-    let user = &ctx.user;
-    let name = user.name.as_str();
-
-    let reservations: Vec<(Reservation, Machine)> = try![{
-        use db::schema::reservations::dsl::*;
-
-        reservations
-            .inner_join(machines::table)
-            .filter(user_id.eq(user.id))
-            .order(scheduled_start.desc())
-            .load(&ctx.conn)
-    }];
-
-    Ok(bootstrap::render(name, &ctx, None, html! {
-        h2 (name)
-
-        div.row {
-            div class="col-md-4" {
-                form {
-                    table.table.table-responsive {
-                        tbody {
-                            tr { th "Username"  td (user.username) }
-                            tr { th "Name"      td input name="name" value=(user.name) / }
-                            tr { th "Email"     td input name="email" value=(user.email) / }
-                            tr {
-                                th "Phone"
-                                td input name="phone"
-                                   value=(user.phone.as_ref().map(String::as_str).unwrap_or("")) /
-                            }
-                            tr td colspan="2"
-                                input.btn.btn-warning.float-right type="submit"
-                                    value="Update user details" /
-                        }
-                    }
-                }
-            }
-
-            div class="col-md-8"
-                (try![tables::reservations_with_machines(&reservations, &ctx, true)])
-        }
-    }))
 }
 
 #[get("/machine/<machine_name>")]
@@ -370,6 +326,7 @@ fn static_js(filename: &str) -> io::Result<File> {
 fn user(name: String, ctx: Context) -> WebResult {
     let user: User = try![users::table.filter(users::dsl::username.eq(name)).first(&ctx.conn)];
     let name = user.name.as_str();
+    let myself = user.id == ctx.user.id;
 
     let reservations: Vec<(Reservation, Machine)> = try![{
         use db::schema::reservations::dsl::*;
@@ -386,14 +343,34 @@ fn user(name: String, ctx: Context) -> WebResult {
 
         div.row {
             div class="col-md-4" {
-                table.table.table-responsive {
-                    tbody {
-                        tr { th "Username"  td (user.username) }
-                        tr { th "Name"      td (user.name) }
-                        tr { th "Email"     td (user.email) }
-                        tr {
-                            th "Phone"
-                            td (user.phone.as_ref().map(String::as_str).unwrap_or(""))
+                form action="/user/update" method="post" {
+                    table.table.table-responsive {
+                        tbody {
+                            tr { th "Username" td (user.username) }
+                            tr { th "Name"
+                                td (forms::Input::new("name".to_string())
+                                                 .value(user.name.clone())
+                                                 .size(18)
+                                                 .writable(myself))
+                            }
+                            tr { th "Email"
+                                td (forms::Input::new("email".to_string())
+                                                 .value(user.email.clone())
+                                                 .size(18)
+                                                 .writable(myself))
+                            }
+                            tr {
+                                th "Phone"
+                                td (forms::Input::new("phone".to_string())
+                                                 .value(user.phone.as_ref()
+                                                                  .map(String::clone)
+                                                                  .unwrap_or(String::new()))
+                                                 .size(18)
+                                                 .writable(myself))
+                            }
+                            tr td colspan="2"
+                                input.btn.btn-block.btn-warning type="submit"
+                                    value="Update user details" /
                         }
                     }
                 }
