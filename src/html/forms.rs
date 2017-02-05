@@ -1,7 +1,4 @@
-use html::link::Link;
 use maud::*;
-
-use super::Context;
 
 
 /// An HTML <input> field

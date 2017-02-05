@@ -2,7 +2,6 @@ use chrono;
 use maud::*;
 use rocket::request::FlashMessage;
 
-use html::link::Link;
 use html::Context;
 
 
