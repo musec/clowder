@@ -12,8 +12,12 @@ use diesel::pg::PgConnection as Connection;
 use marksman_escape::Escape;
 use maud::*;
 use rocket::*;
-use rocket::request::FlashMessage;
-use rocket::response::{Flash, Redirect};
+use rocket::request::{FlashMessage, Form};
+use rocket::response::{Failure, Flash, Redirect};
+
+// We do, in fact, use FromFrom, but only in a rocket-codegen derivation.
+#[allow(unused_imports)]
+use rocket::request::FromForm;
 
 mod bootstrap;
 mod forms;
@@ -60,7 +64,7 @@ pub fn all_routes() -> Vec<Route> {
         machine, machines,
         reservation, reservation_end, reservation_end_confirm, reservations,
         static_css, static_js,
-        user,
+        user, user_update,
     }
 }
 
@@ -342,7 +346,7 @@ fn user(name: String, ctx: Context) -> WebResult {
 
         div.row {
             div class="col-md-4" {
-                form action="/user/update" method="post" {
+                form action={ "/user/update/" (user.username) } method="post" {
                     table.table.table-responsive {
                         tbody {
                             tr { th "Username" td (user.username) }
@@ -381,3 +385,51 @@ fn user(name: String, ctx: Context) -> WebResult {
     }))
 }
 
+
+#[derive(FromForm)]
+struct UserUpdate {
+    name: String,
+    email: String,
+    phone: Option<String>,
+}
+
+#[post("/user/update/<who>", data = "<form>")]
+fn user_update(who: String, ctx: Context, form: Form<UserUpdate>) -> Result<Redirect, Failure> {
+    use self::users::dsl::*;
+
+    let user: User = try! {
+        users.filter(username.eq(who))
+             .first(&ctx.conn)
+             .map_err(|_| Failure(http::Status::NotFound))
+    };
+
+    if user.id != ctx.user.id {
+        return Err(Failure(http::Status::Forbidden));
+    }
+
+    let f = form.get();
+    try! {
+        diesel::update(&user)
+            .set(name.eq(f.name.clone()))
+            .get_result::<User>(&ctx.conn)
+            .map_err(|_| Failure(http::Status::InternalServerError))
+    };
+
+    try! {
+        diesel::update(&user)
+            .set(email.eq(f.email.clone()))
+            .get_result::<User>(&ctx.conn)
+            .map_err(|_| Failure(http::Status::InternalServerError))
+    };
+
+    if let Some(ref p) = f.phone {
+        try! {
+            diesel::update(&user)
+                .set(phone.eq(Some(p.clone())))
+                .get_result::<User>(&ctx.conn)
+                .map_err(|_| Failure(http::Status::InternalServerError))
+        };
+    };
+
+    Ok(Redirect::to(&format!["/user/{}", user.username]))
+}
