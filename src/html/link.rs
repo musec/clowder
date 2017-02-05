@@ -6,17 +6,6 @@ pub struct Link {
     text: String,
 }
 
-impl Link {
-    pub fn to<S1, S2>(url: S1, text: S2) -> Link
-        where S1: Into<String>, S2: Into<String>
-    {
-        Link {
-            url: url.into(),
-            text: text.into(),
-        }
-    }
-}
-
 impl<'a> From<&'a Machine> for Link {
     fn from(m: &Machine) -> Link {
         Link {
