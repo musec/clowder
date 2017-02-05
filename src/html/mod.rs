@@ -12,7 +12,6 @@ use diesel::pg::PgConnection as Connection;
 use marksman_escape::Escape;
 use maud::*;
 use rocket::*;
-use rocket::http::Status;
 use rocket::request::FlashMessage;
 use rocket::response::{Flash, Redirect};
 
@@ -46,7 +45,7 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for Context {
         let conn = db::establish_connection();
         let user = match users::table.first(&conn) {
             Ok(u) => u,
-            Err(err) => { return Outcome::Failure((Status::BadRequest, err)); },
+            Err(err) => { return Outcome::Failure((http::Status::BadRequest, err)); },
         };
 
         Outcome::Success(Context { user: user, conn: conn })
