@@ -11,6 +11,7 @@ use diesel::*;
 use diesel::pg::PgConnection as Connection;
 use marksman_escape::Escape;
 use maud::*;
+use super::rocket;
 use rocket::*;
 use rocket::request::{FlashMessage, Form};
 use rocket::response::{Flash, Redirect};
@@ -65,6 +66,14 @@ pub fn all_routes() -> Vec<Route> {
         user, user_update,
     }
 }
+
+/// All of our error catchers (which wrap HTTP errors and present nicer UIs for them).
+pub fn error_catchers() -> Vec<Catcher> {
+    errors! {
+        error::not_found, error::unauthorized
+    }
+}
+
 
 pub fn escape(dangerous: &str) -> String {
     String::from_utf8(Escape::new(dangerous.bytes()).collect())

@@ -1,6 +1,8 @@
 use super::bootstrap;
 use super::diesel;
 
+use maud; // TODO: use a Bootstrap::ResultType or somesuch
+use maud::Render;
 use rocket::*;
 use rocket::response::Responder;
 
@@ -44,4 +46,27 @@ impl<'r> Responder<'r> for Error {
             .render()
             .respond()
     }
+}
+
+
+/// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
+#[error(401)]
+fn unauthorized(req: &Request) -> maud::Markup {
+    bootstrap::Page::new("401 Unauthorized")
+        .content(html! {
+            h1 "401 Unauthorized"
+            p { "Authorization is required to access " code (req.uri()) "." }
+        })
+        .render()
+}
+
+/// The 404 handler renders a slightly nicer-looking page than the stock Rocket handler.
+#[error(404)]
+fn not_found(req: &Request) -> maud::Markup {
+    bootstrap::Page::new("404 Not Found")
+        .content(html! {
+            h2 ("404 Not Found")
+            p { "The resource " code (req.uri()) " could not be found." }
+        })
+        .render()
 }

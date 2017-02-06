@@ -18,6 +18,7 @@ mod html;
 
 fn main() {
     rocket::ignite()
+           .catch(html::error_catchers())
            .mount("/", html::all_routes())
            .launch()
            ;
