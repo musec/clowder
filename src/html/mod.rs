@@ -13,22 +13,20 @@ use marksman_escape::Escape;
 use maud::*;
 use rocket::*;
 use rocket::request::{FlashMessage, Form};
-use rocket::response::{Failure, Flash, Redirect};
+use rocket::response::{Flash, Redirect};
 
 // We do, in fact, use FromFrom, but only in a rocket-codegen derivation.
 #[allow(unused_imports)]
 use rocket::request::FromForm;
 
 mod bootstrap;
+mod error;
 mod forms;
 mod link;
 mod tables;
 
+use self::error::Error;
 use self::link::Link;
-
-type DieselResult<T> = ::std::result::Result<T, diesel::result::Error>;
-type Redirection = DieselResult<Flash<Redirect>>;
-type WebResult = DieselResult<Markup>;
 
 
 /// Contextual information about the current page rendering.
@@ -74,7 +72,7 @@ pub fn escape(dangerous: &str) -> String {
 }
 
 #[get("/")]
-fn index(ctx: Context) -> WebResult {
+fn index(ctx: Context) -> Result<Markup, Error> {
     let conn = db::establish_connection();
 
     let machines = try![{
@@ -108,14 +106,14 @@ fn index(ctx: Context) -> WebResult {
 }
 
 #[get("/logout")]
-fn logout(ctx: Context) -> WebResult {
+fn logout(ctx: Context) -> Result<Markup, Error> {
     Ok(bootstrap::render("Logout", Some(&ctx), None,
             bootstrap::callout("warning", "Unhandled operation",
                     PreEscaped("We don't handle logout just yet.".to_string()))))
 }
 
 #[get("/machine/<machine_name>")]
-fn machine(machine_name: &str, ctx: Context) -> WebResult {
+fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
     let m: Machine = try![{
         use self::machines::dsl::*;
         machines.filter(name.eq(machine_name))
@@ -169,7 +167,7 @@ fn machine(machine_name: &str, ctx: Context) -> WebResult {
 }
 
 #[get("/machines")]
-fn machines(ctx: Context) -> WebResult {
+fn machines(ctx: Context) -> Result<Markup, Error> {
     let machines = try![{
         use self::machines::dsl::*;
         machines.order(name)
@@ -180,7 +178,7 @@ fn machines(ctx: Context) -> WebResult {
 }
 
 #[get("/reservation/<id>")]
-fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> WebResult {
+fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> Result<Markup, Error> {
     let r: Reservation = try![reservations::table.find(id).first(&ctx.conn)];
     let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
     let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
@@ -240,7 +238,7 @@ fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> WebResult 
 }
 
 #[get("/reservation/end/<id>")]
-fn reservation_end(id: i32, ctx: Context) -> WebResult {
+fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
     let r: Reservation = try![reservations::table.find(id).first(&ctx.conn)];
     let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
     let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
@@ -284,7 +282,7 @@ fn reservation_end(id: i32, ctx: Context) -> WebResult {
 }
 
 #[get("/reservation/end/confirm/<res_id>")]
-fn reservation_end_confirm(res_id: i32, ctx: Context) -> Redirection {
+fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>, Error> {
     use db::schema::reservations::dsl::*;
 
     let r: Reservation = try![reservations.find(res_id).first(&ctx.conn)];
@@ -300,7 +298,7 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Redirection {
 }
 
 #[get("/reservations")]
-fn reservations(ctx: Context) -> WebResult {
+fn reservations(ctx: Context) -> Result<Markup, Error> {
     // TODO: use multiple joins once Diesel supports it
     let reservations: Vec<(Reservation, Machine)> = try![{
         use db::schema::reservations::dsl::*;
@@ -326,7 +324,7 @@ fn static_js(filename: &str) -> io::Result<File> {
 }
 
 #[get("/user/<name>")]
-fn user(name: String, ctx: Context) -> WebResult {
+fn user(name: String, ctx: Context) -> Result<Markup, Error> {
     let user: User = try![users::table.filter(users::dsl::username.eq(name)).first(&ctx.conn)];
     let name = user.name.as_str();
     let myself = user.id == ctx.user.id;
@@ -394,17 +392,17 @@ struct UserUpdate {
 }
 
 #[post("/user/update/<who>", data = "<form>")]
-fn user_update(who: String, ctx: Context, form: Form<UserUpdate>) -> Result<Redirect, Failure> {
+fn user_update(who: String, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<Redirect>, Error> {
     use self::users::dsl::*;
 
     let user: User = try! {
         users.filter(username.eq(who))
              .first(&ctx.conn)
-             .map_err(|_| Failure(http::Status::NotFound))
+             .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
     };
 
     if user.id != ctx.user.id {
-        return Err(Failure(http::Status::Forbidden));
+        return Err(Error::NotAuthorized(String::from("update other users' details")))
     }
 
     let f = form.get();
@@ -412,14 +410,12 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>) -> Result<Redi
         diesel::update(&user)
             .set(name.eq(f.name.clone()))
             .get_result::<User>(&ctx.conn)
-            .map_err(|_| Failure(http::Status::InternalServerError))
     };
 
     try! {
         diesel::update(&user)
             .set(email.eq(f.email.clone()))
             .get_result::<User>(&ctx.conn)
-            .map_err(|_| Failure(http::Status::InternalServerError))
     };
 
     if let Some(ref p) = f.phone {
@@ -427,7 +423,6 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>) -> Result<Redi
             diesel::update(&user)
                 .set(phone.eq(Some(p.clone())))
                 .get_result::<User>(&ctx.conn)
-                .map_err(|_| Failure(http::Status::InternalServerError))
         };
     };
 
