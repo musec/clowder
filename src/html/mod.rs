@@ -82,7 +82,7 @@ pub fn error_catchers() -> Vec<Catcher> {
     }
 }
 
-
+/// Escape a string to make it suitable for HTML form input.
 pub fn escape(dangerous: &str) -> String {
     String::from_utf8(Escape::new(dangerous.bytes()).collect())
            .unwrap_or(String::from("&lt;error&gt;"))
