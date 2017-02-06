@@ -4,11 +4,14 @@ use super::diesel;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
 use maud::Render;
 use rocket::*;
-use rocket::response::Responder;
+use rocket::response::{Responder, Response};
 
 
 #[derive(Debug)]
 pub enum Error {
+    /// Login is required to access a resource.
+    AuthRequired,
+
     /// An otherwise-uninterpreted error occurred when interacting with the database.
     DatabaseError(diesel::result::Error),
 
@@ -51,13 +54,24 @@ impl<'r> Responder<'r> for Error {
 
 /// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
 #[error(401)]
-fn unauthorized(req: &Request) -> maud::Markup {
-    bootstrap::Page::new("401 Unauthorized")
+fn unauthorized<'r>(req: &Request) -> Response<'r> {
+    let content = bootstrap::Page::new("401 Unauthorized")
         .content(html! {
             h1 "401 Unauthorized"
             p { "Authorization is required to access " code (req.uri()) "." }
         })
         .render()
+        .into_string()
+        ;
+
+    use std::io::Cursor;
+
+    let mut response = Response::new();
+    response.set_status(http::Status::Unauthorized);
+    response.set_header(http::Header::new("WWW-Authenticate", "Basic realm=\"Clowder\""));
+    response.set_sized_body(Cursor::new(content));
+
+    response
 }
 
 /// The 404 handler renders a slightly nicer-looking page than the stock Rocket handler.

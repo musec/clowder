@@ -20,6 +20,7 @@ use rocket::response::{Flash, Redirect};
 #[allow(unused_imports)]
 use rocket::request::FromForm;
 
+mod auth;
 mod bootstrap;
 mod error;
 mod forms;
@@ -40,18 +41,25 @@ pub struct Context {
 }
 
 impl<'a, 'r> request::FromRequest<'a, 'r> for Context {
-    type Error = diesel::result::Error;
+    type Error = error::Error;
 
     fn from_request(req: &'a Request<'r>)
             -> request::Outcome<Context, Self::Error> {
 
         let conn = db::establish_connection();
-        let user = match users::table.first(&conn) {
-            Ok(u) => u,
-            Err(err) => { return Outcome::Failure((http::Status::BadRequest, err)); },
-        };
+        let user = auth::authenticate(req, &conn);
 
-        Outcome::Success(Context { user: user, conn: conn })
+        match user {
+            Ok(u) => Outcome::Success(Context { user: u, conn: conn }),
+            Err(e) => {
+                let status = match &e {
+                    &Error::AuthRequired => http::Status::Unauthorized,
+                    _ => http::Status::InternalServerError,
+                };
+
+                Outcome::Failure((status, e))
+            },
+        }
     }
 }
 
