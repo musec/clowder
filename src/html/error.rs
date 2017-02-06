@@ -39,10 +39,9 @@ impl From<diesel::result::Error> for Error {
 
 impl<'r> Responder<'r> for Error {
     fn respond(self) -> response::Result<'r> {
-        bootstrap::render(self.kind(), None, None, html! {
-            h1 (self.kind())
-            p (self.msg())
-        })
-        .respond()
+        bootstrap::Page::new(self.kind())
+                        .content(html! { p (self.msg()) })
+            .render()
+            .respond()
     }
 }

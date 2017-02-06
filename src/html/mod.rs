@@ -71,6 +71,24 @@ pub fn escape(dangerous: &str) -> String {
            .unwrap_or(String::from("&lt;error&gt;"))
 }
 
+
+/// Render a normal (i.e., non-error) page of content.
+pub fn render<S>(title: S, user: &User, flash: Option<FlashMessage>, content: Markup)
+    -> Markup
+    where S: Into<String>
+{
+    bootstrap::Page::new(title)
+                    .content(content)
+                    .flash(flash)
+                    .nav(vec! {
+                        bootstrap::NavItem::link("/machines", "Machines"),
+                        bootstrap::NavItem::link("/reservations", "Reservations"),
+                    })
+                    .user(&user.username, &user.name)
+                    .render()
+}
+
+
 #[get("/")]
 fn index(ctx: Context) -> Result<Markup, Error> {
     let conn = db::establish_connection();
@@ -90,7 +108,7 @@ fn index(ctx: Context) -> Result<Markup, Error> {
                     .load(&conn)
     }];
 
-    Ok(bootstrap::render("Clowder", Some(&ctx), None, html! {
+    Ok(render("Clowder", &ctx.user, None, html! {
         div.row {
             div class="col-md-6" {
                 h4 "Machine inventory"
@@ -107,7 +125,7 @@ fn index(ctx: Context) -> Result<Markup, Error> {
 
 #[get("/logout")]
 fn logout(ctx: Context) -> Result<Markup, Error> {
-    Ok(bootstrap::render("Logout", Some(&ctx), None,
+    Ok(render("Logout", &ctx.user, None,
             bootstrap::callout("warning", "Unhandled operation",
                     PreEscaped("We don't handle logout just yet.".to_string()))))
 }
@@ -129,7 +147,7 @@ fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
                     .load(&ctx.conn)
     }];
 
-    Ok(bootstrap::render(format!["Clowder: {}", m.name], Some(&ctx), None, html! {
+    Ok(render(format!["Clowder: {}", m.name], &ctx.user, None, html! {
         div.row h2 (m.name)
 
         div.row {
@@ -174,7 +192,7 @@ fn machines(ctx: Context) -> Result<Markup, Error> {
                 .load::<Machine>(&ctx.conn)
     }];
 
-    Ok(bootstrap::render("Clowder: Machines", Some(&ctx), None, tables::machines(&machines)))
+    Ok(render("Clowder: Machines", &ctx.user, None, tables::machines(&machines)))
 }
 
 #[get("/reservation/<id>")]
@@ -188,7 +206,7 @@ fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> Result<Mar
         (_, _) => false,
     };
 
-    Ok(bootstrap::render(format!["Clowder: reservation {}", r.id], Some(&ctx), flash, html! {
+    Ok(render(format!["Clowder: reservation {}", r.id], &ctx.user, flash, html! {
         h2 { "Reservation " (r.id) }
 
         table.lefty {
@@ -243,7 +261,7 @@ fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
     let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
     let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
 
-    Ok(bootstrap::render(format!["Clowder: end reservation {}", r.id], Some(&ctx), None, html! {
+    Ok(render(format!["Clowder: end reservation {}", r.id], &ctx.user, None, html! {
         h2 "End reservation"
 
         (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
@@ -309,7 +327,7 @@ fn reservations(ctx: Context) -> Result<Markup, Error> {
             .load(&ctx.conn)
     }];
 
-    Ok(bootstrap::render("Clowder: Reservations", Some(&ctx), None,
+    Ok(render("Clowder: Reservations", &ctx.user, None,
                          try![tables::reservations_with_machines(&reservations, &ctx, true)]))
 }
 
@@ -339,7 +357,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
             .load(&ctx.conn)
     }];
 
-    Ok(bootstrap::render(name, Some(&ctx), None, html! {
+    Ok(render(name, &ctx.user, None, html! {
         h2 (name)
 
         div.row {
