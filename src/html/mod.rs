@@ -392,7 +392,7 @@ struct UserUpdate {
 }
 
 #[post("/user/update/<who>", data = "<form>")]
-fn user_update(who: String, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<Redirect>, Error> {
+fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<Redirect>, Error> {
     use self::users::dsl::*;
 
     let user: User = try! {
