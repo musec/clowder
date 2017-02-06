@@ -401,7 +401,7 @@ fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<
              .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
     };
 
-    if user.id != ctx.user.id {
+    if user.id != ctx.user.id /* TODO: and not superuser */ {
         return Err(Error::NotAuthorized(String::from("update other users' details")))
     }
 
