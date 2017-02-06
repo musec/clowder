@@ -92,7 +92,7 @@ fn index(ctx: Context) -> WebResult {
                     .load(&conn)
     }];
 
-    Ok(bootstrap::render("Clowder", &ctx, None, html! {
+    Ok(bootstrap::render("Clowder", Some(&ctx), None, html! {
         div.row {
             div class="col-md-6" {
                 h4 "Machine inventory"
@@ -109,7 +109,7 @@ fn index(ctx: Context) -> WebResult {
 
 #[get("/logout")]
 fn logout(ctx: Context) -> WebResult {
-    Ok(bootstrap::render("Logout", &ctx, None,
+    Ok(bootstrap::render("Logout", Some(&ctx), None,
             bootstrap::callout("warning", "Unhandled operation",
                     PreEscaped("We don't handle logout just yet.".to_string()))))
 }
@@ -131,7 +131,7 @@ fn machine(machine_name: &str, ctx: Context) -> WebResult {
                     .load(&ctx.conn)
     }];
 
-    Ok(bootstrap::render(format!["Clowder: {}", m.name], &ctx, None, html! {
+    Ok(bootstrap::render(format!["Clowder: {}", m.name], Some(&ctx), None, html! {
         div.row h2 (m.name)
 
         div.row {
@@ -176,7 +176,7 @@ fn machines(ctx: Context) -> WebResult {
                 .load::<Machine>(&ctx.conn)
     }];
 
-    Ok(bootstrap::render("Clowder: Machines", &ctx, None, tables::machines(&machines)))
+    Ok(bootstrap::render("Clowder: Machines", Some(&ctx), None, tables::machines(&machines)))
 }
 
 #[get("/reservation/<id>")]
@@ -190,7 +190,7 @@ fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> WebResult 
         (_, _) => false,
     };
 
-    Ok(bootstrap::render(format!["Clowder: reservation {}", r.id], &ctx, flash, html! {
+    Ok(bootstrap::render(format!["Clowder: reservation {}", r.id], Some(&ctx), flash, html! {
         h2 { "Reservation " (r.id) }
 
         table.lefty {
@@ -245,7 +245,7 @@ fn reservation_end(id: i32, ctx: Context) -> WebResult {
     let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
     let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
 
-    Ok(bootstrap::render(format!["Clowder: end reservation {}", r.id], &ctx, None, html! {
+    Ok(bootstrap::render(format!["Clowder: end reservation {}", r.id], Some(&ctx), None, html! {
         h2 "End reservation"
 
         (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
@@ -311,7 +311,7 @@ fn reservations(ctx: Context) -> WebResult {
             .load(&ctx.conn)
     }];
 
-    Ok(bootstrap::render("Clowder: Reservations", &ctx, None,
+    Ok(bootstrap::render("Clowder: Reservations", Some(&ctx), None,
                          try![tables::reservations_with_machines(&reservations, &ctx, true)]))
 }
 
@@ -341,7 +341,7 @@ fn user(name: String, ctx: Context) -> WebResult {
             .load(&ctx.conn)
     }];
 
-    Ok(bootstrap::render(name, &ctx, None, html! {
+    Ok(bootstrap::render(name, Some(&ctx), None, html! {
         h2 (name)
 
         div.row {

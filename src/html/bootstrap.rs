@@ -31,7 +31,8 @@ pub fn callout<S1, S2>(kind: S1, title: S2, content: Markup) -> Markup
 
 /// Render a complete HTML page with Bootstrap styling wrapped around the
 /// provided content.
-pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: Markup) -> Markup
+pub fn render<S>(title: S, ctx: Option<&Context>, flash: Option<FlashMessage>, content: Markup)
+    -> Markup
     where S: Into<String>
 {
     html! {
@@ -66,18 +67,20 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
                             li.nav-item a.nav-link href="/reservations" "Reservations"
                         }
 
-                        div.dropdown {
-                            a.btn.dropdown-toggle#userDropdown
-                                href="#"
-                                data-toggle="dropdown" data-target="fubar"
-                                aria-haspopup="true" aria-expanded="false"
-                                (ctx.user.name)
+                        @if let Some(ref c) = ctx {
+                            div.dropdown {
+                                a.btn.dropdown-toggle#userDropdown
+                                    href="#"
+                                    data-toggle="dropdown" data-target="fubar"
+                                    aria-haspopup="true" aria-expanded="false"
+                                    (c.user.name)
 
-                            div.dropdown-menu.dropdown-menu-right#fubar aria-labelledby="userDropdown" {
-                                h6.dropdown-header (ctx.user.username)
-                                a.dropdown-item href={ "/user/" (ctx.user.username) } "Profile"
-                                div.dropdown-divider {}
-                                a.dropdown-item href="/logout" "Log out"
+                                div.dropdown-menu.dropdown-menu-right#fubar aria-labelledby="userDropdown" {
+                                    h6.dropdown-header (c.user.username)
+                                    a.dropdown-item href={ "/user/" (c.user.username) } "Profile"
+                                    div.dropdown-divider {}
+                                    a.dropdown-item href="/logout" "Log out"
+                                }
                             }
                         }
 
