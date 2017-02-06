@@ -426,5 +426,6 @@ fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<
         };
     };
 
-    Ok(Redirect::to(&format!["/user/{}", user.username]))
+    Ok(Flash::new(Redirect::to(&format!["/user/{}", user.username]),
+                  "info", &format!["Updated {}'s details", user.username]))
 }
