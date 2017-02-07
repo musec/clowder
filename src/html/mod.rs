@@ -329,7 +329,7 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>,
     };
 
     Ok(Flash::new(Redirect::to(&format!["/reservation/{}", res_id]), "info",
-                               &format!["Ended reservation {}", res_id]))
+                  &format!["Ended reservation {}", res_id]))
 }
 
 #[get("/reservations")]
