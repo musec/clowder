@@ -384,23 +384,21 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
                         tbody {
                             tr { th "Username" td (user.username) }
                             tr { th "Name"
-                                td (forms::Input::new("name".to_string())
+                                td (forms::Input::new("name")
                                                  .value(user.name.clone())
                                                  .size(18)
                                                  .writable(myself))
                             }
                             tr { th "Email"
-                                td (forms::Input::new("email".to_string())
-                                                 .value(user.email.clone())
+                                td (forms::Input::new("email")
+                                                 .value(user.email)
                                                  .size(18)
                                                  .writable(myself))
                             }
                             tr {
                                 th "Phone"
-                                td (forms::Input::new("phone".to_string())
-                                                 .value(user.phone.as_ref()
-                                                                  .map(String::clone)
-                                                                  .unwrap_or(String::new()))
+                                td (forms::Input::new("phone")
+                                                 .value(user.phone.unwrap_or(String::new()))
                                                  .size(18)
                                                  .writable(myself))
                             }

@@ -10,19 +10,19 @@ pub struct Input {
 }
 
 impl Input {
-    pub fn new(name: String) -> Input {
+    pub fn new<S: Into<String>>(name: S) -> Input {
         Input {
-            name: name,
+            name: name.into(),
             value: None,
             size: None,
             writable: true,
         }
     }
 
-    pub fn value(self, value: String) -> Input {
+    pub fn value<S: Into<String>>(self, value: S) -> Input {
         Input {
             name: self.name,
-            value: Some(value),
+            value: Some(value.into()),
             size: self.size,
             writable: self.writable,
         }
