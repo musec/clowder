@@ -1,10 +1,13 @@
 use super::bootstrap;
 use super::diesel;
 
+use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
 use maud::Render;
 use rocket::*;
 use rocket::response::{Responder, Response};
+
+use std::error::Error as StdError;
 
 
 #[derive(Debug)]
@@ -33,6 +36,12 @@ impl Error {
         match self {
             _ => String::new(),
         }
+    }
+}
+
+impl From<chrono::ParseError> for Error {
+    fn from(err: chrono::ParseError) -> Error {
+        Error::BadRequest(err.description().to_string())
     }
 }
 
