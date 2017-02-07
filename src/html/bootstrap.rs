@@ -108,6 +108,7 @@ impl Render for Page {
                     link rel="stylesheet" href="/static/css/bootstrap.min.css" /
                     link rel="stylesheet" href="/static/css/musec.css" /
                     link rel="stylesheet" href="/static/css/sticky-footer-navbar.css" /
+                    link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" /
                 }
 
                 body {
@@ -173,11 +174,32 @@ impl Render for Page {
                     script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
                            integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n"
                            crossorigin="anonymous" {}
+
                     script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js"
                            integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb"
                            crossorigin="anonymous" {}
 
+                    script src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js" {}
+
                     script src="/static/js/bootstrap.min.js" {}
+
+                    script src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"
+                        {}
+
+                    (PreEscaped("<script>
+                    $('input.daterange').daterangepicker({
+                        autoApply: true,
+                        locale: {
+                            format: 'hh:mmZ D MMM YYYY'
+                        },
+                        showDropdowns: true,
+                        showToday: true,
+                        startDate: moment(),
+                        timePicker: true,
+                        timePicker24Hour: true,
+                        timePickerIncrement: 15
+                    })
+                    </script>"))
                 }
             }
         }
