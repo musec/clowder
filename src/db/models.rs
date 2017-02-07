@@ -3,9 +3,8 @@ use chrono::datetime::DateTime;
 use db::schema::*;
 
 
-#[derive(Associations, Identifiable, Insertable, Queryable)]
+#[derive(Associations, Identifiable, Queryable)]
 #[has_many(reservations)]
-#[table_name="users"]
 pub struct User {
     pub id: i32,
     pub username: String,
@@ -14,11 +13,10 @@ pub struct User {
     pub phone: Option<String>,
 }
 
-#[derive(Associations, Identifiable, Insertable, Queryable)]
+#[derive(Associations, Identifiable, Queryable)]
 #[has_many(disks)]
 #[has_many(nics)]
 #[has_many(reservations)]
-#[table_name="machines"]
 pub struct Machine {
     pub id: i32,
     pub name: String,
@@ -28,9 +26,8 @@ pub struct Machine {
     pub memory_gb: i32,
 }
 
-#[derive(Associations, Identifiable, Insertable, Queryable)]
+#[derive(Associations, Identifiable, Queryable)]
 #[belongs_to(Machine)]
-#[table_name="disks"]
 pub struct Disk {
     pub id: i32,
     pub machine_id: i32,
@@ -40,9 +37,8 @@ pub struct Disk {
     pub ssd: bool,
 }
 
-#[derive(Associations, Identifiable, Insertable, Queryable)]
+#[derive(Associations, Identifiable, Queryable)]
 #[belongs_to(Machine)]
-#[table_name="nics"]
 pub struct Nic {
     pub id: i32,
     pub machine_id: i32,
@@ -52,10 +48,9 @@ pub struct Nic {
     pub speed_gbps: i32,
 }
 
-#[derive(Associations, Identifiable, Insertable, Queryable)]
+#[derive(Associations, Identifiable, Queryable)]
 #[belongs_to(Machine)]
 #[belongs_to(User)]
-#[table_name="reservations"]
 pub struct Reservation {
     pub id: i32,
     pub user_id: i32,
