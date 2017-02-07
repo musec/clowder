@@ -87,3 +87,110 @@ impl Render for Input {
         PreEscaped(s)
     }
 }
+
+
+
+/// An HTML <select> field
+pub struct Select {
+    name: String,
+    options: Vec<SelectOption>,
+}
+
+impl Select {
+    pub fn new<S: Into<String>>(name: S) -> Select {
+        Select {
+            name: name.into(),
+            options: Vec::new(),
+
+        }
+    }
+
+    pub fn set_options(&mut self, opts: Vec<SelectOption>) -> &mut Select {
+        self.options = opts;
+        self
+    }
+}
+
+impl Render for Select {
+    fn render(&self) -> Markup {
+        html! {
+            select.custom-select name=(self.name) {
+                @for o in &self.options {
+                    (o)
+                }
+            }
+        }
+    }
+}
+
+pub struct SelectOption {
+    name: String,
+    label: String,
+    selected: bool,
+}
+
+impl SelectOption {
+    pub fn new<S1, S2>(name: S1, label: S2) -> SelectOption
+        where S1: Into<String>, S2: Into<String>
+    {
+        SelectOption {
+            name: name.into(),
+            label: label.into(),
+            selected: false,
+        }
+    }
+
+    pub fn selected(self, s: bool) -> SelectOption {
+        SelectOption {
+            name: self.name,
+            label: self.label,
+            selected: s,
+        }
+    }
+}
+
+impl<'a> From<(&'a str, &'a str)> for SelectOption {
+    fn from(tuple: (&str, &str)) -> SelectOption {
+        SelectOption {
+            name: tuple.0.to_string(),
+            label: tuple.1.to_string(),
+            selected: false,
+        }
+    }
+}
+
+impl Render for SelectOption {
+    fn render(&self) -> Markup {
+        html! {
+            option value=(self.name) selected?[self.selected] (self.label)
+        }
+    }
+}
+
+
+/// An HTML form submission button.
+pub struct SubmitButton {
+    label: String,
+}
+
+impl SubmitButton {
+    pub fn new() -> SubmitButton {
+        SubmitButton {
+            label: String::from("Submit")
+        }
+    }
+
+    pub fn label<S: Into<String>>(self, l: S) -> SubmitButton {
+        SubmitButton {
+            label: l.into(),
+        }
+    }
+}
+
+impl Render for SubmitButton {
+    fn render(&self) -> Markup {
+        html! {
+            input type="submit" value=(self.label) /
+        }
+    }
+}
