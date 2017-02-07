@@ -1,6 +1,8 @@
 use chrono::UTC;
 use chrono::datetime::DateTime;
 use db::schema::*;
+use diesel::*;
+use diesel::pg::PgConnection as Connection;
 
 
 #[derive(Associations, Identifiable, Queryable)]
@@ -73,5 +75,51 @@ impl Reservation {
             (None, Some(a)) => Some(a),
             (None, None) => None,
         }
+    }
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "reservations"]
+pub struct ReservationBuilder {
+    user_id: i32,
+    machine_id: i32,
+    scheduled_start: DateTime<UTC>,
+    scheduled_end: Option<DateTime<UTC>>,
+    actual_end: Option<DateTime<UTC>>,
+    pxe_path: Option<String>,
+    nfs_root: Option<String>,
+}
+
+impl ReservationBuilder {
+    pub fn new(user: &User, machine: &Machine, start: DateTime<UTC>) -> ReservationBuilder {
+        ReservationBuilder {
+            user_id: user.id,
+            machine_id: machine.id,
+            scheduled_start: start,
+            scheduled_end: None,
+            actual_end: None,
+            pxe_path: None,
+            nfs_root: None,
+        }
+    }
+
+    pub fn end(&mut self, time: DateTime<UTC>) -> &mut ReservationBuilder {
+        self.scheduled_end = Some(time);
+        self
+    }
+
+    pub fn pxe(&mut self, path: String) -> &mut ReservationBuilder {
+        self.pxe_path = Some(path);
+        self
+    }
+
+    pub fn nfs(&mut self, path: String) -> &mut ReservationBuilder {
+        self.nfs_root = Some(path);
+        self
+    }
+
+    pub fn insert(self, conn: &Connection) -> Result<Reservation, result::Error> {
+        insert(&self).into(reservations::table)
+            .get_result(conn)
     }
 }

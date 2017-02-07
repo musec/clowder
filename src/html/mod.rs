@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io;
 
-use chrono::UTC;
+use chrono::{DateTime,UTC};
 use chrono_humanize::HumanTime;
 use ::db;
 use db::models::*;
@@ -69,7 +69,8 @@ pub fn all_routes() -> Vec<Route> {
     routes! {
         index, logout,
         machine, machines,
-        reservation, reservation_end, reservation_end_confirm, reservations,
+        reservation, reservation_create_page, reservation_create,
+        reservation_end, reservation_end_confirm, reservations,
         static_css, static_js,
         user, user_update,
     }
@@ -266,6 +267,118 @@ fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> Result<Mar
                              input type="submit" value="End reservation" /
                         }
                     }
+                }
+            }
+        }
+    }))
+}
+
+#[derive(Debug, FromForm)]
+struct ReservationForm {
+    user: String,
+    machine: String,
+    dates: String,
+    pxe: String,
+    nfs: String,
+}
+
+#[post("/reservation/create", data = "<form>")]
+fn reservation_create(form: Form<ReservationForm>, ctx: Context) -> Result<Redirect, Error> {
+    println!["res: {:?}", form];
+
+    let res = form.get();
+
+    let user: User = try![{
+        use self::users::dsl::*;
+        users.filter(username.eq(&res.user)).first(&ctx.conn)
+    }];
+
+    let machine: Machine = try![{
+        use self::machines::dsl::*;
+        machines.filter(name.eq(&res.machine)).first(&ctx.conn)
+    }];
+
+    let dates: Vec<&str> = res.dates.split(" - ").collect();
+    if dates.len() != 2 {
+        return Err(Error::BadRequest(format!["expected two dates, not '{:?}'", dates]));
+    }
+
+    let start = try![DateTime::parse_from_str(dates[0], "%H:%M%:z %e %b %Y")];
+    let end = try![DateTime::parse_from_str(dates[1], "%H:%M%:z %e %b %Y")];
+
+    let mut rb = ReservationBuilder::new(&user, &machine, start.with_timezone(&UTC));
+    rb.end(end.with_timezone(&UTC));
+
+    if res.pxe.len() > 0 { rb.pxe(res.pxe.clone()); }
+    if res.pxe.len() > 0 { rb.nfs(res.nfs.clone()); }
+
+    rb.insert(&ctx.conn)
+        .map(|r| Redirect::to(&format!["/reservation/{}", r.id]))
+        .map_err(Error::DatabaseError)
+}
+
+#[derive(Debug, FromForm)]
+struct ReservationQuery {
+    user: Option<String>,
+    machine: Option<String>,
+}
+
+#[get("/reservation/create?<res>")]
+fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup, Error> {
+    let users = try![{
+        use self::users::dsl::*;
+        users.order(username)
+            .load::<User>(&ctx.conn)
+    }];
+
+    let user_options = users.iter()
+        .map(|ref u| forms::SelectOption::new(u.username.clone(), u.name.clone())
+                                         .selected(u.username == ctx.user.username))
+        .collect::<Vec<_>>()
+        ;
+
+    let machines = try![{
+        use self::machines::dsl::*;
+        machines.order(name)
+            .load::<Machine>(&ctx.conn)
+    }];
+
+    let machine_options = machines.iter()
+        .map(|ref m| forms::SelectOption::new(m.name.clone(), m.name.clone())
+                                         .selected(res.machine.as_ref()
+                                                              .map(|n| n == &m.name)
+                                                              .unwrap_or(false)))
+        .collect::<Vec<_>>()
+        ;
+
+    Ok(render("Create reservation", &ctx.user, None, html! {
+        h2 "Reserve a machine"
+
+        form action="." method="post" {
+            table {
+                tr {
+                    th "User"
+                    td (forms::Select::new("user").set_options(user_options))
+                }
+                tr {
+                    th "Machine"
+                    td (forms::Select::new("machine").set_options(machine_options))
+                }
+                tr {
+                    th "Dates"
+                    td (forms::Input::new("dates").class("daterange").size(45))
+                }
+                tr {
+                    th "PXE loader"
+                    td (forms::Input::new("pxe").size(45))
+                }
+                tr {
+                    th "NFS root"
+                    td (forms::Input::new("nfs").size(45))
+                }
+                tr {
+                    th /
+                    td (forms::SubmitButton::new().label("Reserve"))
                 }
             }
         }
