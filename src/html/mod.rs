@@ -109,8 +109,6 @@ pub fn render<S>(title: S, user: &User, flash: Option<FlashMessage>, content: Ma
 
 #[get("/")]
 fn index(ctx: Context) -> Result<Markup, Error> {
-    let conn = db::establish_connection();
-
     let machines = try![Machine::all(&ctx.conn)];
 
     // TODO: use multiple joins once Diesel supports it
@@ -120,7 +118,7 @@ fn index(ctx: Context) -> Result<Markup, Error> {
                     .filter(actual_end.is_null())
                     .order(actual_end.desc())
                     .order(scheduled_end.desc())
-                    .load(&conn)
+                    .load(&ctx.conn)
     }];
 
     Ok(render("Clowder", &ctx.user, None, html! {
