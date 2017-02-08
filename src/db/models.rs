@@ -16,6 +16,11 @@ pub struct User {
 }
 
 impl User {
+    pub fn all(c: &Connection) -> Result<Vec<User>, result::Error> {
+        use self::users::dsl::*;
+        users.order(username).load(c)
+    }
+
     pub fn with_username(uname: &str, c: &Connection) -> Result<User, result::Error> {
         use self::users::dsl::*;
         users.filter(username.eq(uname)).first(c)

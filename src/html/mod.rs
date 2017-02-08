@@ -306,12 +306,7 @@ struct ReservationQuery {
 
 #[get("/reservation/create?<res>")]
 fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup, Error> {
-    let users = try![{
-        use self::users::dsl::*;
-        users.order(username)
-            .load::<User>(&ctx.conn)
-    }];
-
+    let users = try![User::all(&ctx.conn)];
     let user_options = users.iter()
         .map(|ref u| forms::SelectOption::new(u.username.clone(), u.name.clone())
                                          .selected(u.username == ctx.user.username))
