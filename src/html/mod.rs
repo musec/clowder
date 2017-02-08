@@ -151,11 +151,7 @@ fn logout(ctx: Context) -> Result<Markup, Error> {
 
 #[get("/machine/<machine_name>")]
 fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
-    let m: Machine = try![{
-        use self::machines::dsl::*;
-        machines.filter(name.eq(machine_name))
-                .first(&ctx.conn)
-    }];
+    let m = try![Machine::with_name(machine_name, &ctx.conn)];
 
     let reserv: Vec<(Reservation, User)> = try![{
         use self::reservations::dsl::*;
@@ -290,15 +286,8 @@ fn reservation_create(form: Form<ReservationForm>, ctx: Context) -> Result<Redir
 
     let res = form.get();
 
-    let user: User = try![{
-        use self::users::dsl::*;
-        users.filter(username.eq(&res.user)).first(&ctx.conn)
-    }];
-
-    let machine: Machine = try![{
-        use self::machines::dsl::*;
-        machines.filter(name.eq(&res.machine)).first(&ctx.conn)
-    }];
+    let user = try![User::with_username(&res.user, &ctx.conn)];
+    let machine = try![Machine::with_name(&res.machine, &ctx.conn)];
 
     let dates: Vec<&str> = res.dates.split(" - ").collect();
     if dates.len() != 2 {
@@ -476,7 +465,7 @@ fn static_js(filename: &str) -> io::Result<File> {
 
 #[get("/user/<name>")]
 fn user(name: String, ctx: Context) -> Result<Markup, Error> {
-    let user: User = try![users::table.filter(users::dsl::username.eq(name)).first(&ctx.conn)];
+    let user = try![User::with_username(&name, &ctx.conn)];
     let name = user.name.as_str();
     let myself = user.id == ctx.user.id;
 
@@ -545,9 +534,8 @@ struct UserUpdate {
 fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<Redirect>, Error> {
     use self::users::dsl::*;
 
-    let user: User = try! {
-        users.filter(username.eq(who))
-             .first(&ctx.conn)
+    let user = try! {
+        User::with_username(who, &ctx.conn)
              .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
     };
 

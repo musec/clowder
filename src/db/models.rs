@@ -15,6 +15,13 @@ pub struct User {
     pub phone: Option<String>,
 }
 
+impl User {
+    pub fn with_username(uname: &str, c: &Connection) -> Result<User, result::Error> {
+        use self::users::dsl::*;
+        users.filter(username.eq(uname)).first(c)
+    }
+}
+
 #[derive(Associations, Identifiable, Queryable)]
 #[has_many(disks)]
 #[has_many(nics)]
@@ -26,6 +33,13 @@ pub struct Machine {
     pub microarch: String,
     pub cores: i32,
     pub memory_gb: i32,
+}
+
+impl Machine {
+    pub fn with_name(machine_name: &str, c: &Connection) -> Result<Machine, result::Error> {
+        use self::machines::dsl::*;
+        machines.filter(name.eq(machine_name)).first(c)
+    }
 }
 
 #[derive(Associations, Identifiable, Queryable)]
