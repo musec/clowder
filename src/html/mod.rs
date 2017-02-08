@@ -111,11 +111,7 @@ pub fn render<S>(title: S, user: &User, flash: Option<FlashMessage>, content: Ma
 fn index(ctx: Context) -> Result<Markup, Error> {
     let conn = db::establish_connection();
 
-    let machines = try![{
-        use self::machines::dsl::*;
-        machines.order(name)
-                .load::<Machine>(&conn)
-    }];
+    let machines = try![Machine::all(&ctx.conn)];
 
     // TODO: use multiple joins once Diesel supports it
     let reservations: Vec<(Reservation, Machine)> = try![{
@@ -202,11 +198,7 @@ fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
 
 #[get("/machines")]
 fn machines(ctx: Context) -> Result<Markup, Error> {
-    let machines = try![{
-        use self::machines::dsl::*;
-        machines.order(name)
-                .load::<Machine>(&ctx.conn)
-    }];
+    let machines = try![Machine::all(&ctx.conn)];
 
     Ok(render("Clowder: Machines", &ctx.user, None, tables::machines(&machines)))
 }
@@ -328,12 +320,7 @@ fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup
         .collect::<Vec<_>>()
         ;
 
-    let machines = try![{
-        use self::machines::dsl::*;
-        machines.order(name)
-            .load::<Machine>(&ctx.conn)
-    }];
-
+    let machines = try![Machine::all(&ctx.conn)];
     let machine_options = machines.iter()
         .map(|ref m| forms::SelectOption::new(m.name.clone(), m.name.clone())
                                          .selected(res.machine.as_ref()

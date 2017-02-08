@@ -36,6 +36,11 @@ pub struct Machine {
 }
 
 impl Machine {
+    pub fn all(c: &Connection) -> Result<Vec<Machine>, result::Error> {
+        use self::machines::dsl::*;
+        machines.order(name).load(c)
+    }
+
     pub fn with_name(machine_name: &str, c: &Connection) -> Result<Machine, result::Error> {
         use self::machines::dsl::*;
         machines.filter(name.eq(machine_name)).first(c)
