@@ -122,7 +122,8 @@ fn index(ctx: Context) -> Result<Markup, Error> {
         use self::reservations::dsl::*;
         reservations.inner_join(machines::table)
                     .filter(actual_end.is_null())
-                    .order(scheduled_start.desc())
+                    .order(actual_end.desc())
+                    .order(scheduled_end.desc())
                     .load(&conn)
     }];
 
@@ -161,7 +162,8 @@ fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
         reservations.inner_join(users::table)
                     .filter(machine_id.eq(m.id))
                     .filter(user_id.eq(users::dsl::id))
-                    .order(scheduled_start.desc())
+                    .order(actual_end.desc())
+                    .order(scheduled_end.desc())
                     .load(&ctx.conn)
     }];
 
@@ -453,7 +455,8 @@ fn reservations(ctx: Context) -> Result<Markup, Error> {
 
         reservations
             .inner_join(machines::table)
-            .order(scheduled_start.desc())
+            .order(actual_end.desc())
+            .order(scheduled_end.desc())
             .load(&ctx.conn)
     }];
 
@@ -483,7 +486,8 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
         reservations
             .inner_join(machines::table)
             .filter(user_id.eq(user.id))
-            .order(scheduled_start.desc())
+            .order(actual_end.desc())
+            .order(scheduled_end.desc())
             .load(&ctx.conn)
     }];
 
