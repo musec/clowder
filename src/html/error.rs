@@ -28,13 +28,19 @@ pub enum Error {
 impl Error {
     fn kind(&self) -> &str {
         match self {
-            _ => "foo",
+            &Error::AuthRequired => "Authorization required",
+            &Error::BadRequest(_) => "Bad request",
+            &Error::DatabaseError(_) => "Database error",
+            &Error::NotAuthorized(_) => "Authorization error",
         }
     }
 
     fn msg(&self) -> String {
         match self {
-            _ => String::new(),
+            Error::AuthRequired => String::from("Authorization required"),
+            Error::BadRequest(msg) => msg,
+            Error::DatabaseError(e) => e.description().to_string(),
+            Error::NotAuthorized(msg) => msg,
         }
     }
 }
