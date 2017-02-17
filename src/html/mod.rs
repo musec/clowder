@@ -433,12 +433,17 @@ fn reservations(ctx: Context) -> Result<Markup, Error> {
                          try![tables::reservations_with_machines(&reservations, &ctx, true)]))
 }
 
-#[get("/static/css/<filename>")]
+#[get("/css/<filename>")]
 fn static_css(filename: &str) -> io::Result<File> {
     File::open(format!["static/css/{}", filename])
 }
 
-#[get("/static/js/<filename>")]
+#[get("/images/<filename>")]
+fn static_images(filename: &str) -> io::Result<File> {
+    File::open(format!["static/images/{}", filename])
+}
+
+#[get("/js/<filename>")]
 fn static_js(filename: &str) -> io::Result<File> {
     File::open(format!["static/js/{}", filename])
 }

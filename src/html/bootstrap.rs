@@ -105,9 +105,9 @@ impl Render for Page {
 
                     title (format!["Clowder: {}", self.title])
 
-                    link rel="stylesheet" href="/static/css/bootstrap.min.css" /
-                    link rel="stylesheet" href="/static/css/musec.css" /
-                    link rel="stylesheet" href="/static/css/sticky-footer-navbar.css" /
+                    link rel="stylesheet" href="/css/bootstrap.min.css" /
+                    link rel="stylesheet" href="/css/musec.css" /
+                    link rel="stylesheet" href="/css/sticky-footer-navbar.css" /
                     link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" /
 
                     script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
@@ -181,7 +181,7 @@ impl Render for Page {
 
                     script src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js" {}
 
-                    script src="/static/js/bootstrap.min.js" {}
+                    script src="/js/bootstrap.min.js" {}
 
                     script src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"
                         {}
