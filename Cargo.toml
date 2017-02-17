@@ -14,11 +14,3 @@ maud = { version = "*", features = ["rocket"] }
 maud_macros = "*"
 rocket = "0.1.6"
 rocket_codegen = "0.1.6"
-#serde = "0.8"
-#serde_derive = "0.8"
-#tera = "*"
-
-#[dependencies.rocket_contrib]
-#version = "*"
-#default-features = false
-#features = ["tera_templates"]
