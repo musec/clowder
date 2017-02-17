@@ -5,7 +5,7 @@ use diesel::*;
 use diesel::pg::PgConnection as Connection;
 
 
-#[derive(Associations, Identifiable, Queryable)]
+#[derive(Associations, Debug, Identifiable, Queryable)]
 #[has_many(reservations)]
 pub struct User {
     pub id: i32,
@@ -27,7 +27,7 @@ impl User {
     }
 }
 
-#[derive(Associations, Identifiable, Queryable)]
+#[derive(Associations, Debug, Identifiable, Queryable)]
 #[has_many(disks)]
 #[has_many(nics)]
 #[has_many(reservations)]
@@ -52,7 +52,7 @@ impl Machine {
     }
 }
 
-#[derive(Associations, Identifiable, Queryable)]
+#[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(Machine)]
 pub struct Disk {
     pub id: i32,
@@ -63,7 +63,7 @@ pub struct Disk {
     pub ssd: bool,
 }
 
-#[derive(Associations, Identifiable, Queryable)]
+#[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(Machine)]
 pub struct Nic {
     pub id: i32,
@@ -74,7 +74,7 @@ pub struct Nic {
     pub speed_gbps: i32,
 }
 
-#[derive(Associations, Identifiable, Queryable)]
+#[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(Machine)]
 #[belongs_to(User)]
 pub struct Reservation {
