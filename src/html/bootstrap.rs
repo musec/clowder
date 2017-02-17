@@ -27,6 +27,129 @@ pub fn callout<S1, S2>(kind: S1, title: S2, content: Markup) -> Markup
 }
 
 
+///
+/// A Bootstrap modal dialog.
+///
+/// # Examples
+///
+/// ```
+/// let markup = ModalDialog::new("login")
+///     .title("Login required")
+///     .body(html! {
+///         a href={ OAUTH_URL) "?client_id" = (id) } "Sign in with XXXXX"
+///     })
+///     .closeable(true)
+///     .start_open(true)
+///     .render()
+///     ;
+/// ```
+///
+pub struct ModalDialog {
+    /// The HTML ID used to identify this dialog.
+    id: String,
+
+    /// Title to display (if not specified, defaults to HTML id).
+    title: Option<String>,
+
+    /// Whether or not the dialog should have an "X" to close it.
+    closeable: bool,
+
+    /// Whether or not the dialog should be open from inception.
+    start_open: bool,
+
+    /// The body of the dialog to display (if any): a good place for text.
+    body: Option<Markup>,
+
+    /// The dialog footer (if any): a good place for response buttons (e.g., "Login", "Cancel").
+    footer: Option<Markup>,
+}
+
+impl ModalDialog {
+    pub fn new<S: Into<String>>(id: S) -> ModalDialog {
+        ModalDialog {
+            id: id.into(),
+            title: None,
+            closeable: false,
+            start_open: false,
+            body: None,
+            footer: None,
+        }
+    }
+
+    pub fn title<S: Into<String>>(mut self, title: S) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    pub fn closeable(mut self, closeable: bool) -> Self {
+        self.closeable = closeable;
+        self
+    }
+
+    pub fn start_open(mut self, start_open: bool) -> Self {
+        self.start_open = start_open;
+        self
+    }
+
+    pub fn body(mut self, body: Markup) -> Self {
+        self.body = Some(body);
+        self
+    }
+
+    pub fn footer(mut self, footer: Markup) -> Self {
+        self.footer = Some(footer);
+        self
+    }
+}
+
+impl Render for ModalDialog {
+    fn render(&self) -> Markup {
+        let label_id = format!["{}_label", self.id];
+        let title = if let Some(ref t) = self.title { t } else { &self.id };
+
+        html! {
+            div.modal.fade
+                id=(self.id)
+                role="dialog"
+                aria-labelledby=(label_id)
+                aria-hidden="true" {
+
+                div.modal-dialog role="document"
+                    div.modal-content {
+                        div.modal-header {
+                            h5.modal-title id=(label_id) (title)
+
+                            @if self.closeable {
+                                button.close type="button"
+                                    data-dismiss="modal"
+                                    aria-label="Close"
+
+                                    span aria-hidden="true" (PreEscaped("&times;"))
+                            }
+                        }
+
+                        @if let Some(ref body) = self.body.as_ref() {
+                            div.modal-body
+                                (body)
+                        }
+
+                        @if let Some(ref footer) = self.footer.as_ref() {
+                            div.modal-footer
+                                (footer)
+                        }
+                    }
+            }
+
+            @if self.start_open {
+                script type="text/javascript" {
+                    "$(document).ready(function () { $('#login').modal('show'); });"
+                }
+            }
+        }
+    }
+}
+
+
 pub enum NavItem {
     Link {
         href: String,
