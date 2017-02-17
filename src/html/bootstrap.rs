@@ -143,7 +143,7 @@ impl Render for Page {
                                 }
                             }
 
-                            img src="https://allendale.engr.mun.ca/musec.png" alt="MUSEC logo"
+                            img src="/images/logo.png" alt="Clowder logo"
                                 width="40" /
                     }
 
