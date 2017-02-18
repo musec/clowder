@@ -1,6 +1,7 @@
 use super::bootstrap;
 use super::diesel;
 use super::hyper;
+use super::rustc_serialize;
 
 use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
@@ -26,6 +27,9 @@ pub enum Error {
     /// The user made an invalid request.
     BadRequest(String),
 
+    /// We received invalid date from somewhere.
+    InvalidData(String),
+
     /// There was a problem communicating with a remote host.
     NetError(hyper::Error),
 
@@ -40,6 +44,7 @@ impl Error {
             &Error::BadRequest(_) => "Bad request",
             &Error::ConfigError(_) => "Configuration error",
             &Error::DatabaseError(_) => "Database error",
+            &Error::InvalidData(_) => "Invalid data",
             &Error::NetError(_) => "Network error",
             &Error::NotAuthorized(_) => "Authorization error",
         }
@@ -51,6 +56,7 @@ impl Error {
             Error::BadRequest(msg) => msg,
             Error::ConfigError(msg) => msg,
             Error::DatabaseError(e) => e.description().to_string(),
+            Error::InvalidData(msg) => msg,
             Error::NetError(e) => e.description().to_string(),
             Error::NotAuthorized(msg) => msg,
         }
@@ -78,6 +84,12 @@ impl From<env::VarError> for Error {
 impl From<hyper::Error> for Error {
     fn from(err: hyper::Error) -> Error {
         Error::NetError(err)
+    }
+}
+
+impl From<rustc_serialize::json::DecoderError> for Error {
+    fn from(err: rustc_serialize::json::DecoderError) -> Error {
+        Error::InvalidData(format!["JSON error: {}", err.description()])
     }
 }
 

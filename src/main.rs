@@ -11,6 +11,7 @@ extern crate dotenv;
 extern crate maud;
 extern crate marksman_escape;
 extern crate rocket;
+extern crate rustc_serialize;
 
 mod db;
 mod html;
