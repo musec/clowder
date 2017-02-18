@@ -17,6 +17,7 @@ mod html;
 
 
 fn main() {
+    dotenv::dotenv().ok();
     rocket::ignite()
            .catch(html::error_catchers())
            .mount("/", html::all_routes())
