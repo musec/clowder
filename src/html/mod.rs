@@ -137,10 +137,9 @@ fn index(ctx: Context) -> Result<Markup, Error> {
 }
 
 #[get("/logout")]
-fn logout(ctx: Context) -> Result<Markup, Error> {
-    Ok(render("Logout", &ctx.user, None,
-            bootstrap::callout("warning", "Unhandled operation",
-                    PreEscaped("We don't handle logout just yet.".to_string()))))
+fn logout(ctx: Context, cookies: &http::Cookies) -> Redirect {
+    cookies.remove("username");
+    Redirect::to("/")
 }
 
 #[get("/machine/<machine_name>")]
