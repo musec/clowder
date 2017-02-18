@@ -1,5 +1,6 @@
 use super::bootstrap;
 use super::diesel;
+use super::hyper;
 
 use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
@@ -7,6 +8,7 @@ use maud::Render;
 use rocket::*;
 use rocket::response::{Responder, Response};
 
+use std::env;
 use std::error::Error as StdError;
 
 
@@ -15,11 +17,17 @@ pub enum Error {
     /// Login is required to access a resource.
     AuthRequired,
 
+    /// There is a misconfiguration of the Clowder server itself.
+    ConfigError(String),
+
     /// An otherwise-uninterpreted error occurred when interacting with the database.
     DatabaseError(diesel::result::Error),
 
     /// The user made an invalid request.
     BadRequest(String),
+
+    /// There was a problem communicating with a remote host.
+    NetError(hyper::Error),
 
     /// The user is not permitted to perform the requested action.
     NotAuthorized(String),
@@ -30,7 +38,9 @@ impl Error {
         match self {
             &Error::AuthRequired => "Authorization required",
             &Error::BadRequest(_) => "Bad request",
+            &Error::ConfigError(_) => "Configuration error",
             &Error::DatabaseError(_) => "Database error",
+            &Error::NetError(_) => "Network error",
             &Error::NotAuthorized(_) => "Authorization error",
         }
     }
@@ -39,7 +49,9 @@ impl Error {
         match self {
             Error::AuthRequired => String::from("Authorization required"),
             Error::BadRequest(msg) => msg,
+            Error::ConfigError(msg) => msg,
             Error::DatabaseError(e) => e.description().to_string(),
+            Error::NetError(e) => e.description().to_string(),
             Error::NotAuthorized(msg) => msg,
         }
     }
@@ -54,6 +66,18 @@ impl From<chrono::ParseError> for Error {
 impl From<diesel::result::Error> for Error {
     fn from(err: diesel::result::Error) -> Error {
         Error::DatabaseError(err)
+    }
+}
+
+impl From<env::VarError> for Error {
+    fn from(err: env::VarError) -> Error {
+        Error::ConfigError(format!["problem with environment variable (or .env file): {}", err])
+    }
+}
+
+impl From<hyper::Error> for Error {
+    fn from(err: hyper::Error) -> Error {
+        Error::NetError(err)
     }
 }
 
