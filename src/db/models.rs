@@ -21,6 +21,11 @@ impl User {
         users.order(username).load(c)
     }
 
+    pub fn with_email(address: &str, c: &Connection) -> Result<User, result::Error> {
+        use self::users::dsl::*;
+        users.filter(email.eq(address)).first(c)
+    }
+
     pub fn with_username(uname: &str, c: &Connection) -> Result<User, result::Error> {
         use self::users::dsl::*;
         users.filter(username.eq(uname)).first(c)
