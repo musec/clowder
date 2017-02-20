@@ -8,10 +8,14 @@ extern crate chrono_humanize;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
 extern crate dotenv;
+extern crate hyper;
+extern crate hyper_native_tls;
 extern crate maud;
 extern crate marksman_escape;
+extern crate native_tls;
 extern crate rocket;
 extern crate rustc_serialize;
+extern crate url;
 
 mod db;
 mod html;

@@ -1,6 +1,8 @@
 use super::bootstrap;
 use super::diesel;
+use super::github;
 use super::hyper;
+use super::native_tls;
 use super::rustc_serialize;
 
 use chrono;
@@ -15,6 +17,9 @@ use std::error::Error as StdError;
 
 #[derive(Debug)]
 pub enum Error {
+    /// Error authenticating user.
+    AuthError(String),
+
     /// Login is required to access a resource.
     AuthRequired,
 
@@ -40,6 +45,7 @@ pub enum Error {
 impl Error {
     fn kind(&self) -> &str {
         match self {
+            &Error::AuthError(_) => "Authorization error",
             &Error::AuthRequired => "Authorization required",
             &Error::BadRequest(_) => "Bad request",
             &Error::ConfigError(_) => "Configuration error",
@@ -50,8 +56,9 @@ impl Error {
         }
     }
 
-    fn msg(&self) -> String {
+    fn msg(self) -> String {
         match self {
+            Error::AuthError(msg) => msg,
             Error::AuthRequired => String::from("Authorization required"),
             Error::BadRequest(msg) => msg,
             Error::ConfigError(msg) => msg,
@@ -81,9 +88,21 @@ impl From<env::VarError> for Error {
     }
 }
 
+impl From<github::Error> for Error {
+    fn from(err: github::Error) -> Error {
+        Error::AuthError(format!["GitHub error: {}", err])
+    }
+}
+
 impl From<hyper::Error> for Error {
     fn from(err: hyper::Error) -> Error {
         Error::NetError(err)
+    }
+}
+
+impl From<native_tls::Error> for Error {
+    fn from(err: native_tls::Error) -> Error {
+        Error::ConfigError(format!["unable to create TLS client: {}", err])
     }
 }
 
@@ -96,7 +115,10 @@ impl From<rustc_serialize::json::DecoderError> for Error {
 impl<'r> Responder<'r> for Error {
     fn respond(self) -> response::Result<'r> {
         bootstrap::Page::new(self.kind())
-                        .content(html! { p (self.msg()) })
+                        .content(html! {
+                            h1 (self.kind())
+                            h2 (self.msg())
+                        })
             .render()
             .respond()
     }
@@ -105,22 +127,45 @@ impl<'r> Responder<'r> for Error {
 
 /// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
 #[error(401)]
-fn unauthorized<'r>(req: &Request) -> Response<'r> {
-    let content = bootstrap::Page::new("401 Unauthorized")
-        .content(html! {
-            h1 "401 Unauthorized"
-            p { "Authorization is required to access " code (req.uri()) "." }
-        })
-        .render()
-        .into_string()
-        ;
+fn unauthorized<'r>(_req: &Request) -> Response<'r> {
+    const OAUTH_URL: &'static str = "https://github.com/login/oauth/authorize";
 
-    use std::io::Cursor;
+    let content = match env::var("CLOWDER_GH_CLIENT_ID") {
+        Ok(ref id) => {
+            bootstrap::ModalDialog::new("login")
+                .title("Login required")
+                .body(html! {
+                    p {
+                        i.fa.fa-github aria-hidden="true" {}
+                        (maud::PreEscaped("&nbsp;"))
+                        a href={ (OAUTH_URL) "?client_id=" (id) } "Sign in with GitHub"
+                    }
+                })
+                .closeable(false)
+                .start_open(true)
+                .render()
+        },
+
+        Err(ref e) => {
+            html! {
+                h1 "Login required"
+                p "Login required and GitHub redirection not configured:"
+                pre (e)
+            }
+        },
+    };
+
+    let full_content =
+        bootstrap::Page::new("401 Unauthorized")
+            .content(content)
+            .render()
+            .into_string()
+            ;
+
+    use std::io;
 
     let mut response = Response::new();
-    response.set_status(http::Status::Unauthorized);
-    response.set_header(http::Header::new("WWW-Authenticate", "Basic realm=\"Clowder\""));
-    response.set_sized_body(Cursor::new(content));
+    response.set_sized_body(io::Cursor::new(full_content));
 
     response
 }

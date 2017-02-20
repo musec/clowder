@@ -309,6 +309,8 @@ impl Render for Page {
                     script src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"
                         {}
 
+                    script src="https://use.fontawesome.com/ff559252db.js" {}
+
                     (PreEscaped("<script>
                     $('input.daterange').daterangepicker({
                         autoApply: true,

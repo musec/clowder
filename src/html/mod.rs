@@ -9,12 +9,16 @@ use db::schema::*;
 use ::diesel;
 use diesel::*;
 use diesel::pg::PgConnection as Connection;
+use hyper;
 use marksman_escape::Escape;
 use maud::*;
+use native_tls;
 use super::rocket;
 use rocket::*;
 use rocket::request::{FlashMessage, Form};
 use rocket::response::{Flash, Redirect};
+use rustc_serialize;
+use url;
 
 // We do, in fact, use FromFrom, but only in a rocket-codegen derivation.
 #[allow(unused_imports)]
@@ -23,10 +27,12 @@ use rocket::request::FromForm;
 mod auth;
 mod bootstrap;
 mod error;
+mod github;
 mod forms;
 mod link;
 mod tables;
 
+use std::env;
 use self::error::Error;
 use self::link::Link;
 
@@ -67,11 +73,12 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for Context {
 /// All of the routes that we can handle.
 pub fn all_routes() -> Vec<Route> {
     routes! {
-        index, logout,
+        index,
+        github_callback, logout,
         machine, machines,
         reservation, reservation_create_page, reservation_create,
         reservation_end, reservation_end_confirm, reservations,
-        static_css, static_js,
+        static_css, static_images, static_js,
         user, user_update,
     }
 }
@@ -134,6 +141,30 @@ fn index(ctx: Context) -> Result<Markup, Error> {
             }
         }
     }))
+}
+
+#[derive(FromForm)]
+struct GithubCallbackData {
+    code: String,
+    state: Option<String>,
+}
+
+#[get("/gh-callback?<query>")]
+fn github_callback(query: GithubCallbackData, cookies: &http::Cookies) -> Result<Redirect, Error> {
+    let mut gh = github::Client::new(env::var("CLOWDER_GH_CLIENT_ID")?)?
+        .set_secret(env::var("CLOWDER_GH_CLIENT_SECRET")?)
+        .set_oauth_code(query.code);
+        ;
+
+    let user = gh.user()?;
+
+    let conn = db::establish_connection();
+    let user = User::with_email(user.email(), &conn)
+        .map_err(|_| Error::AuthError(format!["'{}' is not a recognized user", user.email()]))?;
+
+    cookies.add(http::Cookie::new(String::from("username"), user.username.clone()));
+
+    Ok(Redirect::to("/"))
 }
 
 #[get("/logout")]
