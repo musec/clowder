@@ -141,6 +141,13 @@ fn unauthorized<'r>(_req: &Request) -> Response<'r> {
                         a href={ (OAUTH_URL) "?client_id=" (id) } "Sign in with GitHub"
                     }
                 })
+                .footer(html! {
+                    p.footnote {
+                        "Contact "
+                        a href="https://www.engr.mun.ca/~anderson/" "Jonathan Anderson"
+                        " for authorization to use this system."
+                    }
+                })
                 .closeable(false)
                 .start_open(true)
                 .render()
