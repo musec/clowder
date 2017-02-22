@@ -7,6 +7,11 @@ a           { color: #862633; font-weight: bold; }
 a:visited   { color: #862633; }
 a:hover     { color: #cc9999; }
 
+.btn.large
+{
+  font-size: larger;
+}
+
 p.footnote
 {
   font-size: smaller;
