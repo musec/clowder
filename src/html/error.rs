@@ -135,10 +135,10 @@ fn unauthorized<'r>(_req: &Request) -> Response<'r> {
             bootstrap::ModalDialog::new("login")
                 .title("Login required")
                 .body(html! {
-                    p {
+                    p a.btn.btn-secondary href={ (OAUTH_URL) "?client_id=" (id) } {
                         i.fa.fa-github aria-hidden="true" {}
                         (maud::PreEscaped("&nbsp;"))
-                        a href={ (OAUTH_URL) "?client_id=" (id) } "Sign in with GitHub"
+                        "Sign in with GitHub"
                     }
                 })
                 .footer(html! {
