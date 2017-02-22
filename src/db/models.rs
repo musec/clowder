@@ -30,6 +30,67 @@ impl User {
         use self::users::dsl::*;
         users.filter(username.eq(uname)).first(c)
     }
+
+    pub fn inhabits_role(&self, role: &Role, c: &Connection) -> Result<bool, result::Error> {
+        use self::role_assignments::dsl::*;
+        role_assignments.inner_join(roles::table)
+            .filter(user_id.eq(self.id))
+            .filter(role_id.eq(role.id))
+            .count()
+            .get_result::<i64>(c)
+            .map(|count| count > 0)
+    }
+
+    pub fn roles(&self, c: &Connection) -> Result<Vec<Role>, result::Error> {
+        use self::role_assignments::dsl::*;
+        role_assignments.inner_join(roles::table)
+            .filter(user_id.eq(self.id))
+            .load(c)
+            .map(|roles: Vec<(RoleAssignment, Role)>|
+                roles.into_iter()
+                    .map(|(_, r)| r)
+                    .collect())
+    }
+
+    pub fn can_alter_users(&self, c: &Connection) -> Result<bool, result::Error> {
+        self.has_role(c, |ref role| role.can_alter_users)
+    }
+
+    pub fn can_view_users(&self, c: &Connection) -> Result<bool, result::Error> {
+        self.has_role(c, |ref role| role.can_view_users)
+    }
+
+    /// Does any of this user's roles satisfy a predicate?
+    fn has_role<Pred>(&self, c: &Connection, predicate: Pred) -> Result<bool, result::Error>
+        where Pred: Fn(&Role) -> bool
+    {
+        use self::role_assignments::dsl::*;
+        role_assignments.inner_join(roles::table)
+            .filter(user_id.eq(self.id))
+            .load(c)
+            .map(|roles: Vec<(RoleAssignment, Role)>|
+                 roles.into_iter().any(|(_, r)| predicate(&r)))
+    }
+}
+
+
+#[derive(Associations, Debug, Identifiable, Queryable)]
+#[has_many(role_assignments)]
+pub struct Role {
+    pub id: i32,
+    pub name: String,
+    pub can_view_users: bool,
+    pub can_alter_users: bool,
+}
+
+
+#[derive(Associations, Debug, Identifiable, Queryable)]
+#[belongs_to(Role)]
+#[belongs_to(User)]
+pub struct RoleAssignment {
+    pub id: i32,
+    pub user_id: i32,
+    pub role_id: i32,
 }
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
