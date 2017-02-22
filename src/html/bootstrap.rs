@@ -195,22 +195,22 @@ impl Page {
         }
     }
 
-    pub fn content(&mut self, c: Markup) -> &mut Page {
+    pub fn content(mut self, c: Markup) -> Self {
         self.content = Some(c);
         self
     }
 
-    pub fn flash(&mut self, f: Option<FlashMessage>) -> &mut Page {
+    pub fn flash(mut self, f: Option<FlashMessage>) -> Self {
         self.flash = f;
         self
     }
 
-    pub fn nav(&mut self, m: Vec<NavItem>) -> &mut Page {
+    pub fn nav(mut self, m: Vec<NavItem>) -> Self {
         self.nav = m;
         self
     }
 
-    pub fn user(&mut self, username: &str, display_name: &str) -> &mut Page {
+    pub fn user(mut self, username: &str, display_name: &str) -> Self {
         self.user = Some((username.into(), display_name.into()));
         self
     }

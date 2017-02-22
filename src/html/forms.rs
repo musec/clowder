@@ -112,7 +112,7 @@ impl Select {
         self
     }
 
-    pub fn set_options(&mut self, opts: Vec<SelectOption>) -> &mut Select {
+    pub fn set_options(mut self, opts: Vec<SelectOption>) -> Self {
         self.options = opts;
         self
     }
