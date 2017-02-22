@@ -94,6 +94,7 @@ impl Render for Input {
 pub struct Select {
     name: String,
     options: Vec<SelectOption>,
+    multiple: bool,
 }
 
 impl Select {
@@ -101,8 +102,14 @@ impl Select {
         Select {
             name: name.into(),
             options: Vec::new(),
+            multiple: false,
 
         }
+    }
+
+    pub fn multiple(mut self, mult: bool) -> Self {
+        self.multiple = mult;
+        self
     }
 
     pub fn set_options(&mut self, opts: Vec<SelectOption>) -> &mut Select {
@@ -114,7 +121,7 @@ impl Select {
 impl Render for Select {
     fn render(&self) -> Markup {
         html! {
-            select.custom-select name=(self.name) {
+            select name=(self.name) multiple?[self.multiple] {
                 @for o in &self.options {
                     (o)
                 }
