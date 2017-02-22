@@ -18,6 +18,16 @@ p.footnote
   font-style: italic;
 }
 
+th.rotate {
+  height: 8em;
+  white-space: nowrap;
+}
+
+th.rotate > * {
+  transform: rotate(300deg);
+  width: 1em;
+}
+
 td.numeric
 {
 	text-align: right;
