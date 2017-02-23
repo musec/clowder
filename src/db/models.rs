@@ -2,7 +2,7 @@ use chrono::UTC;
 use chrono::datetime::DateTime;
 use db::schema::*;
 use diesel;
-use diesel::*;
+use diesel::{CountDsl,ExpressionMethods,FilterDsl,LoadDsl,OrderDsl,Table,insert};
 use diesel::pg::PgConnection as Connection;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
