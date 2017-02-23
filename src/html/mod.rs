@@ -98,10 +98,11 @@ pub fn escape(dangerous: &str) -> String {
 
 
 /// Render a normal (i.e., non-error) page of content.
-pub fn render<S>(title: S, user: &User, flash: Option<FlashMessage>, content: Markup)
-    -> Markup
+pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: Markup) -> Markup
     where S: Into<String>
 {
+    let user = &ctx.user;
+
     bootstrap::Page::new(title)
                     .content(content)
                     .flash(flash)
@@ -128,7 +129,7 @@ fn index(ctx: Context) -> Result<Markup, Error> {
                     .load(&ctx.conn)
     }];
 
-    Ok(render("Clowder", &ctx.user, None, html! {
+    Ok(render("Clowder", &ctx, None, html! {
         div.row {
             div class="col-md-6" {
                 h4 "Machine inventory"
@@ -187,7 +188,7 @@ fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
                     .load(&ctx.conn)
     }];
 
-    Ok(render(format!["Clowder: {}", m.name], &ctx.user, None, html! {
+    Ok(render(format!["Clowder: {}", m.name], &ctx, None, html! {
         div.row h2 (m.name)
 
         div.row {
@@ -228,7 +229,7 @@ fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
 fn machines(ctx: Context) -> Result<Markup, Error> {
     let machines = try![Machine::all(&ctx.conn)];
 
-    Ok(render("Clowder: Machines", &ctx.user, None, tables::machines(&machines)))
+    Ok(render("Clowder: Machines", &ctx, None, tables::machines(&machines)))
 }
 
 #[get("/reservation/<id>")]
@@ -242,7 +243,7 @@ fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> Result<Mar
         (_, _) => false,
     };
 
-    Ok(render(format!["Clowder: reservation {}", r.id], &ctx.user, flash, html! {
+    Ok(render(format!["Clowder: reservation {}", r.id], &ctx, flash, html! {
         h2 { "Reservation " (r.id) }
 
         table.lefty {
@@ -352,7 +353,7 @@ fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup
         .collect::<Vec<_>>()
         ;
 
-    Ok(render("Create reservation", &ctx.user, None, html! {
+    Ok(render("Create reservation", &ctx, None, html! {
         h2 "Reserve a machine"
 
         form action="." method="post" {
@@ -392,7 +393,7 @@ fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
     let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
     let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
 
-    Ok(render(format!["Clowder: end reservation {}", r.id], &ctx.user, None, html! {
+    Ok(render(format!["Clowder: end reservation {}", r.id], &ctx, None, html! {
         h2 "End reservation"
 
         (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
@@ -459,7 +460,7 @@ fn reservations(ctx: Context) -> Result<Markup, Error> {
             .load(&ctx.conn)
     }];
 
-    Ok(render("Clowder: Reservations", &ctx.user, None,
+    Ok(render("Clowder: Reservations", &ctx, None,
                          try![tables::reservations_with_machines(&reservations, &ctx, true)]))
 }
 
@@ -495,7 +496,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
             .load(&ctx.conn)
     }];
 
-    Ok(render(name, &ctx.user, None, html! {
+    Ok(render(name, &ctx, None, html! {
         h2 (name)
 
         div.row {
