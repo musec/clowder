@@ -1,8 +1,11 @@
 use chrono::UTC;
 use chrono::datetime::DateTime;
 use db::schema::*;
+use diesel;
 use diesel::*;
 use diesel::pg::PgConnection as Connection;
+
+type DieselResult<T> = Result<T, diesel::result::Error>;
 
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
@@ -16,22 +19,22 @@ pub struct User {
 }
 
 impl User {
-    pub fn all(c: &Connection) -> Result<Vec<User>, result::Error> {
+    pub fn all(c: &Connection) -> DieselResult<Vec<User>> {
         use self::users::dsl::*;
         users.order(username).load(c)
     }
 
-    pub fn with_email(address: &str, c: &Connection) -> Result<User, result::Error> {
+    pub fn with_email(address: &str, c: &Connection) -> DieselResult<User> {
         use self::users::dsl::*;
         users.filter(email.eq(address)).first(c)
     }
 
-    pub fn with_username(uname: &str, c: &Connection) -> Result<User, result::Error> {
+    pub fn with_username(uname: &str, c: &Connection) -> DieselResult<User> {
         use self::users::dsl::*;
         users.filter(username.eq(uname)).first(c)
     }
 
-    pub fn inhabits_role(&self, role: &Role, c: &Connection) -> Result<bool, result::Error> {
+    pub fn inhabits_role(&self, role: &Role, c: &Connection) -> DieselResult<bool> {
         use self::role_assignments::dsl::*;
         role_assignments.inner_join(roles::table)
             .filter(user_id.eq(self.id))
@@ -41,7 +44,7 @@ impl User {
             .map(|count| count > 0)
     }
 
-    pub fn roles(&self, c: &Connection) -> Result<Vec<Role>, result::Error> {
+    pub fn roles(&self, c: &Connection) -> DieselResult<Vec<Role>> {
         use self::role_assignments::dsl::*;
         role_assignments.inner_join(roles::table)
             .filter(user_id.eq(self.id))
@@ -52,16 +55,16 @@ impl User {
                     .collect())
     }
 
-    pub fn can_alter_users(&self, c: &Connection) -> Result<bool, result::Error> {
+    pub fn can_alter_users(&self, c: &Connection) -> DieselResult<bool> {
         self.has_role(c, |ref role| role.can_alter_users)
     }
 
-    pub fn can_view_users(&self, c: &Connection) -> Result<bool, result::Error> {
+    pub fn can_view_users(&self, c: &Connection) -> DieselResult<bool> {
         self.has_role(c, |ref role| role.can_view_users)
     }
 
     /// Does any of this user's roles satisfy a predicate?
-    fn has_role<Pred>(&self, c: &Connection, predicate: Pred) -> Result<bool, result::Error>
+    fn has_role<Pred>(&self, c: &Connection, predicate: Pred) -> DieselResult<bool>
         where Pred: Fn(&Role) -> bool
     {
         use self::role_assignments::dsl::*;
@@ -107,12 +110,12 @@ pub struct Machine {
 }
 
 impl Machine {
-    pub fn all(c: &Connection) -> Result<Vec<Machine>, result::Error> {
+    pub fn all(c: &Connection) -> DieselResult<Vec<Machine>> {
         use self::machines::dsl::*;
         machines.order(name).load(c)
     }
 
-    pub fn with_name(machine_name: &str, c: &Connection) -> Result<Machine, result::Error> {
+    pub fn with_name(machine_name: &str, c: &Connection) -> DieselResult<Machine> {
         use self::machines::dsl::*;
         machines.filter(name.eq(machine_name)).first(c)
     }
@@ -208,7 +211,7 @@ impl ReservationBuilder {
         self
     }
 
-    pub fn insert(self, conn: &Connection) -> Result<Reservation, result::Error> {
+    pub fn insert(self, conn: &Connection) -> DieselResult<Reservation> {
         insert(&self).into(reservations::table)
             .get_result(conn)
     }
