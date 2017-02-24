@@ -466,8 +466,19 @@ fn static_js(filename: &str) -> io::Result<File> {
 #[get("/user/<name>")]
 fn user(name: String, ctx: Context) -> Result<Markup, Error> {
     let user = try![User::with_username(&name, &ctx.conn)];
+    let superuser = ctx.user.can_alter_users(&ctx.conn)?;
+
     let name = user.name.as_str();
     let myself = user.id == ctx.user.id;
+
+    let roles =
+        Role::all(&ctx.conn)?
+            .into_iter()
+            .map(|role| {
+                let inhabited = user.inhabits_role(&role, &ctx.conn).unwrap_or(false);
+                (role.name, inhabited)
+            })
+            ;
 
     let reservations: Vec<(Reservation, Machine)> = try![{
         use db::schema::reservations::dsl::*;
@@ -497,16 +508,45 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
                             }
                             tr { th "Email"
                                 td (forms::Input::new("email")
-                                                 .value(user.email)
+                                                 .value(user.email.clone())
                                                  .size(18)
                                                  .writable(myself))
                             }
                             tr {
                                 th "Phone"
                                 td (forms::Input::new("phone")
-                                                 .value(user.phone.unwrap_or(String::new()))
+                                                 .value(user.phone.as_ref()
+                                                        .map(String::clone)
+                                                        .unwrap_or(String::new()))
                                                  .size(18)
                                                  .writable(myself))
+                            }
+                            tr {
+                                th "Roles"
+                                td {
+                                    @if superuser {
+                                        (forms::Select::new("roles")
+                                            .multiple(true)
+                                            .set_options(
+                                                roles
+                                                    .map(|(name, inhabited)| {
+                                                        forms::SelectOption::new(&*name, &*name)
+                                                            .selected(inhabited)
+                                                    })
+                                                    .collect()
+                                            ))
+                                    } @else {
+                                        ul.list-unstyled
+                                            @for (name, inhabited) in roles {
+                                                li {
+                                                    (name)
+                                                    @if inhabited {
+                                                        " " i.fa.fa-check aria-hidden="true" {}
+                                                    }
+                                                }
+                                            }
+                                    }
+                                }
                             }
                             tr td colspan="2"
                                 input.btn.btn-block.btn-warning type="submit"
