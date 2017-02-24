@@ -2,7 +2,7 @@ use chrono::UTC;
 use chrono::datetime::DateTime;
 use db::schema::*;
 use diesel;
-use diesel::{CountDsl,ExpressionMethods,FilterDsl,LoadDsl,OrderDsl,Table,insert};
+use diesel::{CountDsl,ExpressionMethods,FilterDsl,FindDsl,LoadDsl,OrderDsl,Table,insert};
 use diesel::pg::PgConnection as Connection;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
@@ -86,6 +86,13 @@ pub struct Role {
     pub can_alter_users: bool,
 }
 
+impl Role {
+    pub fn all(c: &Connection) -> DieselResult<Vec<Role>> {
+        use self::roles::dsl::*;
+        roles.order(name).load(c)
+    }
+}
+
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(Role)]
@@ -158,6 +165,21 @@ pub struct Reservation {
 }
 
 impl Reservation {
+    /// Find all reservations, ordered by end time.
+    pub fn all(only_current: bool, c: &Connection) -> DieselResult<Vec<(Reservation, Machine)>> {
+        use self::reservations::dsl::*;
+        reservations.inner_join(machines::table)
+                    .filter(actual_end.is_null())
+                    .order(actual_end.desc())
+                    .order(scheduled_end.desc())
+                    .load(c)
+    }
+
+    pub fn get(id: i32, c: &Connection) -> DieselResult<Reservation> {
+        use db::schema::reservations::dsl::*;
+        reservations.find(id).first(c)
+    }
+
     pub fn start(&self) -> DateTime<UTC> {
         self.scheduled_start
     }

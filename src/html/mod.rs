@@ -120,14 +120,7 @@ fn index(ctx: Context) -> Result<Markup, Error> {
     let machines = try![Machine::all(&ctx.conn)];
 
     // TODO: use multiple joins once Diesel supports it
-    let reservations: Vec<(Reservation, Machine)> = try![{
-        use self::reservations::dsl::*;
-        reservations.inner_join(machines::table)
-                    .filter(actual_end.is_null())
-                    .order(actual_end.desc())
-                    .order(scheduled_end.desc())
-                    .load(&ctx.conn)
-    }];
+    let reservations: Vec<(Reservation, Machine)> = Reservation::all(true, &ctx.conn)?;
 
     Ok(render("Clowder", &ctx, None, html! {
         div.row {
@@ -433,15 +426,14 @@ fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
 
 #[get("/reservation/end/confirm/<res_id>")]
 fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>, Error> {
-    use db::schema::reservations::dsl::*;
+    let r = Reservation::get(res_id, &ctx.conn)?;
 
-    let r: Reservation = try![reservations.find(res_id).first(&ctx.conn)];
-
-    try! {
+    try![{
+        use db::schema::reservations::dsl::*;
         diesel::update(&r)
             .set(actual_end.eq(Some(UTC::now())))
             .get_result::<Reservation>(&ctx.conn)
-    };
+    }];
 
     Ok(Flash::new(Redirect::to(&format!["/reservation/{}", res_id]), "info",
                   &format!["Ended reservation {}", res_id]))
@@ -450,15 +442,7 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>,
 #[get("/reservations")]
 fn reservations(ctx: Context) -> Result<Markup, Error> {
     // TODO: use multiple joins once Diesel supports it
-    let reservations: Vec<(Reservation, Machine)> = try![{
-        use db::schema::reservations::dsl::*;
-
-        reservations
-            .inner_join(machines::table)
-            .order(actual_end.desc())
-            .order(scheduled_end.desc())
-            .load(&ctx.conn)
-    }];
+    let reservations: Vec<(Reservation, Machine)> = Reservation::all(false, &ctx.conn)?;
 
     Ok(render("Clowder: Reservations", &ctx, None,
                          try![tables::reservations_with_machines(&reservations, &ctx, true)]))
@@ -548,8 +532,6 @@ struct UserUpdate {
 
 #[post("/user/update/<who>", data = "<form>")]
 fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<Redirect>, Error> {
-    use self::users::dsl::*;
-
     let user = try! {
         User::with_username(who, &ctx.conn)
              .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
@@ -562,6 +544,9 @@ fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<
     }
 
     let f = form.get();
+
+    use self::users::dsl::*;
+
     try! {
         diesel::update(&user)
             .set(name.eq(f.name.clone()))
