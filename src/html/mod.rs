@@ -80,7 +80,7 @@ pub fn all_routes() -> Vec<Route> {
         reservation, reservation_create_page, reservation_create,
         reservation_end, reservation_end_confirm, reservations,
         static_css, static_images, static_js,
-        user, user_update,
+        user, user_update, users,
     }
 }
 
@@ -104,13 +104,19 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
 {
     let user = &ctx.user;
 
+    let mut nav_links = vec![
+        bootstrap::NavItem::link("/machines", "Machines"),
+        bootstrap::NavItem::link("/reservations", "Reservations"),
+    ];
+
+    if let Ok(true) = user.can_alter_users(&ctx.conn) {
+        nav_links.push(bootstrap::NavItem::link("/users", "Users"));
+    }
+
     bootstrap::Page::new(title)
                     .content(content)
                     .flash(flash)
-                    .nav(vec! {
-                        bootstrap::NavItem::link("/machines", "Machines"),
-                        bootstrap::NavItem::link("/reservations", "Reservations"),
-                    })
+                    .nav(nav_links)
                     .user(&user.username, &user.name)
                     .render()
 }
@@ -561,6 +567,79 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
     }))
 }
 
+
+#[get("/users")]
+fn users(ctx: Context) -> Result<Markup, Error> {
+    let conn = &ctx.conn;
+
+    let can_view = ctx.user.can_alter_users(conn).unwrap_or(false);
+    let can_edit = ctx.user.can_alter_users(conn).unwrap_or(false);
+
+    if !can_view {
+        return Err(Error::NotAuthorized(
+            format!["User '{}' not permitted to view/alter other users", ctx.user.username]));
+    }
+
+    let users = User::all(conn)?;
+    let roles = Role::all(conn)?;
+
+    Ok(render("Users", &ctx, None, html! {
+        h2 ("Users")
+
+        table.table.table-responsive {
+            thead.thead-default tr {
+                th {}
+                th "Username"
+                th "Name"
+                th "Email"
+                th "Phone"
+                th "Roles"
+                th {}
+            }
+
+            tbody {
+                @for ref user in &users {
+                    form action={ "/user/update/" (user.username) } method="post" {
+                        tr {
+                            th (user.id)
+                            td (user.username.clone())
+                            td (forms::Input::new("name")
+                                    .value(user.name.clone())
+                                    .size(15)
+                                    .writable(can_edit))
+                            td (forms::Input::new("email")
+                                    .value(user.email.clone())
+                                    .size(22)
+                                    .writable(can_edit))
+                            td (forms::Input::new("phone")
+                                    .value(user.phone
+                                           .as_ref()
+                                           .map(Clone::clone)
+                                           .unwrap_or(String::new()))
+                                    .size(16)
+                                    .writable(can_edit))
+                            td (forms::Select::new("roles")
+                                    .set_options(
+                                        roles.iter()
+                                            .map(|ref role| {
+                                                let name = &*role.name;
+                                                let inhabited = user.inhabits_role(role, conn)
+                                                                    .unwrap_or(false);
+
+                                                forms::SelectOption::new(name, name)
+                                                                    .selected(inhabited)
+                                            })
+                                            .collect()
+                                    )
+                                    .multiple(true))
+                            td (forms::SubmitButton::new().label("Update"))
+                        }
+                    }
+                }
+            }
+        }
+    }))
+}
 
 struct UserUpdate {
     name: String,
