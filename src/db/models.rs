@@ -108,6 +108,24 @@ pub struct RoleAssignment {
     pub role_id: i32,
 }
 
+#[derive(Debug, Insertable)]
+#[table_name = "role_assignments"]
+struct RoleAssigner {
+    user_id: i32,
+    role_id: i32,
+}
+
+impl RoleAssignment {
+    pub fn insert(user: &User, role: &Role, conn: &Connection) -> DieselResult<RoleAssignment> {
+        diesel::insert(&RoleAssigner {
+            user_id: user.id,
+            role_id: role.id,
+        })
+        .into(role_assignments::table)
+        .get_result(conn)
+    }
+}
+
 #[derive(Associations, Debug, Identifiable, Queryable)]
 #[has_many(disks)]
 #[has_many(nics)]
