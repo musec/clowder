@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io;
 
@@ -561,11 +562,43 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
 }
 
 
-#[derive(FromForm)]
 struct UserUpdate {
     name: String,
     email: String,
     phone: Option<String>,
+    roles: HashSet<String>,
+}
+
+// TODO: use #[derive(FromForm)] once SergioBenitez/Rocket#205 is resolved
+impl<'f> request::FromForm<'f> for UserUpdate {
+    type Error = error::Error;
+
+    // TODO: convert to from_form_items() when we move to Rocket v0.2.0
+    fn from_form_string(s: &'f str) -> Result<Self, Self::Error> {
+        let mut update = UserUpdate {
+            name: String::new(),
+            email: String::new(),
+            phone: None,
+            roles: HashSet::new(),
+        };
+
+        for (k, v) in url::form_urlencoded::parse(s.as_bytes()) {
+            let key: &str = &*k;
+            let value = v.into_owned();
+
+            match key {
+                "name" => update.name = value,
+                "email" => update.email = value,
+                "phone" => update.phone = Some(value),
+                "roles" => { update.roles.insert(value); },
+                _ => {
+                    return Err(Error::InvalidData(format!["invalid form data name: '{}'", key]));
+                },
+            }
+        }
+
+        Ok(update)
+    }
 }
 
 #[post("/user/update/<who>", data = "<form>")]
@@ -606,6 +639,29 @@ fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<
                 .get_result::<User>(conn)
         };
     };
+
+    let current_roles = user.roles(conn)?;
+    let role_names = current_roles.iter()
+        .map(|ref role| role.name.clone())
+        .collect::<HashSet<_>>()
+        ;
+
+    use self::role_assignments::dsl::*;
+
+    for role in &current_roles {
+        if !f.roles.contains(&role.name) {
+            diesel::delete(
+                role_assignments
+                    .filter(role_id.eq(role.id))
+                    .filter(user_id.eq(user.id)))
+                .execute(conn)?;
+        }
+    }
+
+    for ref role_name in f.roles.difference(&role_names) {
+        Role::with_name(role_name, conn)
+            .and_then(|role| RoleAssignment::insert(&user, &role, conn))?;
+    }
 
     Ok(Flash::new(Redirect::to(&format!["/user/{}", user.username]),
                   "info", &format!["Updated {}'s details", user.username]))
