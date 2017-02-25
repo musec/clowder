@@ -296,8 +296,6 @@ struct ReservationForm {
 
 #[post("/reservation/create", data = "<form>")]
 fn reservation_create(form: Form<ReservationForm>, ctx: Context) -> Result<Redirect, Error> {
-    println!["res: {:?}", form];
-
     let res = form.get();
 
     let user = try![User::with_username(&res.user, &ctx.conn)];
