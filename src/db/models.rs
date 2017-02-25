@@ -91,6 +91,11 @@ impl Role {
         use self::roles::dsl::*;
         roles.order(name).load(c)
     }
+
+    pub fn with_name(role_name: &str, c: &Connection) -> DieselResult<Role> {
+        use self::roles::dsl::*;
+        roles.filter(name.eq(role_name)).first(c)
+    }
 }
 
 
