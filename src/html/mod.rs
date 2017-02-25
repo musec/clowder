@@ -572,12 +572,14 @@ struct UserUpdate {
 
 #[post("/user/update/<who>", data = "<form>")]
 fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<Redirect>, Error> {
+    let conn = &ctx.conn;
+
     let user = try! {
-        User::with_username(who, &ctx.conn)
+        User::with_username(who, conn)
              .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
     };
 
-    let superuser = user.can_alter_users(&ctx.conn).unwrap_or(false);
+    let superuser = user.can_alter_users(conn).unwrap_or(false);
 
     if !(user.id == ctx.user.id || superuser) {
         return Err(Error::NotAuthorized(String::from("update other users' details")))
@@ -590,20 +592,20 @@ fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<
     try! {
         diesel::update(&user)
             .set(name.eq(f.name.clone()))
-            .get_result::<User>(&ctx.conn)
+            .get_result::<User>(conn)
     };
 
     try! {
         diesel::update(&user)
             .set(email.eq(f.email.clone()))
-            .get_result::<User>(&ctx.conn)
+            .get_result::<User>(conn)
     };
 
     if let Some(ref p) = f.phone {
         try! {
             diesel::update(&user)
                 .set(phone.eq(Some(p.clone())))
-                .get_result::<User>(&ctx.conn)
+                .get_result::<User>(conn)
         };
     };
 
