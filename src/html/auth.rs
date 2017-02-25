@@ -11,7 +11,7 @@ use html::error::Error;
 pub fn authenticate(req: &Request, conn: &Connection) -> Result<User, Error> {
     req.cookies()
         .find("username")
-        .map(|cookie| cookie.value)
+        .map(|cookie| cookie.value().to_string())
         .ok_or(Error::AuthRequired)
         .and_then(|ref uname| {
             use self::users::dsl::*;

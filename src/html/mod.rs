@@ -652,8 +652,7 @@ struct UserUpdate {
 impl<'f> request::FromForm<'f> for UserUpdate {
     type Error = error::Error;
 
-    // TODO: convert to from_form_items() when we move to Rocket v0.2.0
-    fn from_form_string(s: &'f str) -> Result<Self, Self::Error> {
+    fn from_form_items(form_items: &mut request::FormItems<'f>) -> Result<Self, Self::Error> {
         let mut update = UserUpdate {
             name: String::new(),
             email: String::new(),
@@ -661,9 +660,9 @@ impl<'f> request::FromForm<'f> for UserUpdate {
             roles: HashSet::new(),
         };
 
-        for (k, v) in url::form_urlencoded::parse(s.as_bytes()) {
+        for (k, v) in form_items {
             let key: &str = &*k;
-            let value = v.into_owned();
+            let value = v.into();
 
             match key {
                 "name" => update.name = value,
