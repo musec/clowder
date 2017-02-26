@@ -1,5 +1,3 @@
-#[cfg(test)] mod tests;
-
 use std::env;
 
 use diesel::prelude::*;
