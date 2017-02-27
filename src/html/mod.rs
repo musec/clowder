@@ -157,15 +157,13 @@ fn github_callback(query: GithubCallbackData, cookies: &http::Cookies) -> Result
         .set_oauth_code(query.code);
         ;
 
-    let user = gh.user()?;
-
+    let email = gh.user().map(|u| u.email().to_string())?;
     let conn = db::establish_connection();
-    let user = User::with_email(user.email(), &conn)
-        .map_err(|_| Error::AuthError(format!["'{}' is not a recognized user", user.email()]))?;
 
-    auth::set_user_cookie(cookies, user.username);
-
-    Ok(Redirect::to("/"))
+    User::with_email(&email, &conn)
+        .map_err(|_| Error::AuthError(format!["Unknown user: {}", email]))
+        .map(|user| auth::set_user_cookie(cookies, user.username))
+        .map(|_| Redirect::to("/"))
 }
 
 #[get("/logout")]
