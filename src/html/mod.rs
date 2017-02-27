@@ -163,7 +163,7 @@ fn github_callback(query: GithubCallbackData, cookies: &http::Cookies) -> Result
     let user = User::with_email(user.email(), &conn)
         .map_err(|_| Error::AuthError(format!["'{}' is not a recognized user", user.email()]))?;
 
-    cookies.add(http::Cookie::new(String::from("username"), user.username.clone()));
+    cookies.add(auth::user_cookie(user.username.clone()));
 
     Ok(Redirect::to("/"))
 }

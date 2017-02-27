@@ -3,6 +3,7 @@ use db::schema::*;
 use diesel::*;
 use diesel::pg::PgConnection as Connection;
 use rocket::*;
+use rocket::http::Cookie;
 
 use html::error::Error;
 
@@ -20,4 +21,10 @@ pub fn authenticate(req: &Request, conn: &Connection) -> Result<User, Error> {
                 .first(conn)
                 .map_err(Error::DatabaseError)
         })
+}
+
+/// Generate a cookie that attests to a logged-in user's username.
+pub fn user_cookie<'c>(username: String) -> Cookie<'c>
+{
+    Cookie::new(String::from("username"), username)
 }
