@@ -54,7 +54,7 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for Context {
             -> request::Outcome<Context, Self::Error> {
 
         let conn = db::establish_connection();
-        let user = auth::authenticate(req, &conn);
+        let user = auth::authenticate(req.cookies(), &conn);
 
         match user {
             Ok(u) => Outcome::Success(Context { user: u, conn: conn }),
@@ -163,7 +163,7 @@ fn github_callback(query: GithubCallbackData, cookies: &http::Cookies) -> Result
     let user = User::with_email(user.email(), &conn)
         .map_err(|_| Error::AuthError(format!["'{}' is not a recognized user", user.email()]))?;
 
-    cookies.add(auth::user_cookie(user.username.clone()));
+    auth::set_user_cookie(cookies, user.username);
 
     Ok(Redirect::to("/"))
 }
