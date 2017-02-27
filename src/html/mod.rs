@@ -16,7 +16,7 @@ use maud::*;
 use native_tls;
 use super::rocket;
 use rocket::*;
-use rocket::request::{FlashMessage, Form};
+use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rustc_serialize;
 use url;
@@ -662,7 +662,8 @@ impl<'f> request::FromForm<'f> for UserUpdate {
 
         for (k, v) in form_items {
             let key: &str = &*k;
-            let value = v.into();
+            let value =
+                String::from_form_value(v).map_err(String::from).map_err(Error::InvalidData)?;
 
             match key {
                 "name" => update.name = value,
