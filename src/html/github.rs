@@ -122,8 +122,6 @@ impl Client {
 
         let body = response_str(&mut response)?;
 
-        println!["body: {:?}", body];
-
         rustc_serialize::json::decode(&body).map_err(Error::from)
     }
 
