@@ -21,6 +21,11 @@ pub fn authenticate(jar: &CookieJar, conn: &Connection) -> Result<User, Error> {
         })
 }
 
+/// Log the user out by clearing their auth cookie.
+pub fn logout<'c>(jar: &CookieJar) {
+    jar.remove("user");
+}
+
 /// Generate a cookie that attests to a logged-in user's username.
 pub fn set_user_cookie<'c, S: Into<String>>(jar: &CookieJar, username: S) {
     jar.add(Cookie::new(String::from("username"), username.into()))

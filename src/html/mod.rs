@@ -168,7 +168,7 @@ fn github_callback(query: GithubCallbackData, cookies: &http::Cookies) -> Result
 
 #[get("/logout")]
 fn logout(_ctx: Context, cookies: &http::Cookies) -> Redirect {
-    cookies.remove("username");
+    auth::logout(cookies);
     Redirect::to("/")
 }
 
