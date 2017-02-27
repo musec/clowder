@@ -475,6 +475,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
 
     let name = user.name.as_str();
     let myself = user.id == ctx.user.id;
+    let writable = myself || superuser;
 
     let roles =
         Role::all(&ctx.conn)?
@@ -509,13 +510,13 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
                                 td (forms::Input::new("name")
                                                  .value(user.name.clone())
                                                  .size(18)
-                                                 .writable(myself))
+                                                 .writable(writable))
                             }
                             tr { th "Email"
                                 td (forms::Input::new("email")
                                                  .value(user.email.clone())
                                                  .size(18)
-                                                 .writable(myself))
+                                                 .writable(writable))
                             }
                             tr {
                                 th "Phone"
@@ -524,7 +525,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
                                                         .map(String::clone)
                                                         .unwrap_or(String::new()))
                                                  .size(18)
-                                                 .writable(myself))
+                                                 .writable(writable))
                             }
                             tr {
                                 th "Roles"
