@@ -720,27 +720,29 @@ fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<
         };
     };
 
-    let current_roles = user.roles(conn)?;
-    let role_names = current_roles.iter()
-        .map(|ref role| role.name.clone())
-        .collect::<HashSet<_>>()
-        ;
+    if superuser {
+        let current_roles = user.roles(conn)?;
+        let role_names = current_roles.iter()
+            .map(|ref role| role.name.clone())
+            .collect::<HashSet<_>>()
+            ;
 
-    use self::role_assignments::dsl::*;
+        use self::role_assignments::dsl::*;
 
-    for role in &current_roles {
-        if !f.roles.contains(&role.name) {
-            diesel::delete(
-                role_assignments
-                    .filter(role_id.eq(role.id))
-                    .filter(user_id.eq(user.id)))
-                .execute(conn)?;
+        for role in &current_roles {
+            if !f.roles.contains(&role.name) {
+                diesel::delete(
+                    role_assignments
+                        .filter(role_id.eq(role.id))
+                        .filter(user_id.eq(user.id)))
+                    .execute(conn)?;
+            }
         }
-    }
 
-    for ref role_name in f.roles.difference(&role_names) {
-        Role::with_name(role_name, conn)
-            .and_then(|role| RoleAssignment::insert(&user, &role, conn))?;
+        for ref role_name in f.roles.difference(&role_names) {
+            Role::with_name(role_name, conn)
+                .and_then(|role| RoleAssignment::insert(&user, &role, conn))?;
+        }
     }
 
     Ok(Flash::new(Redirect::to(&format!["/user/{}", user.username]),
