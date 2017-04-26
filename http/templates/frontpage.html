@@ -27,7 +27,7 @@
 		{{ range .Machines }}
 			<tr>
 				<td><a href="machine/?name={{ .Name }}">{{.Name}}</a></td>	
-				<td>{{ .Architecture }}</td>
+				<td>{{ .Architecture}}</td>
 				<td>{{ .Microarchitecture }}</td>
 				<td>{{ .Cores }}</td>
 				<td>{{ .MemoryGB }} GB</td>
@@ -61,6 +61,63 @@
 		{{ end }}
 	</tbody>
 </table>
+<h2><a href="disks">Disk inventory</a></h2>
+	<table>
+	<thead>
+		<tr>
+			<th>Vendor</th>
+			<th>Model</th>
+			<th>Machine</th>
+			<th>Capacity</th>
+			<th>SSD</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{ range .Disks }}
+		
+			<tr>	
+				<td>{{ .Vendor}}</td>
+				<td>{{ .Model}}</td>
+				<td>{{ .Machine.Name}}</a></td>
+				<td>{{ .CapacityGB}} GB</td>
+				<td>{{ .SSD}}</td>
+								
+			</tr>
+		{{ end }}
+		
+	</tbody>
+
+
+</table> 
+
+<h2><a href="nics">NIC inventory</a></h2>
+<table>
+	<thead>
+		<tr>
+			<th>Machine</th>
+			<th>Vendor</th>
+			<th>Model</th>
+			<th>Address</th>
+			<th>Speed</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{ range .NICs }}
+		
+			<tr>
+				<td>{{ .Machine.Name}}</a></td>
+				<td>{{ .Vendor}}</td>
+				<td>{{ .Model}}</td>
+				<td>{{ .Address}}</td>
+				<td>{{ .Speed}}</td>
+								
+			</tr>
+		{{ end }}
+		
+	</tbody>
+
+
+</table> 
 
 </body>
 </html>

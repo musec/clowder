@@ -8,8 +8,10 @@
 
 <body>
 
-<h1>Clowder</h1>
+<h1><a href="/">Clowder</a></h1>
 <h2>Machine inventory</h2>
+
+<a href="/machine/create">Add new machine</a>
 
 <table>
 	<thead>
@@ -25,15 +27,15 @@
 	<tbody>
 		{{ range . }}
 			<tr>
-				<td><a href="/machine/?name={{ .Name }}">{{.Name}}</a></td>
-				<td>{{ .Architecture }}</td>
-				<td>{{ .Microarchitecture }}</td>
-				<td>{{ .Cores }}</td>
-				<td>{{ .MemoryGB }} GB</td>
-			</tr>
+	          <form action="update?id={{.Id}}" method="post"><td><a href="/machine/?name={{ .Name }}">{{.Name}}</a></td>
+			<td><input type="text" name="arch" size="6" value="{{ .Architecture }}"></input></td>
+			<td><input type="text" name="microarch" size="6" value="{{ .Microarchitecture }}"></input></td>
+			<td><input type="text" name="cores" size="6" value="{{ .Cores }}"></input></td>
+		        <td><input type="text" name="memory" size="6" value="{{ .MemoryGB }} GB"></input></td>
+			<td><input type="submit" value="update" name="save"></input></td></form>
+		       	</tr>
 		{{ end }}
 	</tbody>
 </table>
-
 </body>
 </html>

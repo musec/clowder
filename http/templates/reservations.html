@@ -8,14 +8,30 @@
 
 <body>
 
-<h1>Clowder</h1>
-<h2>Reservations</h2>
+<h1><a href="/">Clowder</a></h1>
+<h2><a href="/reservations/">Reservations</a></h2>
+
 
 <a href="/reservation/create/">Make new reservation</a>
-
 <table>
+	
+		
 	<thead>
+		    <th><form action="/reservations/SortBy/" method="post">
+			<input type="submit" value="SortBy"></input>
+			<th>
+				<input name="start" value="start date"></input> 
+				
+			</th>
+			<th>
+				<input name="end" value="end date"></input>	
+				
+			</th>
+			</form></th>
+	
 		<tr>
+		
+
 			<th>User</th>
 			<th>Machine</th>
 			<th>Start</th>
@@ -35,10 +51,15 @@
 				<td>{{ .Ended | fdatetime }}</td>
 				<td>{{ .PxePath }}</td>
 				<td>{{ .NfsRoot }}</td>
+				<td>
+				<form action="End?id={{.Id}}" method="post">
+				<input type="submit" value="End" name="ended"></input>
+				</form>
+
+				</td>
 			</tr>
 		{{ end }}
 	</tbody>
 </table>
-
 </body>
 </html>
