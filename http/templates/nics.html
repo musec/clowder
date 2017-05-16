@@ -27,13 +27,13 @@
 
 	<tbody>
 		{{ range . }}
-		{{.}}
+		
 			<tr>
-				<td>{{ .Machine.Name }}</td>
+				<td>{{ .Machine }}</td>
 				<td>{{ .Vendor }}</td>
 				<td>{{ .Model }}</td>
 				<td>{{ .Address }}</td>
-				<td>{{ .Speed }}</td>
+				<td>{{ .SpeedGbps }}</td>
 				
 			</tr>
 		{{ end }}

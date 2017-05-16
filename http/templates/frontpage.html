@@ -78,7 +78,7 @@
 			<tr>	
 				<td>{{ .Vendor}}</td>
 				<td>{{ .Model}}</td>
-				<td>{{ .Machine.Name}}</a></td>
+				<td>{{ .Machine}}</a></td>
 				<td>{{ .CapacityGB}} GB</td>
 				<td>{{ .SSD}}</td>
 								
@@ -105,11 +105,11 @@
 		{{ range .NICs }}
 		
 			<tr>
-				<td>{{ .Machine.Name}}</a></td>
+				<td>{{ .Machine}}</a></td>
 				<td>{{ .Vendor}}</td>
 				<td>{{ .Model}}</td>
 				<td>{{ .Address}}</td>
-				<td>{{ .Speed}}</td>
+				<td>{{ .SpeedGbps}}</td>
 								
 			</tr>
 		{{ end }}

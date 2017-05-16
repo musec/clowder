@@ -28,12 +28,12 @@
 	<tbody>
 		{{ range . }}
 			<tr>
-				<td>{{ .Vendor }}</td>
-				<td>{{ .Model }}</td>
-				<td>{{ .Machine.Name }}</td>
-				<td>{{ .CapacityGB }} GB</td>
-				<td>{{ .SSD }}</td>
-				
+		<td>{{ .Vendor }}</td>
+		<td>{{ .Model }}</td>
+		<td>{{ .Machine }}</td>
+		<td>{{ .CapacityGB }}</td>
+		<td>{{ .SSD }}</td>
+	
 			</tr>
 		{{ end }}
 	</tbody>

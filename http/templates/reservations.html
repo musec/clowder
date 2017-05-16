@@ -32,10 +32,10 @@
 		<tr>
 		
 
-			<th><a href="/reservations/Filter/">User</a></th>
-			<th>Machine</th>
-			<th>Start</th>
-			<th>End</th>
+			<th>User</th>
+			<th><a href="">Machine</a></th>
+			<th><a href="/reservations/Sort_Start/">Start</a></th>
+			<th><a href="/reservations/Sort_End/">End</a></th>
 			<th>Ended</th>
 			<th>PXE</th>
 			<th>NFS</th>
@@ -52,8 +52,8 @@
 				<td>{{ .PxePath }}</td>
 				<td>{{ .NfsRoot }}</td>
 				<td>
-				<form action="End?id={{.Id}}" method="post">
-				<input type="submit" value="End" name="ended"></input>
+				<form action="Ended?id={{.Id}}" method="post">
+				<input type="submit" value="Ended" name="ended"></input>
 				</form>
 
 				</td>
