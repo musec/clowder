@@ -34,7 +34,7 @@
 			<td>
 				<select name="machine">
 					{{ range .Machines }}
-			<option value="{{ .Name }}"{{ if eq .Name $.Machine }} selected {{ end }}>{{ .Name }}</option>
+			<option value="{{ .Id }}"{{ if eq .Name $.Machine }} selected {{ end }}>{{ .Name }}</option>
 					{{ end }}
 				</select>
 			</td>
