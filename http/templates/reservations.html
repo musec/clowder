@@ -49,8 +49,8 @@
 				<td>{{ .Start | fdatetime }}</td>
 				<td>{{ .End | fdatetime }}</td>
 				<td>{{ .Ended | fdatetime }}</td>
-				<td>{{ .PxePath }}</td>
-				<td>{{ .NfsRoot }}</td>
+				<td size="8"> {{ .PxePath }}</td>
+				<td size="8">{{ .NfsRoot }}</td>
 				<td>
 				<form action="Ended?id={{.Id}}" method="post">
 				<input type="submit" value="Ended" name="ended"></input>
