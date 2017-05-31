@@ -28,6 +28,21 @@
 				
 			</th>
 			</form></th>
+
+
+		   <th><form action="/reservations/FilterByPN/" method="post">
+			<input type="submit" value="FilterByPN"></input>
+			<th>
+				<input name="pxe" value="pxe"></input> 
+				
+			</th>
+			<th>
+				<input name="nfs" value="nfs"></input>	
+		
+			</th>
+			</form></th>
+	
+
 	
 		<tr>
 		
@@ -36,7 +51,7 @@
 			<th><a href="/reservations/Sort_By_Name/">Machine</th>
 			<th><a href="/reservations/Sort_Start/">Start</a></th>
 			<th><a href="/reservations/Sort_End/">End</a></th>
-			<th>Ended</th>
+			<th><a href="/reservations/Sort_Ended/">Ended</a></th>
 			<th>PXE</th>
 			<th>NFS</th>
 		</tr>
@@ -49,8 +64,8 @@
 				<td>{{ .Start | fdatetime }}</td>
 				<td>{{ .End | fdatetime }}</td>
 				<td>{{ .Ended | fdatetime }}</td>
-				<td size="8"> {{ .PxePath }}</td>
-				<td size="8">{{ .NfsRoot }}</td>
+				<td>{{ .PxePath }}</td>
+				<td>{{ .NfsRoot }}</td>
 				<td>
 				<form action="Ended?id={{.Id}}" method="post">
 				<input type="submit" value="Ended" name="ended"></input>

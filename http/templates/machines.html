@@ -9,20 +9,24 @@
 <body>
 
 <h1><a href="/">Clowder</a></h1>
-<h2>Machine inventory</h2>
+<h2><a href="/machines/">Machine inventory</a></h2>
 
 <a href="/machine/create">Add new machine</a>
+<th><form action="/machines/GetUnreserved/" method="post">
+			<input type="submit" value="Available Machines"></input>
+			<th></form>
+
 
 <table>
 	<thead>
-		<th><form action="/machines/FilterM/" method="post">
-			<input type="submit" value="FilterM"></input>
+		<th><form action="/machines/Filter_M_By_Dates/" method="post">
+			<input type="submit" value="FilterByTime"></input>
 			<th>
-				<input name="start" value="start date"></input> 
+				<input name="from" value="from"></input> 
 				
 			</th>
 			<th>
-				<input name="end" value="end date"></input>	
+				<input name="to" value="to"></input>	
 				
 			</th>
 			</form></th>
@@ -41,9 +45,26 @@
 
 
 		<tr>
-			<th><a href="/machines/GetUnreserved/">Name</a></th>
-			<th>Arch</th>
-			<th>Microarch</th>
+			<th><a href="/machines/Sort_By_Name/">Name</a></th>
+			<th><form action="/machines/Sort_By_Arch/" method="post">
+					<input type="submit" value="Arch"></input>
+			<select name="arch">
+					
+					<option value="amd">amd</option>
+					<option value="intel">intel</option>
+			
+			</select></form></th>
+			
+			<th><form action="/machines/Sort_Microarch/" method="post">
+					<input type="submit" value="Microarch"></input>
+			<select name="microarch1">
+					
+					<option value="core">core</option>
+					<option value="dual">dual</option>
+					<option value="i7">i7</option>
+
+			
+			</select></form></th>
 			<th><a href="/machines/Sort_Cores/">Cores</a></th>
 			<th><a href="/machines/Sort_Memory/">Memory</a></th>
 		</tr>
