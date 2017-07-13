@@ -18,14 +18,19 @@
 
 package db
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+)
 
 type Disk struct {
-	Machine    *Machine
+	id	   int
+	db	   *DB
 	Vendor     string
 	Model      string
-	SSD        bool
+	Machine    *Machine
 	CapacityGB int
+	SSD        bool
 }
 
 func initDisks(tx *sql.Tx) error {
@@ -43,4 +48,73 @@ func initDisks(tx *sql.Tx) error {
 	`)
 
 	return err
+}
+
+func (d DB) CreateDisk(vendor string,model string,
+	machine *Machine, capacity int, ssd bool) error {
+	_, err := d.sql.Exec(`
+		INSERT INTO Disks(vendor, model, machine, capacity, ssd)
+		VALUES(
+			?,
+			?,
+			?,
+			?,
+			?
+			)`,
+		 vendor, model, machine.Id, capacity, ssd)
+		 //fmt.Printf("", machine)
+
+	return err
+}
+
+
+func (d DB) GetDisks() ([]Disk, error){
+	rows, err := d.sql.Query(`
+		SELECT id, vendor, model, machine, capacity, ssd
+		FROM Disks 
+		ORDER BY capacity DESC
+
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	disks := []Disk{}
+	for rows.Next() {
+		k := Disk{db: &d}
+		var machine int
+			err = rows.Scan(&k.id, &k.Vendor,
+			&k.Model, &machine, &k.CapacityGB, &k.SSD)
+		if err != nil {
+			return nil, err
+		}
+			if machine != 0{
+		k.Machine, err = k.db.GetMachine("id", machine)
+				fmt.Printf("", machine)
+			}
+
+		disks = append(disks, k)
+	}
+
+	return disks, rows.Err()
+
+}
+func (k Disk) machine() (*Machine, error) {
+	return k.db.GetMachine("id", k.Machine)
+}
+
+func (k Disk) String() string {
+
+	var machineName string
+	Machine, err := k.machine()
+	if err != nil {
+		machineName = fmt.Sprintf("<error: %s>", err)
+	} else {
+		machineName = Machine.Name
+	}
+
+	return fmt.Sprintf("%-s %-s %-s %d GB RAM %t",
+	 k.Vendor, k.Model, machineName, k.CapacityGB, k.SSD)
 }

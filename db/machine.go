@@ -23,11 +23,12 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
 )
 
 type Machine struct {
+	Id                int
 	db                *DB
-	id                int
 	Name              string
 	Architecture      string
 	Microarchitecture string
@@ -49,25 +50,265 @@ func initMachines(tx *sql.Tx) error {
 
 	return err
 }
+//CREATE NEW MACHINE: ADD NEW MACHINE TO THE DATABASE
+func (d DB) CreateMachine(name string, arch string,
+	microarch string, cores int, memoryGB int) error {
 
-func (d DB) GetMachine(column string, val interface{}) (*Machine, error) {
-	row := d.sql.QueryRow(`
+	_, err := d.sql.Exec(`
+			INSERT INTO Machines(name, arch, microarch, cores, memory)
+			VALUES (
+				$1,
+				$2,
+				$3,
+				$4,
+				$5
+			)`,
+		name, arch, microarch, cores, memoryGB)
+
+	return err
+}
+//UPDATE MACHINE: MODIFYING MACHINE'S PROPERTIES
+func (d DB) UpdateMachine(id int, row string, arch string, microarch string, cores int, memory int)error{
+	_, err := d.sql.Exec(`
+			UPDATE Machines
+			SET arch = ?, microarch = ?, cores = ?, memory = ?
+			WHERE `+row+` = id
+
+	`,arch, microarch, cores, memory)
+
+	return err
+
+}
+//FILTER MACHINE: SORT LIST BY CORES SIZES
+func (d DB) Sort_Cores()([]Machine, error){
+	rows, err := d.sql.Query(`
 		SELECT id, name, arch, microarch, cores, memory
 		FROM Machines
-		WHERE Machines.`+column+` = $1`, val)
+		ORDER BY cores DESC`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sortcores := []Machine{}
+	for rows.Next() {
+
+		m := Machine{db: &d}
+		err = rows.Scan(
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		sortcores = append(sortcores, m)
+	}
+
+	return sortcores, rows.Err()
+
+}
+//FILTER MACHINE: SORT LIST BY MEMORY SIZES
+func (d DB) Sort_Memory()([]Machine, error){
+	rows, err := d.sql.Query(`
+		SELECT id, name, arch, microarch, cores, memory
+		FROM Machines
+		ORDER BY memory DESC`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sortmemory := []Machine{}
+	for rows.Next() {
+
+		m := Machine{db: &d}
+		err = rows.Scan(
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		sortmemory = append(sortmemory, m)
+	}
+
+	return sortmemory, rows.Err()
+
+}
+// Sort machine inventory by ascending order
+func (d DB) Sort_Memory2()([]Machine, error){
+	rows, err := d.sql.Query(`
+		SELECT id, name, arch, microarch, cores, memory
+		FROM Machines
+		ORDER BY memory ASC`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sortmemory := []Machine{}
+	for rows.Next() {
+
+		m := Machine{db: &d}
+		err = rows.Scan(
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		sortmemory = append(sortmemory, m)
+	}
+
+	return sortmemory, rows.Err()
+
+}
+
+//Sort by mirchroarch
+func (d DB) Sort_Microarch(microarch1 string)([]Machine, error){
+	rows, err := d.sql.Query(`
+		SELECT id, name, arch, microarch, cores, memory
+		FROM Machines
+		WHERE microarch = ?
+		ORDER BY memory DESC`, microarch1)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sortmicroarch := []Machine{}
+	for rows.Next() {
+
+		m := Machine{db: &d}
+		err = rows.Scan(
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		sortmicroarch = append(sortmicroarch, m)
+	}
+
+	return sortmicroarch, rows.Err()
+
+}
+//Sort machine by architecture
+func (d DB) Sort_By_Arch(arch string)([]Machine, error){
+	rows, err := d.sql.Query(`
+		SELECT id, name, arch, microarch, cores, memory
+		FROM Machines
+		WHERE arch = ?
+		ORDER BY arch DESC`, arch)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sortarch := []Machine{}
+	for rows.Next() {
+
+		m := Machine{db: &d}
+		err = rows.Scan(
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		sortarch = append(sortarch, m)
+	}
+
+	return sortarch, rows.Err()
+
+}
+//Sort machine by name
+func (d DB) Sort_M_By_Name()([]Machine, error){
+	rows, err := d.sql.Query(`
+		SELECT id,name, arch, microarch, cores, memory
+		FROM Machines
+		ORDER BY LOWER (name) COLLATE NOCASE ASC	
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sort_name := []Machine{}
+	for rows.Next() {
+		m := Machine{db: &d}
+		err = rows.Scan(
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
+
+		if err != nil {
+			return nil, err
+		}
+
+		sort_name = append(sort_name, m)
+	}
+
+	return sort_name, rows.Err()
+
+}
+
+
+//FILTER BY MEMORY SIZE
+func (d DB) Filter_By_Memory(min int, max int)([]Machine, error){
+	rows, err := d.sql.Query(`
+		SELECT id, name, arch, microarch, cores, memory
+		FROM Machines
+		WHERE memory >= ? AND memory <= ?
+		`, min, max)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	filtermemory := []Machine{}
+	for rows.Next() {
+
+		m := Machine{db: &d}
+		err = rows.Scan(
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		filtermemory = append(filtermemory, m)
+	}
+
+	return filtermemory, rows.Err()
+
+}
+
+
+//GET MACHINE: DISPLAY A MACHINE DATAILS
+func (d DB) GetMachine(column string, val interface{}) (*Machine, error) {
+	rows := d.sql.QueryRow(`
+		SELECT id, name, arch, microarch, cores, memory
+		FROM Machines
+		WHERE `+column+` = $1`, val)
 
 	m := Machine{db: &d}
-	err := row.Scan(
-		&m.id, &m.Name, &m.Architecture, &m.Microarchitecture,
-		&m.Cores, &m.MemoryGB,
-	)
+	err := rows.Scan(
+		&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+		&m.Cores, &m.MemoryGB)
 	if err != nil {
 		return nil, err
 	}
 
 	return &m, nil
 }
-
+//GET MACHINES: DISPLAY LIST OF MACHINES IN DATABASE
 func (d DB) GetMachines() ([]Machine, error) {
 	rows, err := d.sql.Query(`
 		SELECT id, name, arch, microarch, cores, memory
@@ -82,11 +323,11 @@ func (d DB) GetMachines() ([]Machine, error) {
 
 	machines := []Machine{}
 	for rows.Next() {
+
 		m := Machine{db: &d}
 		err = rows.Scan(
-			&m.id, &m.Name, &m.Architecture, &m.Microarchitecture,
-			&m.Cores, &m.MemoryGB,
-		)
+			&m.Id, &m.Name, &m.Architecture, &m.Microarchitecture,
+			&m.Cores, &m.MemoryGB)
 		if err != nil {
 			return nil, err
 		}
@@ -97,9 +338,84 @@ func (d DB) GetMachines() ([]Machine, error) {
 	return machines, rows.Err()
 }
 
+//FILTER LIST OF MACHINE: BY RSERVATION DATES
+func(d DB) Filter_M_By_Dates(from time.Time, to time.Time) ([]Machine, error){
+
+         rows, err := d.sql.Query(`
+		SELECT m.id, name, arch, microarch, cores, memory
+		FROM Machines m
+		WHERE m.id NOT IN (SELECT r.machine FROM Reservations r
+		WHERE (? BETWEEN r.start AND r.end)
+		OR (? BETWEEN r.start AND r.end)
+		AND  ( r.start BETWEEN ? AND ?) OR (r.end BETWEEN ? AND ?)
+	
+	);	
+	`, from, to, from, to, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	fm := []Machine{}
+	for rows.Next() {
+
+		f := Machine{db: &d}
+		err = rows.Scan(
+			&f.Id, &f.Name, &f.Architecture, &f.Microarchitecture,
+			&f.Cores, &f.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		fm = append(fm, f)
+	}
+
+	return fm, rows.Err()
+
+
+}
+
+//FILTER LIST OF MACHINES: GET AVAILABLE  MACHINES 
+func (d DB) AvailableMachines()([]Machine, error){
+
+	current_time := time.Now()
+	fmt.Printf("", current_time)
+
+		rows, err := d.sql.Query(`
+		SELECT m.id, name, arch, microarch, cores, memory
+		FROM Machines m
+		WHERE m.id NOT IN (SELECT r.machine FROM Reservations r 
+		WHERE ? < r.end)
+		`, current_time)
+
+		if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	u_machines := []Machine{}
+	for rows.Next() {
+		u := Machine{db: &d}
+		err = rows.Scan(
+			&u.Id, &u.Name, &u.Architecture, &u.Microarchitecture,
+			&u.Cores, &u.MemoryGB)
+		if err != nil {
+			return nil, err
+		}
+
+		u_machines = append(u_machines, u)
+	}
+
+	return u_machines, err
+
+
+}
+
 func (m Machine) ReservedBy() (string, error) {
 	r, err := m.db.GetReservationsFor(
-		"machine", m.id, time.Now(), time.Now())
+		"machine", m.Id, time.Now(), time.Now())
 
 	if err != nil || len(r) == 0 {
 		return "", err
@@ -129,7 +445,7 @@ func (m Machine) ReservedBy() (string, error) {
 
 func (m Machine) Reservations() []Reservation {
 	r, err := m.db.GetReservationsFor(
-		"machine", m.id, time.Time{}, time.Time{})
+		"machine", m.Id, time.Time{}, time.Time{})
 
 	if err != nil {
 		m.db.Error(err)

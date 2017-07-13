@@ -32,6 +32,6 @@ func renderError(w http.ResponseWriter, title string, message string) {
 
 	t.Execute(w, struct {
 		Title   string
-		Message string
+		Content string
 	}{title, message})
 }

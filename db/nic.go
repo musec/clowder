@@ -21,9 +21,13 @@ package db
 import (
 	"database/sql"
 	"net"
+	"fmt"
+
 )
 
 type NIC struct {
+	id	  int
+	db	  *DB
 	Machine   *Machine
 	Vendor    string
 	Model     string
@@ -47,3 +51,68 @@ func initNICs(tx *sql.Tx) error {
 
 	return err
 }
+func (d DB) CreateNIC(machine *Machine,vendor string,model string,
+	 address net.HardwareAddr, speed int) error {
+
+	_, err := d.sql.Exec(`
+		INSERT INTO NICs(machine, vendor, model, address, speed)
+		VALUES(
+			?,
+			?,
+			?,
+			?,
+			?
+			
+		)`,machine.Id, vendor, model, address, speed)
+
+	return err
+}
+func (d DB) GetNICs() ([]NIC, error){
+	rows, err := d.sql.Query(`
+		SELECT id, machine,vendor,model,address,speed
+		FROM NICs
+		ORDER by id DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	nics := []NIC{}
+	for rows.Next() {
+		n := NIC{db: &d}
+		var machine int
+		err = rows.Scan(&n.id, &machine,
+			&n.Vendor,&n.Model,&n.Address,&n.SpeedGbps)
+		if err != nil {
+			return nil, err
+		}
+			if machine != 0{
+		n.Machine, err = n.db.GetMachine("id", machine)
+				fmt.Printf("", machine)
+			}
+
+
+		nics = append(nics, n)
+	}
+
+	return nics, rows.Err()
+
+}
+/*func (n NIC) machine() (*Machine, error) {
+	return n.db.GetMachine("id", n.Machine)
+}
+func (n NIC) String() string {
+
+	var machineName string
+	Machine, err := n.machine()
+	if err != nil {
+		machineName = fmt.Sprintf("<error: %s>", err)
+	} else {
+		machineName = Machine.Name
+	}
+
+	return fmt.Sprintf("%-s %-s %-s -%t %t",
+	 machineName, n.Vendor,n.Model, n.Address, n.SpeedGbps)
+}*/
+

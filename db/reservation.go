@@ -25,6 +25,7 @@ import (
 )
 
 type Reservation struct {
+	Id      int
 	db      *DB
 	user    int
 	machine int
@@ -56,7 +57,7 @@ func initReservations(tx *sql.Tx) error {
 }
 
 func (d DB) CreateReservation(machine string, user string,
-	start time.Time, end time.Time) error {
+	start time.Time, end time.Time, pxepath string, nfsroot string) error {
 
 	_, err := d.sql.Exec(`
 			INSERT INTO Reservations(machine,user,start,end,pxepath,nfsroot)
@@ -65,20 +66,21 @@ func (d DB) CreateReservation(machine string, user string,
 				(SELECT id from Users where username=?),
 				?,
 				?,
-				"",
-				""
+				?,
+				?
 			)`,
-		machine, user, start, end)
+		machine, user, start, end,pxepath, nfsroot)
 
 	return err
 }
 
 func (d DB) GetReservations() ([]Reservation, error) {
 	rows, err := d.sql.Query(`
-		SELECT user, machine, start, end, ended, pxepath, nfsroot
+		SELECT id,user, machine, start, end, ended, pxepath, nfsroot
 		FROM Reservations
-		ORDER BY start DESC
-	`)
+		ORDER BY end DESC
+
+			`)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +90,10 @@ func (d DB) GetReservations() ([]Reservation, error) {
 	reservations := []Reservation{}
 	for rows.Next() {
 		r := Reservation{db: &d}
+		//edited ended variable
 		var ended *time.Time
 
-		err = rows.Scan(&r.user, &r.machine,
+		err = rows.Scan(&r.Id,&r.user, &r.machine,
 			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
 		if err != nil {
 			return nil, err
@@ -104,6 +107,229 @@ func (d DB) GetReservations() ([]Reservation, error) {
 	}
 
 	return reservations, rows.Err()
+}
+//CREATING END-RESERVATION......
+//
+func (d DB) EndReservation(id int)error{
+
+	now := time.Now()
+	_, err := d.sql.Exec(`
+			UPDATE Reservations
+			SET ended = ?
+			WHERE id = ?
+	
+	`,now, id)
+
+	return err
+
+}
+//Filter reservation by dates
+func(d DB) FilterByDates(start time.Time, end time.Time) ([]Reservation,error){
+         rows, err := d.sql.Query(`
+		SELECT id,user, machine, start, end, ended, pxepath, nfsroot
+		FROM Reservations
+		WHERE start > ? AND end < ?		
+	`, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	filter_r := []Reservation{}
+	for rows.Next() {
+		r := Reservation{db: &d}
+		var ended *time.Time
+
+		err = rows.Scan(&r.Id,&r.user, &r.machine,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
+		if err != nil {
+			return nil, err
+		}
+
+		if ended != nil {
+			r.Ended = *ended
+		}
+
+		filter_r = append(filter_r, r)
+	}
+
+	return filter_r, rows.Err()
+
+
+}
+func (d DB) Sort_End()([]Reservation, error){
+	rows, err := d.sql.Query(`
+		SELECT id,user, machine, start, end, ended, pxepath, nfsroot
+		FROM Reservations
+		ORDER BY end ASC 	
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sort_e := []Reservation{}
+	for rows.Next() {
+		r := Reservation{db: &d}
+		var ended *time.Time
+
+		err = rows.Scan(&r.Id,&r.user, &r.machine,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
+		if err != nil {
+			return nil, err
+		}
+
+		if ended != nil {
+			r.Ended = *ended
+		}
+
+		sort_e = append(sort_e, r)
+	}
+
+	return sort_e, rows.Err()
+
+
+
+}
+func (d DB) Sort_Ended()([]Reservation, error){
+	rows, err := d.sql.Query(`
+		SELECT id,user, machine, start, end, ended, pxepath, nfsroot
+		FROM Reservations
+		ORDER BY ended ASC 	
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sort_e := []Reservation{}
+	for rows.Next() {
+		r := Reservation{db: &d}
+		var ended *time.Time
+
+		err = rows.Scan(&r.Id,&r.user, &r.machine,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
+		if err != nil {
+			return nil, err
+		}
+
+		if ended != nil {
+			r.Ended = *ended
+		}
+
+		sort_e = append(sort_e, r)
+	}
+
+	return sort_e, rows.Err()
+
+}
+
+func (d DB) Sort_Start()([]Reservation, error){
+	rows, err := d.sql.Query(`
+		SELECT id,user, machine, start, end, ended, pxepath, nfsroot
+		FROM Reservations
+		ORDER BY start DESC 
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sort_start := []Reservation{}
+	for rows.Next() {
+		r := Reservation{db: &d}
+		var ended *time.Time
+
+		err = rows.Scan(&r.Id,&r.user, &r.machine,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
+		if err != nil {
+			return nil, err
+		}
+
+		if ended != nil {
+			r.Ended = *ended
+		}
+
+		sort_start = append(sort_start, r)
+	}
+
+	return sort_start, rows.Err()
+
+
+
+}
+
+func (d DB) Sort_By_Name()([]Reservation, error){
+	rows, err := d.sql.Query(`
+		SELECT id,user, machine, start, end, ended, pxepath, nfsroot
+		FROM Reservations
+		ORDER BY LOWER (machine) COLLATE NOCASE ASC	
+	`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	sort_start := []Reservation{}
+	for rows.Next() {
+		r := Reservation{db: &d}
+		var ended *time.Time
+
+		err = rows.Scan(&r.Id,&r.user, &r.machine,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
+		if err != nil {
+			return nil, err
+		}
+
+		if ended != nil {
+			r.Ended = *ended
+		}
+
+		sort_start = append(sort_start, r)
+	}
+
+	return sort_start, rows.Err()
+
+
+
+}
+func (d DB) Filter_By_Pxe_Nfs(pxe string, nfs string)([]Reservation, error){
+	rows, err := d.sql.Query(`
+		SELECT id,user, machine, start, end, ended, pxepath, nfsroot
+		FROM Reservations
+		WHERE pxepath LIKE ?||'%' OR nfsroot LIKE ?||'%'
+	`, pxe, nfs)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	filter_pn := []Reservation{}
+	for rows.Next() {
+		r := Reservation{db: &d}
+		var ended *time.Time
+
+		err = rows.Scan(&r.Id,&r.user, &r.machine,
+			&r.Start, &r.End, &ended, &r.PxePath, &r.NfsRoot)
+		if err != nil {
+			return nil, err
+		}
+
+		if ended != nil {
+			r.Ended = *ended
+		}
+
+		filter_pn = append(filter_pn, r)
+	}
+
+	return filter_pn, rows.Err()
+
 }
 
 func (d DB) GetReservationsFor(col string, id int,
@@ -157,7 +383,6 @@ func (r Reservation) User() (*User, error) {
 func (r Reservation) Machine() (*Machine, error) {
 	return r.db.GetMachine("id", r.machine)
 }
-
 func (r Reservation) String() string {
 	end := r.End
 	if !r.Ended.IsZero() {

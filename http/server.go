@@ -33,19 +33,40 @@ type Server struct {
 func Run(config *viper.Viper, db *db.DB, logfile string) {
 	server := Server{db: db}
 	server.InitLog(logfile)
+	fmt.Println("machine")
 
 	http.Handle("/static/", http.FileServer(http.Dir("http")))
 	http.HandleFunc("/", server.frontPage)
+	http.HandleFunc("/machine/create/", server.createMachine)
+	http.HandleFunc("/machines/UpdateMachine/", server.machinesPage)
+	http.HandleFunc("/machines/Sort_Cores/", server.sortcPage)
+	http.HandleFunc("/machines/Sort_Memory/", server.sortmPage)
+	http.HandleFunc("/machines/Sort_Memory2/", server.sortmPage2)
+	http.HandleFunc("/machines/AvailableMachines/", server.unreservPage)
+	http.HandleFunc("/machines/Filter_M_By_Dates/",server.filter_m_datePage)
+	http.HandleFunc("/machines/FilterByMemory/",server.filterByMemory)
+	http.HandleFunc("/machines/Sort_Microarch/",server.sortmicroPage)
+	http.HandleFunc("/machines/Sort_By_Arch/",server.sortarchPage)
+	http.HandleFunc("/machines/Sort_M_By_Name/",server.sort_m_namePage)
 	http.HandleFunc("/machine/", server.machinePage)
 	http.HandleFunc("/machines/", server.machinesPage)
 	http.HandleFunc("/reservation/create/", server.createReservation)
+	http.HandleFunc("/reservations/EndReservation/", server.reservationsPage)
+	http.HandleFunc("/reservations/FilterBy/", server.filterPage)
+	http.HandleFunc("/reservations/Sort_End/", server.sort_endPage)
+	http.HandleFunc("/reservations/Sort_Ended/", server.sort_endedPage)
+	http.HandleFunc("/reservations/Sort_Start/", server.sort_startPage)
+	http.HandleFunc("/reservations/Sort_By_Name/", server.sort_namePage)
+	http.HandleFunc("/reservations/FilterByPN/", server.filter_by_pnPage)
 	http.HandleFunc("/reservations/", server.reservationsPage)
-
+	http.HandleFunc("/disks/create/", server.createDisk)
+	//http.HandleFunc("/disks/UpdateDisk/",server.disksPage)
+	http.HandleFunc("/disks/", server.disksPage)
+	http.HandleFunc("/nics/create/", server.createNIC)
+	http.HandleFunc("/nics/", server.nicsPage)
 	hostname := config.GetString("server.hostname")
 	port := config.GetInt("server.http.port")
 	address := fmt.Sprintf("%s:%d", hostname, port)
-
 	server.Log("Serving HTTP on " + address)
-
 	http.ListenAndServe(address, nil)
 }
