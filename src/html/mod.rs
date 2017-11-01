@@ -59,12 +59,12 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for Context {
         match user {
             Ok(u) => Outcome::Success(Context { user: u, conn: conn }),
             Err(e) => {
-                let status = match &e {
-                    &Error::AuthRequired => http::Status::Unauthorized,
-                    _ => http::Status::InternalServerError,
+                let failure = match e {
+                    Error::AuthRequired => (http::Status::Unauthorized, e),
+                    _ => (http::Status::InternalServerError, e),
                 };
 
-                Outcome::Failure((status, e))
+                Outcome::Failure(failure)
             },
         }
     }
