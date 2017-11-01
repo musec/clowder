@@ -12,8 +12,6 @@ use rustc_serialize::hex::ToHex;
 
 use html::error::Error;
 
-use std::io;
-
 lazy_static! {
     /// A random HMAC key that is regenerated on every server restart.
     static ref HMAC_KEY: [u8; 32] = OsRng::new().expect("Unable to open system RNG").gen();
