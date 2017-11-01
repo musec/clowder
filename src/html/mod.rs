@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io;
 
-use chrono::{DateTime,UTC};
+use chrono::{DateTime,Utc};
 use chrono_humanize::HumanTime;
 use ::db;
 use db::models::*;
@@ -151,7 +151,7 @@ struct GithubCallbackData {
 }
 
 #[get("/gh-callback?<query>")]
-fn github_callback(query: GithubCallbackData, cookies: &http::Cookies) -> Result<Redirect, Error> {
+fn github_callback(query: GithubCallbackData, cookies: http::Cookies) -> Result<Redirect, Error> {
     let mut gh = github::Client::new(env::var("CLOWDER_GH_CLIENT_ID")?)?
         .set_secret(env::var("CLOWDER_GH_CLIENT_SECRET")?)
         .set_oauth_code(query.code);
@@ -167,14 +167,14 @@ fn github_callback(query: GithubCallbackData, cookies: &http::Cookies) -> Result
 }
 
 #[get("/logout")]
-fn logout(_ctx: Context, cookies: &http::Cookies) -> Redirect {
+fn logout(_ctx: Context, cookies: http::Cookies) -> Redirect {
     auth::logout(cookies);
     Redirect::to("/")
 }
 
 #[get("/machine/<machine_name>")]
-fn machine(machine_name: &str, ctx: Context) -> Result<Markup, Error> {
-    let m = try![Machine::with_name(machine_name, &ctx.conn)];
+fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
+    let m = try![Machine::with_name(&machine_name, &ctx.conn)];
 
     let reserv: Vec<(Reservation, User)> = try![{
         use self::reservations::dsl::*;
@@ -237,7 +237,7 @@ fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> Result<Mar
     let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
 
     let can_end = match (r.scheduled_start, r.actual_end) {
-        (s, None) if s <= UTC::now() => true,
+        (s, None) if s <= Utc::now() => true,
         (_, _) => false,
     };
 
@@ -314,8 +314,8 @@ fn reservation_create(form: Form<ReservationForm>, ctx: Context) -> Result<Redir
     let start = try![DateTime::parse_from_str(dates[0], "%H:%M%:z %e %b %Y")];
     let end = try![DateTime::parse_from_str(dates[1], "%H:%M%:z %e %b %Y")];
 
-    let mut rb = ReservationBuilder::new(&user, &machine, start.with_timezone(&UTC));
-    rb.end(end.with_timezone(&UTC));
+    let mut rb = ReservationBuilder::new(&user, &machine, start.with_timezone(&Utc));
+    rb.end(end.with_timezone(&Utc));
 
     if res.pxe.len() > 0 { rb.pxe(res.pxe.clone()); }
     if res.pxe.len() > 0 { rb.nfs(res.nfs.clone()); }
@@ -434,7 +434,7 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>,
     try![{
         use db::schema::reservations::dsl::*;
         diesel::update(&r)
-            .set(actual_end.eq(Some(UTC::now())))
+            .set(actual_end.eq(Some(Utc::now())))
             .get_result::<Reservation>(&ctx.conn)
     }];
 
@@ -452,17 +452,17 @@ fn reservations(ctx: Context) -> Result<Markup, Error> {
 }
 
 #[get("/css/<filename>")]
-fn static_css(filename: &str) -> io::Result<File> {
+fn static_css(filename: String) -> io::Result<File> {
     File::open(format!["static/css/{}", filename])
 }
 
 #[get("/images/<filename>")]
-fn static_images(filename: &str) -> io::Result<File> {
+fn static_images(filename: String) -> io::Result<File> {
     File::open(format!["static/images/{}", filename])
 }
 
 #[get("/js/<filename>")]
-fn static_js(filename: &str) -> io::Result<File> {
+fn static_js(filename: String) -> io::Result<File> {
     File::open(format!["static/js/{}", filename])
 }
 
@@ -651,7 +651,7 @@ struct UserUpdate {
 impl<'f> request::FromForm<'f> for UserUpdate {
     type Error = error::Error;
 
-    fn from_form_items(form_items: &mut request::FormItems<'f>) -> Result<Self, Self::Error> {
+    fn from_form(form_items: &mut request::FormItems<'f>, _: bool) -> Result<Self, Self::Error> {
         let mut update = UserUpdate {
             name: String::new(),
             email: String::new(),
@@ -662,7 +662,10 @@ impl<'f> request::FromForm<'f> for UserUpdate {
         for (k, v) in form_items {
             let key: &str = &*k;
             let value =
-                String::from_form_value(v).map_err(String::from).map_err(Error::InvalidData)?;
+                String::from_form_value(v)
+                       .map_err(rocket::http::RawStr::as_str)
+                       .map_err(String::from)
+                       .map_err(Error::InvalidData)?;
 
             match key {
                 "name" => update.name = value,
@@ -680,11 +683,13 @@ impl<'f> request::FromForm<'f> for UserUpdate {
 }
 
 #[post("/user/update/<who>", data = "<form>")]
-fn user_update(who: &str, ctx: Context, form: Form<UserUpdate>) -> Result<Flash<Redirect>, Error> {
+fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
+    -> Result<Flash<Redirect>, Error> {
+
     let conn = &ctx.conn;
 
     let user = try! {
-        User::with_username(who, conn)
+        User::with_username(&who, conn)
              .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
     };
 

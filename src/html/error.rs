@@ -7,7 +7,8 @@ use super::rustc_serialize;
 
 use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
-use maud::Render;
+use maud::{html,Render};
+use rocket;
 use rocket::*;
 use rocket::response::{Responder, Response};
 
@@ -113,14 +114,14 @@ impl From<rustc_serialize::json::DecoderError> for Error {
 }
 
 impl<'r> Responder<'r> for Error {
-    fn respond(self) -> response::Result<'r> {
+    fn respond_to(self, req: &Request) -> response::Result<'r> {
         bootstrap::Page::new(self.kind())
                         .content(html! {
                             h1 (self.kind())
                             h2 (self.msg())
                         })
             .render()
-            .respond()
+            .respond_to(req)
     }
 }
 

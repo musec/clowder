@@ -4,21 +4,20 @@ version = "0.1.0"
 authors = ["Jonathan Anderson <jonathan.anderson@mun.ca>"]
 
 [dependencies]
-chrono = "0.3.0"
-chrono-humanize = "0.0.8"
-diesel = { version = "0.11.4", features = ["chrono"] }
-diesel_codegen = { version = "0.11.0", features = ["postgres"] }
+chrono = "*"
+chrono-humanize = "*"
+diesel = { version = "*", features = ["chrono"] }
+diesel_codegen = { version = "*", features = ["postgres"] }
 dotenv = "0.8.0"
 hyper = "0.10.4"
 hyper-native-tls = "0.2.2"
 lazy_static = "0.2.2"
 marksman_escape = "0.1.2"
-maud = { version = "0.16.1", features = ["rocket"] }
-maud_macros = "0.16.1"
+maud = { version = "*", features = ["rocket"] }
 native-tls = "0.1.1"
 rand = "0.3"
-rocket = "0.2.0"
-rocket_codegen = "0.2.0"
+rocket = "*"
+rocket_codegen = "*"
 rust-crypto = "^0.2"
 rustc-serialize = "0.3.22"
 url = "1.4.0"

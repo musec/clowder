@@ -1,9 +1,9 @@
-use chrono::UTC;
+use chrono::Utc;
 use chrono_humanize::HumanTime;
 use db::models::*;
 use db::schema::*;
 use diesel::result::Error as DieselError;
-use diesel::{FindDsl,LoadDsl};
+use diesel::{FindDsl,FirstDsl,LoadDsl};
 use html::link::Link;
 use maud::*;
 
@@ -37,7 +37,7 @@ pub fn reservations_with_machines(reservations: &Vec<(Reservation, Machine)>,
                                   ctx: &Context, show_actual_ends: bool)
         -> MarkupOrDieselError {
 
-    let now = UTC::now();
+    let now = Utc::now();
     let row_class = |r: &Reservation| {
         if r.scheduled_start <= now {
             if let Some(_) = r.actual_end {

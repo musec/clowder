@@ -7,7 +7,7 @@ use diesel::*;
 use diesel::pg::PgConnection as Connection;
 use rand::Rng;
 use rand::os::OsRng;
-use rocket::http::{Cookie,CookieJar};
+use rocket::http::{Cookie,Cookies};
 use rustc_serialize::hex::ToHex;
 
 use html::error::Error;
@@ -20,8 +20,8 @@ lazy_static! {
 }
 
 /// Authenticate a user request, returning either a User or an Error.
-pub fn authenticate(jar: &CookieJar, conn: &Connection) -> Result<User, Error> {
-    jar.find("user")
+pub fn authenticate(mut jar: Cookies, conn: &Connection) -> Result<User, Error> {
+    jar.get_private("user")
         .map(|cookie| cookie.value().to_string())
         .ok_or(Error::AuthRequired)
         .and_then(|value| {
@@ -48,17 +48,17 @@ pub fn authenticate(jar: &CookieJar, conn: &Connection) -> Result<User, Error> {
 }
 
 /// Log the user out by clearing their auth cookie.
-pub fn logout<'c>(jar: &CookieJar) {
-    jar.remove("user");
+pub fn logout<'c>(mut jar: Cookies) {
+    jar.get_private("user").map(|c| jar.remove_private(c));
 }
 
 /// Generate a cookie that attests to a logged-in user's username.
-pub fn set_user_cookie<'c, S: Into<String>>(jar: &CookieJar, username: S)
+pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S)
     -> Result<(), Error>
 {
     let name = username.into();
     let value = format!["{}-{}", name, hmac(&name)?];
-    jar.add(Cookie::new(String::from("user"), value));
+    jar.add_private(Cookie::new(String::from("user"), value));
 
     Ok(())
 }

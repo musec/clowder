@@ -290,10 +290,8 @@ impl Render for Page {
                     footer.footer {
                         div.container.text-muted {
                             div.row.text-muted {
-                                @let now = chrono::Local::now() {
-                                    div class="col-md-11" ""
-                                    div class="col-md-2" (now.format("%e %b %Y"))
-                                }
+                                div class="col-md-11" ""
+                                div class="col-md-2" (chrono::Local::now().format("%e %b %Y"))
                             }
                         }
                     }
