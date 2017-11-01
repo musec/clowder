@@ -6,5 +6,8 @@ create table reservations (
 	scheduled_end timestamp with time zone,
 	actual_end timestamp with time zone,
 	pxe_path text,
-	nfs_root text
+	nfs_root text,
+
+	foreign key (user_id) references users(id),
+	foreign key (machine_id) references machines(id)
 );
