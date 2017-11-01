@@ -1,15 +1,14 @@
-use chrono::UTC;
-use chrono::datetime::DateTime;
+use chrono::{DateTime,Utc};
 use db::schema::*;
 use diesel;
-use diesel::{CountDsl,ExpressionMethods,FilterDsl,FindDsl,LoadDsl,OrderDsl,Table,insert};
+use diesel::associations::HasTable;
+use diesel::{CountDsl,ExpressionMethods,FilterDsl,FindDsl,FirstDsl,JoinDsl,LoadDsl,OrderDsl,Table,insert};
 use diesel::pg::PgConnection as Connection;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
 
 
-#[derive(Associations, Debug, Identifiable, Queryable)]
-#[has_many(reservations)]
+#[derive(Debug, Identifiable, Queryable)]
 pub struct User {
     pub id: i32,
     pub username: String,
@@ -78,7 +77,6 @@ impl User {
 
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
-#[has_many(role_assignments)]
 pub struct Role {
     pub id: i32,
     pub name: String,
@@ -127,9 +125,6 @@ impl RoleAssignment {
 }
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
-#[has_many(disks)]
-#[has_many(nics)]
-#[has_many(reservations)]
 pub struct Machine {
     pub id: i32,
     pub name: String,
@@ -180,9 +175,9 @@ pub struct Reservation {
     pub id: i32,
     pub user_id: i32,
     pub machine_id: i32,
-    pub scheduled_start: DateTime<UTC>,
-    pub scheduled_end: Option<DateTime<UTC>>,
-    pub actual_end: Option<DateTime<UTC>>,
+    pub scheduled_start: DateTime<Utc>,
+    pub scheduled_end: Option<DateTime<Utc>>,
+    pub actual_end: Option<DateTime<Utc>>,
     pub pxe_path: Option<String>,
     pub nfs_root: Option<String>,
 }
@@ -203,11 +198,11 @@ impl Reservation {
         reservations.find(id).first(c)
     }
 
-    pub fn start(&self) -> DateTime<UTC> {
+    pub fn start(&self) -> DateTime<Utc> {
         self.scheduled_start
     }
 
-    pub fn finish(&self) -> Option<DateTime<UTC>> {
+    pub fn finish(&self) -> Option<DateTime<Utc>> {
         match (self.scheduled_end, self.actual_end) {
             (Some(s), _) => Some(s),
             (None, Some(a)) => Some(a),
@@ -221,15 +216,15 @@ impl Reservation {
 pub struct ReservationBuilder {
     user_id: i32,
     machine_id: i32,
-    scheduled_start: DateTime<UTC>,
-    scheduled_end: Option<DateTime<UTC>>,
-    actual_end: Option<DateTime<UTC>>,
+    scheduled_start: DateTime<Utc>,
+    scheduled_end: Option<DateTime<Utc>>,
+    actual_end: Option<DateTime<Utc>>,
     pxe_path: Option<String>,
     nfs_root: Option<String>,
 }
 
 impl ReservationBuilder {
-    pub fn new(user: &User, machine: &Machine, start: DateTime<UTC>) -> ReservationBuilder {
+    pub fn new(user: &User, machine: &Machine, start: DateTime<Utc>) -> ReservationBuilder {
         ReservationBuilder {
             user_id: user.id,
             machine_id: machine.id,
@@ -241,7 +236,7 @@ impl ReservationBuilder {
         }
     }
 
-    pub fn end(&mut self, time: DateTime<UTC>) -> &mut ReservationBuilder {
+    pub fn end(&mut self, time: DateTime<Utc>) -> &mut ReservationBuilder {
         self.scheduled_end = Some(time);
         self
     }
