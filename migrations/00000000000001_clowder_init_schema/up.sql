@@ -32,8 +32,7 @@ create table nics (
 create table users (
 	id serial primary key not null,
 	username varchar not null,
-	name text not null,
-	phone text
+	name text not null
 );
 
 create table emails (

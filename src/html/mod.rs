@@ -520,15 +520,6 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
                                     }
                             }
                             tr {
-                                th "Phone"
-                                td (forms::Input::new("phone")
-                                                 .value(user.phone.as_ref()
-                                                        .map(String::clone)
-                                                        .unwrap_or(String::new()))
-                                                 .size(18)
-                                                 .writable(writable))
-                            }
-                            tr {
                                 th "Roles"
                                 td {
                                     @if superuser {
@@ -594,7 +585,6 @@ fn users(ctx: Context) -> Result<Markup, Error> {
                 th "Username"
                 th "Name"
                 th "Email"
-                th "Phone"
                 th "Roles"
                 th {}
             }
@@ -610,13 +600,6 @@ fn users(ctx: Context) -> Result<Markup, Error> {
                                     .size(15)
                                     .writable(can_edit))
                             td (user.emails(conn)?.into_iter().collect::<Vec<_>>().join(" "))
-                            td (forms::Input::new("phone")
-                                    .value(user.phone
-                                           .as_ref()
-                                           .map(Clone::clone)
-                                           .unwrap_or(String::new()))
-                                    .size(16)
-                                    .writable(can_edit))
                             td (forms::Select::new("roles")
                                     .set_options(
                                         roles.iter()
@@ -643,7 +626,6 @@ fn users(ctx: Context) -> Result<Markup, Error> {
 struct UserUpdate {
     name: String,
     emails: HashSet<String>,
-    phone: Option<String>,
     roles: HashSet<String>,
 }
 
@@ -655,7 +637,6 @@ impl<'f> request::FromForm<'f> for UserUpdate {
         let mut update = UserUpdate {
             name: String::new(),
             emails: HashSet::new(),
-            phone: None,
             roles: HashSet::new(),
         };
 
@@ -670,7 +651,6 @@ impl<'f> request::FromForm<'f> for UserUpdate {
             match key {
                 "name" => update.name = value,
                 "emails" => { update.emails.insert(value); },
-                "phone" => update.phone = Some(value),
                 "roles" => { update.roles.insert(value); },
                 _ => {
                     return Err(Error::InvalidData(format!["invalid form data name: '{}'", key]));
@@ -707,14 +687,6 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
         diesel::update(&user)
             .set(name.eq(f.name.clone()))
             .get_result::<User>(conn)
-    };
-
-    if let Some(ref p) = f.phone {
-        try! {
-            diesel::update(&user)
-                .set(phone.eq(Some(p.clone())))
-                .get_result::<User>(conn)
-        };
     };
 
     // Only admin users can (currently) modify email addresses, since they are almost akin to
