@@ -8,7 +8,6 @@ use super::rustc_serialize;
 use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
 use maud::{html,Render};
-use rocket;
 use rocket::*;
 use rocket::response::{Responder, Response};
 

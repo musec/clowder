@@ -1,8 +1,7 @@
 use chrono::{DateTime,Utc};
 use db::schema::*;
 use diesel;
-use diesel::associations::HasTable;
-use diesel::{CountDsl,ExpressionMethods,FilterDsl,FindDsl,FirstDsl,JoinDsl,LoadDsl,OrderDsl,Table,insert};
+use diesel::{CountDsl,ExpressionMethods,FilterDsl,FindDsl,FirstDsl,JoinDsl,LoadDsl,OrderDsl,insert};
 use diesel::pg::PgConnection as Connection;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
@@ -193,9 +192,9 @@ impl Reservation {
                     .load(c)
     }
 
-    pub fn get(id: i32, c: &Connection) -> DieselResult<Reservation> {
+    pub fn get(res_id: i32, c: &Connection) -> DieselResult<Reservation> {
         use db::schema::reservations::dsl::*;
-        reservations.find(id).first(c)
+        reservations.find(res_id).first(c)
     }
 
     pub fn start(&self) -> DateTime<Utc> {

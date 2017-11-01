@@ -3,7 +3,7 @@ use chrono_humanize::HumanTime;
 use db::models::*;
 use db::schema::*;
 use diesel::result::Error as DieselError;
-use diesel::{FindDsl,FirstDsl,LoadDsl};
+use diesel::{FindDsl,FirstDsl};
 use html::link::Link;
 use maud::*;
 
