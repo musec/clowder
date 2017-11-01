@@ -3,6 +3,7 @@ use db::schema::*;
 use diesel;
 use diesel::{CountDsl,ExpressionMethods,FilterDsl,FindDsl,FirstDsl,JoinDsl,LoadDsl,OrderDsl,insert};
 use diesel::pg::PgConnection as Connection;
+use std::collections::HashSet;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
 
@@ -12,7 +13,6 @@ pub struct User {
     pub id: i32,
     pub username: String,
     pub name: String,
-    pub email: String,
     pub phone: Option<String>,
 }
 
@@ -22,9 +22,29 @@ impl User {
         users.order(username).load(c)
     }
 
+    pub fn get(uid: i32, c: &Connection) -> DieselResult<User> {
+        use db::schema::users::dsl::*;
+        users.find(uid).first(c)
+    }
+
     pub fn with_email(address: &str, c: &Connection) -> DieselResult<User> {
-        use self::users::dsl::*;
-        users.filter(email.eq(address)).first(c)
+        use self::emails::dsl::*;
+
+        emails.filter(email.eq(address))
+              .first(c)
+              .map(|e: Email| e.user_id)
+              .and_then(|uid| User::get(uid, c))
+    }
+
+    pub fn emails(&self, c: &Connection) -> DieselResult<HashSet<String>> {
+        use db::schema::emails::dsl::*;
+        emails.filter(user_id.eq(self.id))
+              .load(c)
+              .map(|user_emails| user_emails.into_iter().map(|e: Email| e.email).collect())
+    }
+
+    pub fn username(&self) -> &str {
+        &self.username
     }
 
     pub fn with_username(uname: &str, c: &Connection) -> DieselResult<User> {
@@ -71,6 +91,35 @@ impl User {
             .load(c)
             .map(|roles: Vec<(RoleAssignment, Role)>|
                  roles.into_iter().any(|(_, r)| predicate(&r)))
+    }
+}
+
+
+#[derive(Associations, Debug, Identifiable, Queryable)]
+#[belongs_to(User)]
+pub struct Email {
+    pub id: i32,
+    pub user_id: i32,
+    pub email: String,
+}
+
+#[derive(Debug, Insertable)]
+#[table_name = "emails"]
+struct EmailInserter {
+    user_id: i32,
+    email: String,
+}
+
+impl Email {
+    pub fn insert<S>(user: &User, email: S, conn: &Connection) -> DieselResult<Email>
+        where S: Into<String>
+    {
+        diesel::insert(&EmailInserter {
+            user_id: user.id,
+            email: email.into(),
+        })
+        .into(emails::table)
+        .get_result(conn)
     }
 }
 

@@ -2,6 +2,7 @@ drop table reservations;
 
 drop table role_assignments;
 drop table roles;
+drop table emails;
 drop table users;
 
 drop table disks;

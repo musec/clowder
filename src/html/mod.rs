@@ -475,6 +475,8 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
     let myself = user.id == ctx.user.id;
     let writable = myself || superuser;
 
+    let emails = user.emails(&ctx.conn)?;
+
     let roles =
         Role::all(&ctx.conn)?
             .into_iter()
@@ -511,10 +513,11 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
                                                  .writable(writable))
                             }
                             tr { th "Email"
-                                td (forms::Input::new("email")
-                                                 .value(user.email.clone())
-                                                 .size(18)
-                                                 .writable(writable))
+                                td
+                                    @for address in emails {
+                                        (address)
+                                        br {}
+                                    }
                             }
                             tr {
                                 th "Phone"
@@ -606,10 +609,7 @@ fn users(ctx: Context) -> Result<Markup, Error> {
                                     .value(user.name.clone())
                                     .size(15)
                                     .writable(can_edit))
-                            td (forms::Input::new("email")
-                                    .value(user.email.clone())
-                                    .size(22)
-                                    .writable(can_edit))
+                            td (user.emails(conn)?.into_iter().collect::<Vec<_>>().join(" "))
                             td (forms::Input::new("phone")
                                     .value(user.phone
                                            .as_ref()
@@ -642,7 +642,7 @@ fn users(ctx: Context) -> Result<Markup, Error> {
 
 struct UserUpdate {
     name: String,
-    email: String,
+    emails: HashSet<String>,
     phone: Option<String>,
     roles: HashSet<String>,
 }
@@ -654,7 +654,7 @@ impl<'f> request::FromForm<'f> for UserUpdate {
     fn from_form(form_items: &mut request::FormItems<'f>, _: bool) -> Result<Self, Self::Error> {
         let mut update = UserUpdate {
             name: String::new(),
-            email: String::new(),
+            emails: HashSet::new(),
             phone: None,
             roles: HashSet::new(),
         };
@@ -669,7 +669,7 @@ impl<'f> request::FromForm<'f> for UserUpdate {
 
             match key {
                 "name" => update.name = value,
-                "email" => update.email = value,
+                "emails" => { update.emails.insert(value); },
                 "phone" => update.phone = Some(value),
                 "roles" => { update.roles.insert(value); },
                 _ => {
@@ -709,12 +709,6 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
             .get_result::<User>(conn)
     };
 
-    try! {
-        diesel::update(&user)
-            .set(email.eq(f.email.clone()))
-            .get_result::<User>(conn)
-    };
-
     if let Some(ref p) = f.phone {
         try! {
             diesel::update(&user)
@@ -722,6 +716,24 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
                 .get_result::<User>(conn)
         };
     };
+
+    // Only admin users can (currently) modify email addresses, since they are almost akin to
+    // login credentials. We will revisit this in the future.
+    if superuser {
+        let current_emails = user.emails(conn)?;
+
+        use self::emails::dsl::*;
+
+        for e in &current_emails {
+            if !f.emails.contains(e) {
+                diesel::delete(emails.filter(email.eq(e))).execute(conn)?;
+            }
+        }
+
+        for e in f.emails.difference(&current_emails) {
+            Email::insert(&user, e.clone(), conn)?;
+        }
+    }
 
     if superuser {
         let current_roles = user.roles(conn)?;

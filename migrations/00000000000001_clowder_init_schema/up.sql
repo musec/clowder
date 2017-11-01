@@ -33,8 +33,15 @@ create table users (
 	id serial primary key not null,
 	username varchar not null,
 	name text not null,
-	email text not null,
 	phone text
+);
+
+create table emails (
+	id serial primary key not null,
+	user_id integer not null,
+	email text not null,
+
+	foreign key (user_id) references users(id)
 );
 
 create table roles
