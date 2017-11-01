@@ -87,7 +87,7 @@ pub fn all_routes() -> Vec<Route> {
 /// All of our error catchers (which wrap HTTP errors and present nicer UIs for them).
 pub fn error_catchers() -> Vec<Catcher> {
     errors! {
-        error::not_found, error::unauthorized
+        error::not_found, error::unauthorized, error::internal_server_error,
     }
 }
 

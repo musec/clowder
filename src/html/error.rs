@@ -8,6 +8,7 @@ use super::rustc_serialize;
 use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
 use maud::{html,Render};
+use rocket;
 use rocket::*;
 use rocket::response::{Responder, Response};
 
@@ -184,6 +185,19 @@ fn not_found(req: &Request) -> maud::Markup {
         .content(html! {
             h2 ("404 Not Found")
             p { "The resource " code (req.uri()) " could not be found." }
+        })
+        .render()
+}
+
+/// The 500 ISE (Internal Server Error) handler doesn't provide any more information than the
+/// stock Rocket handler, but it also looks nicer.
+#[error(500)]
+fn internal_server_error(e: rocket::Error, _req: &Request) -> maud::Markup {
+    bootstrap::Page::new("500 Internal Server Error")
+        .content(html! {
+            h2 ("500 Internal Server Error")
+            p "There is an error in Clowder:"
+            pre code (format!["{:?}", e])
         })
         .render()
 }
