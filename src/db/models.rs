@@ -185,11 +185,17 @@ impl Reservation {
     /// Find all reservations, ordered by end time.
     pub fn all(only_current: bool, c: &Connection) -> DieselResult<Vec<(Reservation, Machine)>> {
         use self::reservations::dsl::*;
-        reservations.inner_join(machines::table)
-                    .filter(actual_end.is_null())
-                    .order(actual_end.desc())
-                    .order(scheduled_end.desc())
-                    .load(c)
+
+        let query = reservations.inner_join(machines::table)
+                                .order(scheduled_end.desc())
+                                ;
+
+        if only_current {
+            query.filter(actual_end.is_null())
+                 .load(c)
+        } else {
+            query.load(c)
+        }
     }
 
     pub fn get(res_id: i32, c: &Connection) -> DieselResult<Reservation> {
