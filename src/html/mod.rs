@@ -512,7 +512,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
         h2 (name)
 
         div.row {
-            div class="col-md-4" {
+            div class="col-md-5" {
                 form action={ "/user/update/" (user.username) } method="post" {
                     table.table.table-responsive {
                         tbody {
@@ -565,7 +565,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
                 }
             }
 
-            div class="col-md-8"
+            div class="col-md-7"
                 (try![tables::reservations_with_machines(&reservations, &ctx, true)])
         }
     }))
