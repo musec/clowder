@@ -13,6 +13,34 @@ type MarkupOrDieselError = Result<Markup, DieselError>;
 
 
 ///
+/// The header of a Bootstrap-compatible HTML table.
+///
+pub struct TableHeader (Vec<String>);
+
+impl TableHeader {
+    pub fn from_str(strs: &[&str]) -> TableHeader {
+        TableHeader(strs.iter()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<_>>())
+    }
+}
+
+impl Render for TableHeader {
+    fn render(&self) -> Markup {
+        html! {
+            thead.thead-default {
+                tr {
+                    @for ref heading in &self.0 {
+                        th (heading)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+///
 /// An HTML table that shows various properties of machines.
 ///
 /// This table will always show each machine's name, but it can also show:
@@ -174,31 +202,3 @@ pub fn reservations_with_machines(reservations: &Vec<(Reservation, Machine)>,
         }
     })
 }
-
-
-
-pub struct TableHeader (Vec<String>);
-
-impl TableHeader {
-    pub fn from_str(strs: &[&str]) -> TableHeader {
-        TableHeader(strs.iter()
-                        .map(|s| s.to_string())
-                        .collect::<Vec<_>>())
-    }
-}
-
-impl Render for TableHeader {
-    fn render(&self) -> Markup {
-        html! {
-            thead.thead-default {
-                tr {
-                    @for ref heading in &self.0 {
-                        th (heading)
-                    }
-                }
-            }
-        }
-    }
-}
-
-
