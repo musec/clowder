@@ -173,13 +173,13 @@ fn github_callback(query: GithubCallbackData, cookies: http::Cookies) -> Result<
     User::with_email(&email, &conn)
         .map_err(|_| Error::AuthError(format!["Unknown user: {}", email]))
         .map(|user| auth::set_user_cookie(cookies, user.username))
-        .map(|_| Redirect::to("/"))
+        .map(|_| Redirect::to(&route_prefix()))
 }
 
 #[get("/logout")]
 fn logout(_ctx: Context, cookies: http::Cookies) -> Redirect {
     auth::logout(cookies);
-    Redirect::to("/")
+    Redirect::to(&route_prefix())
 }
 
 #[get("/machine/<machine_name>")]
@@ -331,7 +331,7 @@ fn reservation_create(form: Form<ReservationForm>, ctx: Context) -> Result<Redir
     if res.pxe.len() > 0 { rb.nfs(res.nfs.clone()); }
 
     rb.insert(&ctx.conn)
-        .map(|r| Redirect::to(&format!["/reservation/{}", r.id]))
+        .map(|r| Redirect::to(&format!["{}reservation/{}", route_prefix(), r.id]))
         .map_err(Error::DatabaseError)
 }
 
@@ -448,7 +448,7 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>,
             .get_result::<Reservation>(&ctx.conn)
     }];
 
-    Ok(Flash::new(Redirect::to(&format!["/reservation/{}", res_id]), "info",
+    Ok(Flash::new(Redirect::to(&format!["{}reservation/{}", route_prefix(), res_id]), "info",
                   &format!["Ended reservation {}", res_id]))
 }
 
@@ -742,6 +742,6 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
         }
     }
 
-    Ok(Flash::new(Redirect::to(&format!["/user/{}", user.username]),
+    Ok(Flash::new(Redirect::to(&format!["{}user/{}", route_prefix(), user.username]),
                   "info", &format!["Updated {}'s details", user.username]))
 }
