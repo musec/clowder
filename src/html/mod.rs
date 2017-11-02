@@ -143,7 +143,7 @@ fn index(ctx: Context) -> Result<Markup, Error> {
         div.row {
             div class="col-md-6" {
                 h4 "Machine inventory"
-                (tables::machines(&machines))
+                (tables::MachineTable::new(machines).show_arch(false))
             }
 
             div class="col-md-6" {
@@ -238,7 +238,7 @@ fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
 fn machines(ctx: Context) -> Result<Markup, Error> {
     let machines = try![Machine::all(&ctx.conn)];
 
-    Ok(render("Clowder: Machines", &ctx, None, tables::machines(&machines)))
+    Ok(render("Clowder: Machines", &ctx, None, tables::MachineTable::new(machines).render()))
 }
 
 #[get("/reservation/<id>")]

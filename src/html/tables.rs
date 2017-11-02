@@ -12,20 +12,98 @@ use super::Context;
 type MarkupOrDieselError = Result<Markup, DieselError>;
 
 
-pub fn machines(machines: &Vec<Machine>) -> Markup {
-    html! {
-        table.table.table-responsive {
-            (TableHeader::from_str(
-                &[ "Name", "Arch", "Microarch", "Cores", "Memory" ]))
+///
+/// An HTML table that shows various properties of machines.
+///
+/// This table will always show each machine's name, but it can also show:
+///
+///  - macroarchitecture (e.g., "x86_64")
+///  - microarchitecture (e.g., "E5-2407 (Sandy Bridge)")
+///  - number of physical cores
+///  - size of physical memory
+///
+/// The default is to show all of these values, but this can be disabled by calling various
+/// builder methods, e.g.:
+///
+/// ```rust
+/// let machines = Machine::all(&db_connection)?;
+/// let markup = MachineTable::new(machines).show_microarch(false).render();
+/// ```
+///
+pub struct MachineTable {
+    machines: Vec<Machine>,
+    show_arch: bool,
+    show_cores: bool,
+    show_memory: bool,
+    show_microarch: bool,
+}
 
-            tbody {
-                @for m in machines {
-                    tr {
-                        td (Link::from(m))
-                        td (m.arch)
-                        td (m.microarch)
-                        td.numeric (m.cores)
-                        td.numeric { (m.memory_gb) " GiB" }
+impl MachineTable {
+    pub fn new<MV>(machines: MV) -> MachineTable
+        where MV: Into<Vec<Machine>>
+    {
+        MachineTable {
+            machines: machines.into(),
+            show_arch: true,
+            show_cores: true,
+            show_memory: true,
+            show_microarch: true,
+        }
+    }
+
+    fn headers(&self) -> Vec<&str> {
+        [
+            vec![ "Name" ],
+            if self.show_arch { vec![ "Arch" ] } else { vec![] },
+            if self.show_microarch { vec![ "Microarch" ] } else { vec![] },
+            if self.show_cores { vec![ "Cores" ] } else { vec![] },
+            if self.show_memory { vec![ "Memory" ] } else { vec![] },
+        ]
+        .concat()
+    }
+
+    fn render_machine(&self, m: &Machine) -> Markup {
+        html! {
+            tr {
+                td (Link::from(m))
+                @if self.show_arch { td (m.arch) }
+                @if self.show_microarch { td (m.microarch) }
+                td.numeric (m.cores)
+                td.numeric { (m.memory_gb) " GiB" }
+            }
+        }
+    }
+
+    pub fn show_arch(mut self, s: bool) -> MachineTable {
+        self.show_arch = s;
+        self
+    }
+
+    pub fn show_cores(mut self, s: bool) -> MachineTable {
+        self.show_cores = s;
+        self
+    }
+
+    pub fn show_memory(mut self, s: bool) -> MachineTable {
+        self.show_memory = s;
+        self
+    }
+
+    pub fn show_microarch(mut self, s: bool) -> MachineTable {
+        self.show_microarch = s;
+        self
+    }
+}
+
+impl Render for MachineTable {
+    fn render(&self) -> Markup {
+        html! {
+            table.table.table-responsive {
+                (TableHeader::from_str(&self.headers()))
+
+                tbody {
+                    @for m in &self.machines {
+                        (self.render_machine(m))
                     }
                 }
             }
