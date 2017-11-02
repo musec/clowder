@@ -65,6 +65,11 @@ $ cargo run
 ```
 
 For development purposes, I like to use
-[watchexec](https://crates.io/crates/watchexec) to rebuild whenever I change
-a source file.
+[cargo-watch](https://crates.io/crates/cargo-watch) to rebuild whenever I change
+a source file:
+
+```sh
+$ cargo watch --ignore '*.swp' --exec run
+```
+
 This goes quite nicely with LiveReload.
