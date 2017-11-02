@@ -206,7 +206,8 @@ fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
                     (m.cores) " cores, " (m.memory_gb) " GiB RAM"
                 }
 
-                p a href={ "/reservation/create/?machine=" (m.name) } "Reserve this machine"
+                p a href={ (route_prefix()) "reservation/create/?machine=" (m.name) }
+                    "Reserve this machine"
             }
 
             div class="col-md-5" {

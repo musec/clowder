@@ -9,7 +9,7 @@ pub struct Link {
 impl<'a> From<&'a Machine> for Link {
     fn from(m: &Machine) -> Link {
         Link {
-            url: format!["/machine/{}", m.name],
+            url: format!["{}machine/{}", super::route_prefix(), m.name],
             text: m.name.clone(),
         }
     }
@@ -18,7 +18,7 @@ impl<'a> From<&'a Machine> for Link {
 impl<'a> From<&'a Reservation> for Link {
     fn from(r: &Reservation) -> Link {
         Link {
-            url: format!["/reservation/{}", r.id],
+            url: format!["{}reservation/{}", super::route_prefix(), r.id],
             text: format!["{}", r.id],
         }
     }
@@ -27,7 +27,7 @@ impl<'a> From<&'a Reservation> for Link {
 impl<'a> From<&'a User> for Link {
     fn from(u: &User) -> Link {
         Link {
-            url: format!["/user/{}", u.username],
+            url: format!["{}user/{}", super::route_prefix(), u.username],
             text: u.username.clone(),
         }
     }
