@@ -120,6 +120,7 @@ impl<'r> Responder<'r> for Error {
                             h1 (self.kind())
                             h2 (self.msg())
                         })
+            .link_prefix(super::route_prefix())
             .render()
             .respond_to(req)
     }
@@ -166,6 +167,7 @@ fn unauthorized<'r>(_req: &Request) -> Response<'r> {
     let full_content =
         bootstrap::Page::new("401 Unauthorized")
             .content(content)
+            .link_prefix(super::route_prefix())
             .render()
             .into_string()
             ;
@@ -186,6 +188,7 @@ fn not_found(req: &Request) -> maud::Markup {
             h2 ("404 Not Found")
             p { "The resource " code (req.uri()) " could not be found." }
         })
+        .link_prefix(super::route_prefix())
         .render()
 }
 
@@ -199,5 +202,6 @@ fn internal_server_error(e: rocket::Error, _req: &Request) -> maud::Markup {
             p "There is an error in Clowder:"
             pre code (format!["{:?}", e])
         })
+        .link_prefix(super::route_prefix())
         .render()
 }

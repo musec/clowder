@@ -21,15 +21,19 @@ extern crate rocket;
 extern crate rustc_serialize;
 extern crate url;
 
+use std::env;
+
 mod db;
 mod html;
 
 
 fn main() {
     dotenv::dotenv().ok();
+    let route_prefix = env::var("CLOWDER_PREFIX").unwrap_or(String::from("/"));
+
     rocket::ignite()
            .catch(html::error_catchers())
-           .mount("/", html::all_routes())
+           .mount(&route_prefix, html::all_routes())
            .launch()
            ;
 }

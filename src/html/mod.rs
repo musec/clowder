@@ -91,6 +91,13 @@ pub fn error_catchers() -> Vec<Catcher> {
     }
 }
 
+/// What prefix should we prepend to our links?
+///
+/// Specified by CLOWDER_PREFIX in environment or .env; defaults to "/".
+pub fn route_prefix() -> String {
+    env::var("CLOWDER_PREFIX").unwrap_or(String::from("/"))
+}
+
 /// Escape a string to make it suitable for HTML form input.
 pub fn escape(dangerous: &str) -> String {
     String::from_utf8(Escape::new(dangerous.bytes()).collect())
@@ -103,19 +110,22 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
     where S: Into<String>
 {
     let user = &ctx.user;
+    let route_prefix = route_prefix();
+    let prefix = |s| format!["{}{}", route_prefix, s];
 
     let mut nav_links = vec![
-        bootstrap::NavItem::link("/machines", "Machines"),
-        bootstrap::NavItem::link("/reservations", "Reservations"),
+        bootstrap::NavItem::link(prefix("machines"), "Machines"),
+        bootstrap::NavItem::link(prefix("reservations"), "Reservations"),
     ];
 
     if let Ok(true) = user.can_alter_users(&ctx.conn) {
-        nav_links.push(bootstrap::NavItem::link("/users", "Users"));
+        nav_links.push(bootstrap::NavItem::link(prefix("users"), "Users"));
     }
 
     bootstrap::Page::new(title)
                     .content(content)
                     .flash(flash)
+                    .link_prefix(&route_prefix as &str)
                     .nav(nav_links)
                     .user(&user.username, &user.name)
                     .render()

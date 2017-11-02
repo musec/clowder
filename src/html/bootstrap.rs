@@ -180,6 +180,7 @@ pub struct Page {
     title: String,
     content: Option<Markup>,
     flash: Option<FlashMessage>,
+    prefix: String,
     nav: Vec<NavItem>,
     user: Option<(String, String)>,
 }
@@ -190,6 +191,7 @@ impl Page {
             title: title.into(),
             content: None,
             flash: None,
+            prefix: String::from("/"),
             nav: vec![],
             user: None,
         }
@@ -202,6 +204,13 @@ impl Page {
 
     pub fn flash(mut self, f: Option<FlashMessage>) -> Self {
         self.flash = f;
+        self
+    }
+
+    pub fn link_prefix<S>(mut self, prefix: S) -> Self
+        where S: Into<String>
+    {
+        self.prefix = prefix.into();
         self
     }
 
@@ -228,9 +237,9 @@ impl Render for Page {
 
                     title (format!["Clowder: {}", self.title])
 
-                    link rel="stylesheet" href="/css/bootstrap.min.css" /
-                    link rel="stylesheet" href="/css/musec.css" /
-                    link rel="stylesheet" href="/css/sticky-footer-navbar.css" /
+                    link rel="stylesheet" href={ (self.prefix) "css/bootstrap.min.css" } /
+                    link rel="stylesheet" href={ (self.prefix) "css/musec.css" } /
+                    link rel="stylesheet" href={ (self.prefix) "css/sticky-footer-navbar.css" } /
                     link rel="stylesheet" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" /
 
                     script src="https://code.jquery.com/jquery-3.1.1.slim.min.js"
@@ -247,7 +256,7 @@ impl Render for Page {
                             span.navbar-toggler-icon {}
                         }
 
-                        a class="navbar-brand" href="/" "Clowder"
+                        a class="navbar-brand" href={ (self.prefix) "/" } "Clowder"
 
                         div.collapse.navbar-collapse#navbarSupportedContent
                             ul.navbar-nav.mr-auto
@@ -263,14 +272,14 @@ impl Render for Page {
 
                                     div.dropdown-menu.dropdown-menu-right#fubar aria-labelledby="userDropdown" {
                                         h6.dropdown-header (username)
-                                        a.dropdown-item href={ "/user/" (username) } "Profile"
+                                        a.dropdown-item href={ (self.prefix) "/user/" (username) } "Profile"
                                         div.dropdown-divider {}
-                                        a.dropdown-item href="/logout" "Log out"
+                                        a.dropdown-item href={ (self.prefix) "/logout" } "Log out"
                                     }
                                 }
                             }
 
-                            img src="/images/logo.png" alt="Clowder logo"
+                            img src={ (self.prefix) "/images/logo.png" } alt="Clowder logo"
                                 width="40" /
                     }
 
@@ -302,7 +311,7 @@ impl Render for Page {
 
                     script src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js" {}
 
-                    script src="/js/bootstrap.min.js" {}
+                    script src={ (self.prefix) "/js/bootstrap.min.js" } {}
 
                     script src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"
                         {}
