@@ -106,8 +106,8 @@ pub fn escape(dangerous: &str) -> String {
 
 
 /// Render a normal (i.e., non-error) page of content.
-pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: Markup) -> Markup
-    where S: Into<String>
+pub fn render<S,M>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: M) -> Markup
+    where S: Into<String>, M: Into<Markup>
 {
     let user = &ctx.user;
     let route_prefix = route_prefix();
@@ -123,7 +123,7 @@ pub fn render<S>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: 
     }
 
     bootstrap::Page::new(title)
-                    .content(content)
+                    .content(content.into())
                     .flash(flash)
                     .link_prefix(&route_prefix as &str)
                     .nav(nav_links)

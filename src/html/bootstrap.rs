@@ -15,13 +15,13 @@ pub fn alert<S1, S2>(kind: S1, msg: S2) -> Markup
     }
 }
 
-pub fn callout<S1, S2>(kind: S1, title: S2, content: Markup) -> Markup
-    where S1: Into<String>, S2: Into<String>
+pub fn callout<S1, S2, M>(kind: S1, title: S2, content: M) -> Markup
+    where S1: Into<String>, S2: Into<String>, M: Into<Markup>
 {
     html! {
         div#flash class={ "mb-3 bs-callout bs-callout-" (kind.into()) } {
             h4 (title.into())
-            (content)
+            (content.into())
         }
     }
 }
@@ -197,8 +197,10 @@ impl Page {
         }
     }
 
-    pub fn content(mut self, c: Markup) -> Self {
-        self.content = Some(c);
+    pub fn content<C>(mut self, c: C) -> Self
+        where C: Into<Markup>
+    {
+        self.content = Some(c.into());
         self
     }
 
