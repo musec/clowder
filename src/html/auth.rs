@@ -9,6 +9,7 @@ use rand::Rng;
 use rand::os::OsRng;
 use rocket::http::{Cookie,Cookies};
 use rustc_serialize::hex::ToHex;
+use std::env;
 
 use html::error::Error;
 
@@ -19,7 +20,7 @@ lazy_static! {
 
 /// Authenticate a user request, returning either a User or an Error.
 pub fn authenticate(mut jar: Cookies, conn: &Connection) -> Result<User, Error> {
-    jar.get_private("user")
+    let uname = jar.get_private("user")
         .map(|cookie| cookie.value().to_string())
         .ok_or(Error::AuthRequired)
         .and_then(|value| {
@@ -36,13 +37,19 @@ pub fn authenticate(mut jar: Cookies, conn: &Connection) -> Result<User, Error> 
 
             Ok(uname.to_string())
         })
-        .and_then(|uname| {
-            use self::users::dsl::*;
-
-            users.filter(username.eq(uname))
-                .first(conn)
-                .map_err(Error::DatabaseError)
+        .or_else(|e| {
+            if let Ok(fake_username) = env::var("CLOWDER_FAKE_USERNAME") {
+                Ok(fake_username)
+            } else {
+                Err(e)
+            }
         })
+        ?;
+
+    use self::users::dsl::*;
+    users.filter(username.eq(uname))
+         .first(conn)
+         .map_err(Error::DatabaseError)
 }
 
 /// Log the user out by clearing their auth cookie.

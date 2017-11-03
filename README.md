@@ -64,6 +64,18 @@ $ cargo build
 $ cargo run
 ```
 
+
+## Development environment
+
+### Fake user account
+
+You can set `CLOWDER_FAKE_USERNAME` in your environment (or `.env` file)
+to provide a username to be treated as if it were obtained from the normal
+authentication workflow (OAuth, email lookup, MAC'ed cookie, etc.).
+
+
+### Reloading
+
 For development purposes, I like to use
 [cargo-watch](https://crates.io/crates/cargo-watch) to rebuild whenever I change
 a source file:
