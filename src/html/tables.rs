@@ -108,7 +108,7 @@ impl MachineTable {
                     td {
                         @if let Some(ref url) = m.processor().url {
                             a href=(url) (m.processor().name)
-                        } else {
+                        } @else {
                             (m.processor().name)
                         }
                     }
@@ -118,7 +118,7 @@ impl MachineTable {
                         @let microarch = m.microarchitecture();
                         @if let Some(ref url) = microarch.url {
                             a href=(url) (microarch.name)
-                        } else {
+                        } @else {
                             (microarch.name)
                         }
                     }
