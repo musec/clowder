@@ -39,11 +39,79 @@ impl User {
               .and_then(|uid| User::get(uid, c))
     }
 
+    ///
+    /// Change a User's name in the database. This consumes the existing User object and returns
+    /// a new User object with the updated name.
+    ///
+    pub fn change_name<S>(self, new_name: S, c: &Connection) -> DieselResult<User>
+        where S: Into<String>
+    {
+        use self::users::dsl::*;
+
+        diesel::update(&self)
+            .set(name.eq(new_name.into()))
+            .get_result::<User>(c)
+    }
+
     pub fn emails(&self, c: &Connection) -> DieselResult<HashSet<String>> {
         use db::schema::emails::dsl::*;
         emails.filter(user_id.eq(self.id))
               .load(c)
               .map(|user_emails| user_emails.into_iter().map(|e: Email| e.email).collect())
+    }
+
+    ///
+    /// Update complete set of email addresses associated with this user.
+    /// This will delete existing email addresses if they are not in the new set.
+    ///
+    pub fn set_emails(&self, new_emails: &HashSet<String>, c: &Connection) -> DieselResult<()> {
+        let current_emails = self.emails(c)?;
+
+        use self::emails::dsl::*;
+
+        for e in &current_emails {
+            if !new_emails.contains(e) {
+                diesel::delete(emails.filter(email.eq(e))).execute(c)?;
+            }
+        }
+
+        for e in new_emails.difference(&current_emails) {
+            Email::insert(self, e.clone(), c)?;
+        }
+
+        Ok(())
+    }
+
+    ///
+    /// Update complete set of roles assigned to this user.
+    /// This will delete existing role assignments if they are not in the new set.
+    ///
+    pub fn set_roles(&self, new_roles: &HashSet<String>, c: &Connection) -> DieselResult<()> {
+        let current_roles = self.roles(c)?;
+
+        let role_names = current_roles.iter()
+            .map(|ref role| role.name.clone())
+            .collect::<HashSet<_>>()
+            ;
+
+        use self::role_assignments::dsl::*;
+
+        for role in &current_roles {
+            if !new_roles.contains(&role.name) {
+                diesel::delete(
+                    role_assignments
+                        .filter(role_id.eq(role.id))
+                        .filter(user_id.eq(self.id)))
+                    .execute(c)?;
+            }
+        }
+
+        for ref role_name in new_roles.difference(&role_names) {
+            Role::with_name(role_name, c)
+                .and_then(|role| RoleAssignment::insert(self, &role, c))?;
+        }
+
+        Ok(())
     }
 
     pub fn username(&self) -> &str {
@@ -296,10 +364,6 @@ impl FullMachine {
         self.processor.freq_ghz
     }
 
-    pub fn id(&self) -> i32 {
-        self.machine.id
-    }
-
     pub fn machine(&self) -> &Machine {
         &self.machine
     }
@@ -374,9 +438,60 @@ impl Reservation {
         }
     }
 
-    pub fn get(res_id: i32, c: &Connection) -> DieselResult<Reservation> {
+    ///
+    /// Find all of a machine's reservations (and the User that reserved it in each case).
+    ///
+    pub fn for_machine(m: &Machine, c: &Connection) -> DieselResult<Vec<(Reservation, User)>> {
+        use self::reservations::dsl::*;
+        reservations.inner_join(users::table)
+                    .filter(machine_id.eq(m.id()))
+                    .filter(user_id.eq(users::dsl::id))
+                    .order(actual_end.desc())
+                    .order(scheduled_end.desc())
+                    .load(c)
+    }
+
+    ///
+    /// Find all of a user's machine reservations (and the details of those machines).
+    ///
+    pub fn for_user(user: &User, c: &Connection) -> DieselResult<Vec<(Reservation, Machine)>> {
+        use self::reservations::dsl::*;
+        reservations.inner_join(machines::table)
+                    .filter(user_id.eq(user.id()))
+                    .order(actual_end.desc())
+                    .order(scheduled_end.desc())
+                    .load(c)
+    }
+
+    pub fn get(res_id: i32, c: &Connection) -> DieselResult<(Reservation, Machine, User)> {
         use db::schema::reservations::dsl::*;
-        reservations.find(res_id).first(c)
+
+        // TODO: figure out proper multi-table join stuff
+        let (r, m): (Reservation, Machine) =
+            reservations.inner_join(machines::table)
+                        .filter(id.eq(res_id))
+                        .first(c)?;
+
+        let u = User::get(r.user_id, c)?;
+
+        Ok((r, m, u))
+    }
+
+    ///
+    /// Mark this reservation as "ended".
+    ///
+    /// The only way to mark a reservation as actually concluded (as opposed to scheduled for
+    /// completion) is to mark it as completed right now.
+    ///
+    pub fn end(self, c: &Connection) -> DieselResult<Reservation> {
+        use self::reservations::dsl::*;
+        diesel::update(&self)
+            .set(actual_end.eq(Some(Utc::now())))
+            .get_result::<Reservation>(c)
+    }
+
+    pub fn id(&self) -> i32 {
+        self.id
     }
 
     pub fn start(&self) -> DateTime<Utc> {

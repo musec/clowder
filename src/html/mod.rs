@@ -6,9 +6,7 @@ use chrono::{DateTime,Utc};
 use chrono_humanize::HumanTime;
 use ::db;
 use db::models::*;
-use db::schema::*;
 use ::diesel;
-use diesel::*;
 use diesel::pg::PgConnection as Connection;
 use hyper;
 use marksman_escape::Escape;
@@ -190,19 +188,11 @@ fn logout(_ctx: Context, cookies: http::Cookies) -> Redirect {
 
 #[get("/machine/<machine_name>")]
 fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
-    let m = try![FullMachine::with_name(&machine_name, &ctx.conn)];
+    let conn = &ctx.conn;
 
-    let reserv: Vec<(Reservation, User)> = try![{
-        use self::reservations::dsl::*;
-        reservations.inner_join(users::table)
-                    .filter(machine_id.eq(m.id()))
-                    .filter(user_id.eq(users::dsl::id))
-                    .order(actual_end.desc())
-                    .order(scheduled_end.desc())
-                    .load(&ctx.conn)
-    }];
-
-    Ok(render(format!["Clowder: {}", m.name()], &ctx, None, html! {
+    FullMachine::with_name(&machine_name, conn)
+        .map_err(Error::DatabaseError)
+        .and_then(|m| Ok(render(format!["Clowder: {}", m.name()], &ctx, None, html! {
         div.row h2 (m.name())
 
         div.row {
@@ -224,7 +214,7 @@ fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
                         &[ "", "User", "Started", "Ends" ]))
 
                     tbody {
-                        @for (ref r, ref u) in reserv {
+                        @for (ref r, ref u) in Reservation::for_machine(&m.machine(), conn)? {
                             tr {
                                 td (Link::from(r))
                                 td (Link::from(u))
@@ -237,7 +227,7 @@ fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
                 }
             }
         }
-    }))
+    })))
 }
 
 #[get("/machines")]
@@ -250,9 +240,7 @@ fn machines(ctx: Context) -> Result<Markup, Error> {
 
 #[get("/reservation/<id>")]
 fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> Result<Markup, Error> {
-    let r: Reservation = try![reservations::table.find(id).first(&ctx.conn)];
-    let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
-    let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
+    let (r, machine, user) = Reservation::get(id, &ctx.conn)?;
 
     let can_end = match (r.scheduled_start, r.actual_end) {
         (s, None) if s <= Utc::now() => true,
@@ -403,9 +391,7 @@ fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup
 
 #[get("/reservation/end/<id>")]
 fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
-    let r: Reservation = try![reservations::table.find(id).first(&ctx.conn)];
-    let machine: Machine = try![machines::table.find(r.machine_id).first(&ctx.conn)];
-    let user: User = try![users::table.find(r.user_id).first(&ctx.conn)];
+    let (r, machine, user) = Reservation::get(id, &ctx.conn)?;
 
     Ok(render(format!["Clowder: end reservation {}", r.id], &ctx, None, html! {
         h2 "End reservation"
@@ -447,17 +433,11 @@ fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
 
 #[get("/reservation/end/confirm/<res_id>")]
 fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>, Error> {
-    let r = Reservation::get(res_id, &ctx.conn)?;
-
-    try![{
-        use db::schema::reservations::dsl::*;
-        diesel::update(&r)
-            .set(actual_end.eq(Some(Utc::now())))
-            .get_result::<Reservation>(&ctx.conn)
-    }];
-
-    Ok(Flash::new(Redirect::to(&format!["{}reservation/{}", route_prefix(), res_id]), "info",
-                  &format!["Ended reservation {}", res_id]))
+    Reservation::get(res_id, &ctx.conn)
+        .and_then(|(r,_,_)| r.end(&ctx.conn))
+        .map_err(Error::DatabaseError)
+        .map(|r| Flash::new(Redirect::to(&format!["{}reservation/{}", route_prefix(), r.id()]),
+                            "info", &format!["Ended reservation {}", r.id()]))
 }
 
 #[get("/reservations")]
@@ -504,16 +484,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
             })
             ;
 
-    let reservations: Vec<(Reservation, Machine)> = try![{
-        use db::schema::reservations::dsl::*;
-
-        reservations
-            .inner_join(machines::table)
-            .filter(user_id.eq(user.id))
-            .order(actual_end.desc())
-            .order(scheduled_end.desc())
-            .load(&ctx.conn)
-    }];
+    let reservations = Reservation::for_user(&user, &ctx.conn)?;
 
     Ok(render(name, &ctx, None, html! {
         h2 (name)
@@ -686,7 +657,7 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
 
     let conn = &ctx.conn;
 
-    let user = try! {
+    let mut user = try! {
         User::with_username(&who, conn)
              .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
     };
@@ -699,55 +670,20 @@ fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
 
     let f = form.get();
 
-    use self::users::dsl::*;
-
-    try! {
-        diesel::update(&user)
-            .set(name.eq(f.name.clone()))
-            .get_result::<User>(conn)
-    };
+    // Has the user requested a name change?
+    if user.name != f.name {
+        user = user.change_name(f.name.clone(), conn)?;
+    }
 
     // Only admin users can (currently) modify email addresses, since they are almost akin to
     // login credentials. We will revisit this in the future.
     if superuser {
-        let current_emails = user.emails(conn)?;
-
-        use self::emails::dsl::*;
-
-        for e in &current_emails {
-            if !f.emails.contains(e) {
-                diesel::delete(emails.filter(email.eq(e))).execute(conn)?;
-            }
-        }
-
-        for e in f.emails.difference(&current_emails) {
-            Email::insert(&user, e.clone(), conn)?;
-        }
+        user.set_emails(&f.emails, conn)?;
     }
 
+    // Only admin users can change users' roles.
     if superuser {
-        let current_roles = user.roles(conn)?;
-        let role_names = current_roles.iter()
-            .map(|ref role| role.name.clone())
-            .collect::<HashSet<_>>()
-            ;
-
-        use self::role_assignments::dsl::*;
-
-        for role in &current_roles {
-            if !f.roles.contains(&role.name) {
-                diesel::delete(
-                    role_assignments
-                        .filter(role_id.eq(role.id))
-                        .filter(user_id.eq(user.id)))
-                    .execute(conn)?;
-            }
-        }
-
-        for ref role_name in f.roles.difference(&role_names) {
-            Role::with_name(role_name, conn)
-                .and_then(|role| RoleAssignment::insert(&user, &role, conn))?;
-        }
+        user.set_roles(&f.roles, conn)?;
     }
 
     Ok(Flash::new(Redirect::to(&format!["{}user/{}", route_prefix(), user.username]),

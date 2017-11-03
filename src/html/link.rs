@@ -18,8 +18,8 @@ impl<'a> From<&'a Machine> for Link {
 impl<'a> From<&'a Reservation> for Link {
     fn from(r: &Reservation) -> Link {
         Link {
-            url: format!["{}reservation/{}", super::route_prefix(), r.id],
-            text: format!["{}", r.id],
+            url: format!["{}reservation/{}", super::route_prefix(), r.id()],
+            text: format!["{}", r.id()],
         }
     }
 }

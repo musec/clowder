@@ -2,8 +2,6 @@ use crypto::hmac::Hmac;
 use crypto::mac::Mac;
 use crypto::sha2::Sha512;
 use db::models::*;
-use db::schema::*;
-use diesel::*;
 use diesel::pg::PgConnection as Connection;
 use rand::Rng;
 use rand::os::OsRng;
@@ -46,10 +44,8 @@ pub fn authenticate(mut jar: Cookies, conn: &Connection) -> Result<User, Error> 
         })
         ?;
 
-    use self::users::dsl::*;
-    users.filter(username.eq(uname))
-         .first(conn)
-         .map_err(Error::DatabaseError)
+    User::with_username(&uname, conn)
+        .map_err(Error::DatabaseError)
 }
 
 /// Log the user out by clearing their auth cookie.
