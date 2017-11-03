@@ -1,6 +1,4 @@
 use std::collections::HashSet;
-use std::fs::File;
-use std::io;
 
 use chrono::{DateTime,Utc};
 use chrono_humanize::HumanTime;
@@ -29,6 +27,7 @@ mod error;
 mod github;
 mod forms;
 mod link;
+mod static_files;
 mod tables;
 
 use std::env;
@@ -77,7 +76,7 @@ pub fn all_routes() -> Vec<Route> {
         machine, machines,
         reservation, reservation_create_page, reservation_create,
         reservation_end, reservation_end_confirm, reservations,
-        static_css, static_images, static_js,
+        static_files::static_css, static_files::static_images, static_files::static_js,
         user, user_update, users,
     }
 }
@@ -447,21 +446,6 @@ fn reservations(ctx: Context) -> Result<Markup, Error> {
 
     Ok(render("Clowder: Reservations", &ctx, None,
                          try![tables::reservations_with_machines(&reservations, &ctx, true)]))
-}
-
-#[get("/css/<filename>")]
-fn static_css(filename: String) -> io::Result<File> {
-    File::open(format!["static/css/{}", filename])
-}
-
-#[get("/images/<filename>")]
-fn static_images(filename: String) -> io::Result<File> {
-    File::open(format!["static/images/{}", filename])
-}
-
-#[get("/js/<filename>")]
-fn static_js(filename: String) -> io::Result<File> {
-    File::open(format!["static/js/{}", filename])
 }
 
 #[get("/user/<name>")]
