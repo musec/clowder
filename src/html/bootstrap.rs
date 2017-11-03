@@ -258,7 +258,7 @@ impl Render for Page {
                             span.navbar-toggler-icon {}
                         }
 
-                        a class="navbar-brand" href={ (self.prefix) "/" } "Clowder"
+                        a class="navbar-brand" href={ (self.prefix) } "Clowder"
 
                         div.collapse.navbar-collapse#navbarSupportedContent
                             ul.navbar-nav.mr-auto
@@ -274,14 +274,14 @@ impl Render for Page {
 
                                     div.dropdown-menu.dropdown-menu-right#fubar aria-labelledby="userDropdown" {
                                         h6.dropdown-header (username)
-                                        a.dropdown-item href={ (self.prefix) "/user/" (username) } "Profile"
+                                        a.dropdown-item href={ (self.prefix) "user/" (username) } "Profile"
                                         div.dropdown-divider {}
-                                        a.dropdown-item href={ (self.prefix) "/logout" } "Log out"
+                                        a.dropdown-item href={ (self.prefix) "logout" } "Log out"
                                     }
                                 }
                             }
 
-                            img src={ (self.prefix) "/images/logo.png" } alt="Clowder logo"
+                            img src={ (self.prefix) "images/logo.png" } alt="Clowder logo"
                                 width="40" /
                     }
 
@@ -313,7 +313,7 @@ impl Render for Page {
 
                     script src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js" {}
 
-                    script src={ (self.prefix) "/js/bootstrap.min.js" } {}
+                    script src={ (self.prefix) "js/bootstrap.min.js" } {}
 
                     script src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"
                         {}
