@@ -1,15 +1,8 @@
 use chrono::Utc;
 use chrono_humanize::HumanTime;
 use db::models::*;
-use db::schema::*;
-use diesel::result::Error as DieselError;
-use diesel::{FindDsl,FirstDsl};
 use html::link::Link;
 use maud::*;
-
-use super::Context;
-
-type MarkupOrDieselError = Result<Markup, DieselError>;
 
 
 ///
@@ -177,66 +170,166 @@ impl Render for MachineTable {
     }
 }
 
-pub fn reservations_with_machines(reservations: &Vec<(Reservation, Machine)>,
-                                  ctx: &Context, show_actual_ends: bool)
-        -> MarkupOrDieselError {
 
-    let now = Utc::now();
-    let row_class = |r: &Reservation| {
-        if r.scheduled_start <= now {
-            if let Some(_) = r.actual_end {
-                ""
-            } else if let Some(end) = r.scheduled_end {
-                if end <= now {
-                    "table-danger"
+type ReservationData = (Reservation, Option<Machine>, Option<User>);
+
+///
+/// An HTML table that shows information about reservations.
+///
+/// This table can show:
+///
+///  - the user
+///  - the machine
+///  - scheduled start and end times
+///  - actual end status
+///
+/// The default is to show all of these values, but this can be disabled by calling various
+/// builder methods, e.g.:
+///
+/// ```rust
+/// let reservations = Reservation::all(&db_connection)?;
+/// let markup = ReservationTable::new(reservations).show_ended(false).render();
+/// ```
+///
+pub struct ReservationTable {
+    reservations: Vec<ReservationData>,
+
+    show_actual_end: bool,
+    show_machine: bool,
+    show_scheduled_end: bool,
+    show_scheduled_start: bool,
+    show_user: bool,
+}
+
+impl ReservationTable {
+    pub fn new(reservations: Vec<ReservationData>) -> ReservationTable {
+        ReservationTable {
+            reservations: reservations,
+            show_actual_end: true,
+            show_machine: true,
+            show_scheduled_end: true,
+            show_scheduled_start: true,
+            show_user: true,
+        }
+    }
+
+    fn headers(&self) -> Vec<&str> {
+        [
+            vec![ "#" ],
+            if self.show_machine { vec![ "Machine" ] } else { vec![] },
+            if self.show_user { vec![ "User" ] } else { vec![] },
+            if self.show_scheduled_start { vec![ "Start" ] } else { vec![] },
+            if self.show_scheduled_end { vec![ "Scheduled end" ] } else { vec![] },
+            if self.show_actual_end { vec![ "Actually ended" ] } else { vec![] },
+        ]
+        .concat()
+    }
+
+    fn render(&self, data: &(Reservation, Option<Machine>, Option<User>)) -> Markup {
+        let &(ref r, ref m, ref u) = data;
+
+        let now = Utc::now();
+        let row_class = {
+            if r.scheduled_start <= now {
+                if let Some(_) = r.actual_end {
+                    ""
+                } else if let Some(end) = r.scheduled_end {
+                    if end <= now {
+                        "table-danger"
+                    } else {
+                        "table-active"
+                    }
                 } else {
                     "table-active"
                 }
             } else {
-                "table-active"
+                "table-info"
             }
-        } else {
-            "table-info"
-        }
-    };
+        };
 
-    let mut headings = vec![ "", "Machine", "User", "Start", "Scheduled end" ];
-    if show_actual_ends {
-        headings.extend([ "Actual end" ].iter());
-    };
+        html! {
+            tr class=(row_class) {
+                td (Link::from(r))
 
-    Ok(html! {
-        table.table.table-responsive {
-            (TableHeader::from_str(&headings))
+                @if self.show_machine {
+                    td {
+                        @if let &Some(ref machine) = m {
+                            (Link::from(machine))
+                        }
+                    }
+                }
 
-            tbody {
-                @for &(ref r, ref m) in reservations {
-                    tr class=(row_class(r)) {
-                        td (Link::from(r))
-                        td (Link::from(m))
+                @if self.show_user {
+                    td {
+                        @if let &Some(ref user) = u {
+                            (Link::from(user))
+                        }
+                    }
+                }
 
-                        td ({
-                            let u:User = try! {
-                                users::table.find(r.user_id)
-                                            .first(&ctx.conn)
-                            };
+                @if self.show_scheduled_start {
+                    td {
+                        (HumanTime::from(r.start()))
+                    }
+                }
 
-                            Link::from(&u)
-                        })
+                @if self.show_scheduled_end {
+                    td {
+                        @if let Some(ref time) = r.scheduled_end {
+                            (HumanTime::from(*time))
+                        }
+                    }
+                }
 
-                        td (HumanTime::from(r.start()))
-                        td (r.scheduled_end
-                             .map(|t| format!["{}", HumanTime::from(t)])
-                             .unwrap_or(String::new()))
-
-                        @if show_actual_ends {
-                            td (r.actual_end
-                                .map(|t| format!["{}", HumanTime::from(t)])
-                                .unwrap_or(String::new()))
+                @if self.show_actual_end {
+                    td {
+                        @if let Some(ref time) = r.actual_end {
+                            (HumanTime::from(*time))
                         }
                     }
                 }
             }
         }
-    })
+    }
+
+    pub fn show_actual_end(mut self, s: bool) -> ReservationTable {
+        self.show_actual_end = s;
+        self
+    }
+
+    pub fn show_machine(mut self, s: bool) -> ReservationTable {
+        self.show_machine = s;
+        self
+    }
+
+    pub fn show_scheduled_end(mut self, s: bool) -> ReservationTable {
+        self.show_scheduled_end = s;
+        self
+    }
+
+    pub fn show_scheduled_start(mut self, s: bool) -> ReservationTable {
+        self.show_scheduled_start = s;
+        self
+    }
+
+    pub fn show_user(mut self, s: bool) -> ReservationTable {
+        self.show_user = s;
+        self
+    }
+}
+
+impl Render for ReservationTable {
+    fn render(&self) -> Markup {
+        html! {
+            table.table.table-responsive {
+                (TableHeader::from_str(&self.headers()))
+
+                tbody {
+                    @for r in &self.reservations {
+                        (self.render(r))
+                    }
+                }
+            }
+        }
+    }
 }

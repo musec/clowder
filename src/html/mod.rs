@@ -134,7 +134,10 @@ fn index(ctx: Context) -> Result<Markup, Error> {
     let machines = FullMachine::all(&ctx.conn)?;
 
     // TODO: use multiple joins once Diesel supports it
-    let reservations: Vec<(Reservation, Machine)> = Reservation::all(true, &ctx.conn)?;
+    let reservations = Reservation::all(true, &ctx.conn)?
+                                   .into_iter()
+                                   .map(|(r,m)| (r, Some(m), None))
+                                   .collect();
 
     Ok(render("Clowder", &ctx, None, html! {
         div.row {
@@ -151,7 +154,12 @@ fn index(ctx: Context) -> Result<Markup, Error> {
 
             div class="col-md-6" {
                 h4 "Current reservations"
-                (try![tables::reservations_with_machines(&reservations, &ctx, false)])
+                (tables::ReservationTable::new(reservations)
+                                          .show_machine(true)
+                                          .show_user(true)
+                                          .show_scheduled_end(true)
+                                          .show_scheduled_start(false)
+                                          .show_actual_end(false))
             }
         }
     }))
@@ -442,10 +450,13 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>,
 #[get("/reservations")]
 fn reservations(ctx: Context) -> Result<Markup, Error> {
     // TODO: use multiple joins once Diesel supports it
-    let reservations: Vec<(Reservation, Machine)> = Reservation::all(false, &ctx.conn)?;
+    let reservations = Reservation::all(false, &ctx.conn)?
+                                   .into_iter()
+                                   .map(|(r, m)| (r, Some(m), None))
+                                   .collect();
 
     Ok(render("Clowder: Reservations", &ctx, None,
-                         try![tables::reservations_with_machines(&reservations, &ctx, true)]))
+              tables::ReservationTable::new(reservations).render()))
 }
 
 #[get("/user/<name>")]
@@ -468,7 +479,10 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
             })
             ;
 
-    let reservations = Reservation::for_user(&user, &ctx.conn)?;
+    let reservations = Reservation::for_user(&user, &ctx.conn)?
+                                   .into_iter()
+                                   .map(|(r,m)| (r, Some(m), None))
+                                   .collect();
 
     Ok(render(name, &ctx, None, html! {
         h2 (name)
@@ -528,7 +542,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
             }
 
             div class="col-md-7"
-                (try![tables::reservations_with_machines(&reservations, &ctx, true)])
+                (tables::ReservationTable::new(reservations).show_user(false))
         }
     }))
 }
