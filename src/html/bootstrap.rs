@@ -301,7 +301,7 @@ impl Render for Page {
                     footer.footer {
                         div.container.text-muted {
                             div.row.text-muted {
-                                div class="col-md-11" ""
+                                div class="col-md-10" "Clowder: test cluster management system"
                                 div class="col-md-2" (chrono::Local::now().format("%e %b %Y"))
                             }
                         }
