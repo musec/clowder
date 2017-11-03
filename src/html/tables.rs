@@ -46,7 +46,9 @@ impl Render for TableHeader {
 /// This table will always show each machine's name, but it can also show:
 ///
 ///  - macroarchitecture (e.g., "x86_64")
-///  - microarchitecture (e.g., "E5-2407 (Sandy Bridge)")
+///  - microarchitecture (e.g., "Sandy Bridge")
+///  - processor variant (e.g., "Xeon E3-1240 v5")
+///  - processor clock speed
 ///  - number of physical cores
 ///  - size of physical memory
 ///
@@ -54,28 +56,33 @@ impl Render for TableHeader {
 /// builder methods, e.g.:
 ///
 /// ```rust
-/// let machines = Machine::all(&db_connection)?;
+/// let machines = FullMachine::all(&db_connection)?;
 /// let markup = MachineTable::new(machines).show_microarch(false).render();
 /// ```
 ///
 pub struct MachineTable {
-    machines: Vec<Machine>,
+    machines: Vec<FullMachine>,
+
     show_arch: bool,
     show_cores: bool,
+    show_freq: bool,
     show_memory: bool,
     show_microarch: bool,
+    show_processor_name: bool,
 }
 
 impl MachineTable {
     pub fn new<MV>(machines: MV) -> MachineTable
-        where MV: Into<Vec<Machine>>
+        where MV: Into<Vec<FullMachine>>
     {
         MachineTable {
             machines: machines.into(),
             show_arch: true,
             show_cores: true,
+            show_freq: true,
             show_memory: true,
             show_microarch: true,
+            show_processor_name: true,
         }
     }
 
@@ -83,21 +90,42 @@ impl MachineTable {
         [
             vec![ "Name" ],
             if self.show_arch { vec![ "Arch" ] } else { vec![] },
+            if self.show_processor_name { vec![ "Proc" ] } else { vec![] },
             if self.show_microarch { vec![ "Microarch" ] } else { vec![] },
             if self.show_cores { vec![ "Cores" ] } else { vec![] },
+            if self.show_freq { vec![ "Freq" ] } else { vec![] },
             if self.show_memory { vec![ "Memory" ] } else { vec![] },
         ]
         .concat()
     }
 
-    fn render_machine(&self, m: &Machine) -> Markup {
+    fn render_machine(&self, m: &FullMachine) -> Markup {
         html! {
             tr {
-                td (Link::from(m))
-                @if self.show_arch { td (m.arch) }
-                @if self.show_microarch { td (m.microarch) }
-                td.numeric (m.cores)
-                td.numeric { (m.memory_gb) " GiB" }
+                td (Link::from(m.machine()))
+                @if self.show_arch { td (m.architecture().name) }
+                @if self.show_processor_name {
+                    td {
+                        @if let Some(ref url) = m.processor().url {
+                            a href=(url) (m.processor().name)
+                        } else {
+                            (m.processor().name)
+                        }
+                    }
+                }
+                @if self.show_microarch {
+                    td {
+                        @let microarch = m.microarchitecture();
+                        @if let Some(ref url) = microarch.url {
+                            a href=(url) (microarch.name)
+                        } else {
+                            (microarch.name)
+                        }
+                    }
+                }
+                @if self.show_cores { td.numeric (m.cores()) }
+                @if self.show_freq { td.numeric { (m.freq_ghz()) " GHz" } }
+                @if self.show_memory { td.numeric { (m.memory_gb()) " GiB" } }
             }
         }
     }
@@ -112,6 +140,11 @@ impl MachineTable {
         self
     }
 
+    pub fn show_freq(mut self, s: bool) -> MachineTable {
+        self.show_freq = s;
+        self
+    }
+
     pub fn show_memory(mut self, s: bool) -> MachineTable {
         self.show_memory = s;
         self
@@ -119,6 +152,11 @@ impl MachineTable {
 
     pub fn show_microarch(mut self, s: bool) -> MachineTable {
         self.show_microarch = s;
+        self
+    }
+
+    pub fn show_processor_name(mut self, s: bool) -> MachineTable {
+        self.show_processor_name = s;
         self
     }
 }

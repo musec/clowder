@@ -8,3 +8,7 @@ drop table users;
 drop table disks;
 drop table nics;
 drop table machines;
+
+drop table processors;
+drop table microarchitectures;
+drop table architectures;

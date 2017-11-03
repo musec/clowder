@@ -134,7 +134,7 @@ pub fn render<S,M>(title: S, ctx: &Context, flash: Option<FlashMessage>, content
 
 #[get("/")]
 fn index(ctx: Context) -> Result<Markup, Error> {
-    let machines = try![Machine::all(&ctx.conn)];
+    let machines = FullMachine::all(&ctx.conn)?;
 
     // TODO: use multiple joins once Diesel supports it
     let reservations: Vec<(Reservation, Machine)> = Reservation::all(true, &ctx.conn)?;
@@ -143,7 +143,13 @@ fn index(ctx: Context) -> Result<Markup, Error> {
         div.row {
             div class="col-md-6" {
                 h4 "Machine inventory"
-                (tables::MachineTable::new(machines).show_arch(false))
+                (tables::MachineTable::new(machines)
+                    .show_arch(false)
+                    .show_cores(true)
+                    .show_freq(false)
+                    .show_memory(true)
+                    .show_microarch(true)
+                    .show_processor_name(false))
             }
 
             div class="col-md-6" {
@@ -184,29 +190,29 @@ fn logout(_ctx: Context, cookies: http::Cookies) -> Redirect {
 
 #[get("/machine/<machine_name>")]
 fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
-    let m = try![Machine::with_name(&machine_name, &ctx.conn)];
+    let m = try![FullMachine::with_name(&machine_name, &ctx.conn)];
 
     let reserv: Vec<(Reservation, User)> = try![{
         use self::reservations::dsl::*;
         reservations.inner_join(users::table)
-                    .filter(machine_id.eq(m.id))
+                    .filter(machine_id.eq(m.id()))
                     .filter(user_id.eq(users::dsl::id))
                     .order(actual_end.desc())
                     .order(scheduled_end.desc())
                     .load(&ctx.conn)
     }];
 
-    Ok(render(format!["Clowder: {}", m.name], &ctx, None, html! {
-        div.row h2 (m.name)
+    Ok(render(format!["Clowder: {}", m.name()], &ctx, None, html! {
+        div.row h2 (m.name())
 
         div.row {
             div class="col-md-7" {
                 p {
-                    (m.arch) " (" (m.microarch) "), "
-                    (m.cores) " cores, " (m.memory_gb) " GiB RAM"
+                    (m.architecture().name) " (" (m.microarchitecture().name) "), "
+                    (m.cores()) " cores, " (m.memory_gb()) " GiB RAM"
                 }
 
-                p a href={ (route_prefix()) "reservation/create/?machine=" (m.name) }
+                p a href={ (route_prefix()) "reservation/create/?machine=" (m.name()) }
                     "Reserve this machine"
             }
 
@@ -236,9 +242,10 @@ fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
 
 #[get("/machines")]
 fn machines(ctx: Context) -> Result<Markup, Error> {
-    let machines = try![Machine::all(&ctx.conn)];
-
-    Ok(render("Clowder: Machines", &ctx, None, tables::MachineTable::new(machines).render()))
+    FullMachine::all(&ctx.conn)
+        .map_err(Error::DatabaseError)
+        .map(|machines| tables::MachineTable::new(machines))
+        .map(|table| render("Clowder: Machines", &ctx, None, table.render()))
 }
 
 #[get("/reservation/<id>")]

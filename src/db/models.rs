@@ -1,11 +1,15 @@
 use chrono::{DateTime,Utc};
 use db::schema::*;
 use diesel;
-use diesel::{CountDsl,ExpressionMethods,FilterDsl,FindDsl,FirstDsl,JoinDsl,LoadDsl,OrderDsl,insert};
+use diesel::*;
 use diesel::pg::PgConnection as Connection;
 use std::collections::HashSet;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
+
+enable_multi_table_joins![machines, microarchitectures];
+enable_multi_table_joins![machines, architectures];
+enable_multi_table_joins![processors, architectures];
 
 
 #[derive(Debug, Identifiable, Queryable)]
@@ -171,13 +175,46 @@ impl RoleAssignment {
     }
 }
 
+#[derive(Debug, Identifiable, Queryable)]
+pub struct Architecture {
+    pub id: i32,
+    pub name: String,
+}
+
 #[derive(Associations, Debug, Identifiable, Queryable)]
+#[belongs_to(Architecture)]
+pub struct Microarchitecture {
+    pub id: i32,
+    pub arch_id: i32,
+    pub name: String,
+    pub url: Option<String>,
+}
+
+impl Microarchitecture {
+    pub fn arch(&self, c: &Connection) -> DieselResult<Architecture> {
+        use self::architectures::dsl::*;
+        architectures.find(self.arch_id).first(c)
+    }
+}
+
+#[derive(Associations, Debug, Identifiable, Queryable)]
+#[belongs_to(Microarchitecture)]
+pub struct Processor {
+    pub id: i32,
+    pub microarch_id: i32,
+    pub name: String,
+    pub cores: i32,
+    pub threads: i32,
+    pub freq_ghz: f64,
+    pub url: Option<String>,
+}
+
+#[derive(Associations, Debug, Identifiable, Queryable)]
+#[belongs_to(Processor)]
 pub struct Machine {
     pub id: i32,
     pub name: String,
-    pub arch: String,
-    pub microarch: String,
-    pub cores: i32,
+    pub processor_id: i32,
     pub memory_gb: i32,
 }
 
@@ -190,6 +227,97 @@ impl Machine {
     pub fn with_name(machine_name: &str, c: &Connection) -> DieselResult<Machine> {
         use self::machines::dsl::*;
         machines.filter(name.eq(machine_name)).first(c)
+    }
+}
+
+///
+/// A FullMachine is a complete representation of a machine and all of its architectural details.
+///
+pub struct FullMachine {
+    machine: Machine,
+    processor: Processor,
+    microarch: Microarchitecture,
+    arch: Architecture
+}
+
+type FullMachineJoin = (Machine, (Processor, (Microarchitecture, Architecture)));
+
+impl FullMachine {
+    fn from(data: FullMachineJoin) -> FullMachine {
+        let (machine, (processor, (microarch, arch))) = data;
+
+        FullMachine {
+            machine: machine,
+            processor: processor,
+            microarch: microarch,
+            arch: arch,
+        }
+    }
+
+    fn vec(data: Vec<FullMachineJoin>) -> Vec<FullMachine> {
+        data.into_iter()
+            .map(FullMachine::from)
+            .collect()
+    }
+
+    pub fn all(c: &Connection) -> DieselResult<Vec<FullMachine>> {
+        use self::machines::dsl::*;
+        let m = machines.order(name)
+                        .inner_join(
+                            processors::table.inner_join(
+                                microarchitectures::table.inner_join(
+                                    architectures::table)))
+                        .load(c)?
+                        ;
+
+        Ok(FullMachine::vec(m))
+    }
+
+    pub fn with_name(machine_name: &str, c: &Connection) -> DieselResult<FullMachine> {
+        use self::machines::dsl::*;
+        machines.filter(name.eq(machine_name))
+                .inner_join(
+                    processors::table.inner_join(
+                        microarchitectures::table.inner_join(
+                            architectures::table)))
+                .first(c)
+                .map(FullMachine::from)
+    }
+
+    pub fn architecture(&self) -> &Architecture {
+        &self.arch
+    }
+
+    pub fn cores(&self) -> i32 {
+        self.processor.cores
+    }
+
+    pub fn freq_ghz(&self) -> f64 {
+        self.processor.freq_ghz
+    }
+
+    pub fn id(&self) -> i32 {
+        self.machine.id
+    }
+
+    pub fn machine(&self) -> &Machine {
+        &self.machine
+    }
+
+    pub fn memory_gb(&self) -> i32 {
+        self.machine.memory_gb
+    }
+
+    pub fn microarchitecture(&self) -> &Microarchitecture {
+        &self.microarch
+    }
+
+    pub fn name(&self) -> &str {
+        &self.machine.name
+    }
+
+    pub fn processor(&self) -> &Processor {
+        &self.processor
     }
 }
 

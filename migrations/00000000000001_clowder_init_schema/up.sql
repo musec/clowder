@@ -1,10 +1,38 @@
+create table architectures (
+	id serial primary key not null,
+	name varchar not null
+);
+
+insert into architectures (name) values ('i386'), ('x86_64');
+
+create table microarchitectures (
+	id serial primary key not null,
+	arch_id integer not null,
+	name varchar not null,
+	url varchar,
+
+	foreign key (arch_id) references architectures(id)
+);
+
+create table processors (
+	id serial primary key not null,
+	microarch_id integer not null,
+	name varchar not null,
+	cores integer not null,
+	threads integer not null,
+	freq_ghz float not null,
+	url varchar,
+
+	foreign key (microarch_id) references microarchitectures(id)
+);
+
 create table machines (
 	id serial primary key not null,
 	name varchar not null,
-	arch varchar not null,
-	microarch varchar not null,
-	cores integer not null,
-	memory_gb integer not null
+	processor_id integer not null,
+	memory_gb integer not null,
+
+	foreign key (processor_id) references processors(id)
 );
 
 create table disks (
