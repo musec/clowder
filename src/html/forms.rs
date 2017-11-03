@@ -197,7 +197,7 @@ impl SubmitButton {
 impl Render for SubmitButton {
     fn render(&self) -> Markup {
         html! {
-            input type="submit" value=(self.label) (super::route_prefix())
+            input type="submit" value=(self.label) /
         }
     }
 }

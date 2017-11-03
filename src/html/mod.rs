@@ -489,7 +489,7 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
 
         div.row {
             div class="col-md-6" {
-                form action={ "/user/update/" (user.username) } method="post" {
+                form action={ (route_prefix()) "user/update/" (user.username) } method="post" {
                     table.table.table-responsive {
                         tbody {
                             tr { th "Username" td (user.username) }
@@ -578,7 +578,7 @@ fn users(ctx: Context) -> Result<Markup, Error> {
 
             tbody {
                 @for ref user in &users {
-                    form action={ "/user/update/" (user.username) } method="post" {
+                    form action={ (route_prefix()) "user/update/" (user.username) } method="post" {
                         tr {
                             th (user.id)
                             td (user.username.clone())
