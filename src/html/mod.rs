@@ -217,8 +217,7 @@ fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
                 h3 "Reservations"
 
                 table.table.table-responsive {
-                    (tables::TableHeader::from_str(
-                        &[ "", "User", "Started", "Ends" ]))
+                    (tables::TableHeader::new(&[ "", "User", "Started", "Ends" ]))
 
                     tbody {
                         @for (ref r, ref u) in Reservation::for_machine(&m.machine(), conn)? {

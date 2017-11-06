@@ -11,10 +11,20 @@ use maud::*;
 pub struct TableHeader (Vec<String>);
 
 impl TableHeader {
-    pub fn from_str(strs: &[&str]) -> TableHeader {
-        TableHeader(strs.iter()
+    pub fn new(strs: &[&str]) -> TableHeader {
+        TableHeader(strs.into_iter()
                         .map(|s| s.to_string())
-                        .collect::<Vec<_>>())
+                        .collect())
+    }
+
+    pub fn add_if<S>(mut self, condition: bool, s: S) -> TableHeader
+        where S: Into<String>
+    {
+        if condition {
+            self.0.push(s.into());
+        }
+
+        self
     }
 }
 
@@ -79,17 +89,14 @@ impl MachineTable {
         }
     }
 
-    fn headers(&self) -> Vec<&str> {
-        [
-            vec![ "Name" ],
-            if self.show_arch { vec![ "Arch" ] } else { vec![] },
-            if self.show_processor_name { vec![ "Proc" ] } else { vec![] },
-            if self.show_microarch { vec![ "Microarch" ] } else { vec![] },
-            if self.show_cores { vec![ "Cores" ] } else { vec![] },
-            if self.show_freq { vec![ "Freq" ] } else { vec![] },
-            if self.show_memory { vec![ "Memory" ] } else { vec![] },
-        ]
-        .concat()
+    fn header(&self) -> TableHeader {
+        TableHeader::new(&[ "Name" ])
+            .add_if(self.show_arch, "Arch")
+            .add_if(self.show_processor_name, "Proc")
+            .add_if(self.show_microarch, "Microarch")
+            .add_if(self.show_cores, "Cores")
+            .add_if(self.show_freq, "Freq")
+            .add_if(self.show_memory, "Memory")
     }
 
     fn render_machine(&self, m: &FullMachine) -> Markup {
@@ -158,7 +165,7 @@ impl Render for MachineTable {
     fn render(&self) -> Markup {
         html! {
             table.table.table-responsive {
-                (TableHeader::from_str(&self.headers()))
+                (self.header())
 
                 tbody {
                     @for m in &self.machines {
@@ -213,16 +220,13 @@ impl ReservationTable {
         }
     }
 
-    fn headers(&self) -> Vec<&str> {
-        [
-            vec![ "#" ],
-            if self.show_machine { vec![ "Machine" ] } else { vec![] },
-            if self.show_user { vec![ "User" ] } else { vec![] },
-            if self.show_scheduled_start { vec![ "Start" ] } else { vec![] },
-            if self.show_scheduled_end { vec![ "Scheduled end" ] } else { vec![] },
-            if self.show_actual_end { vec![ "Actually ended" ] } else { vec![] },
-        ]
-        .concat()
+    fn header(&self) -> TableHeader {
+        TableHeader::new(&[ "#" ])
+            .add_if(self.show_machine, "Machine")
+            .add_if(self.show_user, "User")
+            .add_if(self.show_scheduled_start, "Start")
+            .add_if(self.show_scheduled_end, "Scheduled end")
+            .add_if(self.show_actual_end, "Actually ended")
     }
 
     fn render(&self, data: &(Reservation, Option<Machine>, Option<User>)) -> Markup {
@@ -322,7 +326,7 @@ impl Render for ReservationTable {
     fn render(&self) -> Markup {
         html! {
             table.table.table-responsive {
-                (TableHeader::from_str(&self.headers()))
+                (self.header())
 
                 tbody {
                     @for r in &self.reservations {
