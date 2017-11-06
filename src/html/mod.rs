@@ -168,7 +168,6 @@ fn index(ctx: Context) -> Result<Markup, Error> {
 #[derive(FromForm)]
 struct GithubCallbackData {
     code: String,
-    state: Option<String>,
 }
 
 #[get("/gh-callback?<query>")]
