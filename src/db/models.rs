@@ -487,6 +487,7 @@ impl Reservation {
 
         let query = reservations.inner_join(machines::table)
                                 .order(scheduled_end.desc())
+                                .order(machine_id)
                                 ;
 
         if only_current {
