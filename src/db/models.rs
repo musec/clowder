@@ -325,6 +325,38 @@ impl Machine {
     }
 }
 
+#[derive(Debug, Insertable)]
+#[table_name = "machines"]
+pub struct MachineBuilder {
+    name: String,
+    processor_id: Option<i32>,
+    memory_gb: Option<i32>,
+}
+
+impl MachineBuilder {
+    pub fn new(name: String) -> MachineBuilder {
+        MachineBuilder {
+            name: name,
+            processor_id: None,
+            memory_gb: None,
+        }
+    }
+
+    pub fn insert(self, conn: &Connection) -> DieselResult<Machine> {
+        insert(&self).into(machines::table).get_result(conn)
+    }
+
+    pub fn memory_gb(mut self, mem: i32) -> MachineBuilder {
+        self.memory_gb = Some(mem);
+        self
+    }
+
+    pub fn processor(mut self, p: &Processor) -> MachineBuilder {
+        self.processor_id = Some(p.id);
+        self
+    }
+}
+
 ///
 /// A FullMachine is a complete representation of a machine and all of its architectural details.
 ///

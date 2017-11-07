@@ -73,7 +73,7 @@ pub fn all_routes() -> Vec<Route> {
     routes! {
         index,
         github_callback, logout,
-        machine, machines,
+        machine, machine_create, machines,
         reservation, reservation_create_page, reservation_create,
         reservation_end, reservation_end_confirm, reservations,
         static_files::static_css, static_files::static_images, static_files::static_js,
@@ -235,11 +235,67 @@ fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
     })))
 }
 
+#[derive(Debug, FromForm)]
+struct NewMachineForm {
+    name: String,
+    processor: i32,
+    memory_gb: i32,
+}
+
+#[post("/machine/create", data = "<form>")]
+fn machine_create(form: Form<NewMachineForm>, ctx: Context) -> Result<Redirect, Error> {
+    let res = form.get();
+
+    MachineBuilder::new(res.name.clone())
+                   .processor(&Processor::get(res.processor, &ctx.conn)?)
+                   .memory_gb(res.memory_gb)
+                   .insert(&ctx.conn)
+                   .map(|m| Redirect::to(&format!["{}machine/{}", route_prefix(), &m.name]))
+                   .map_err(Error::DatabaseError)
+}
+
 #[get("/machines")]
 fn machines(ctx: Context) -> Result<Markup, Error> {
+    let machine_creator = ctx.user.can_create_machines(&ctx.conn)?;
+    let processor_options =
+        Processor::all(&ctx.conn)?
+                  .iter()
+                  .map(|p| forms::SelectOption::new(p.id.to_string(), p.name.clone()))
+                  .collect::<Vec<_>>()
+                  ;
+
     FullMachine::all(&ctx.conn)
         .map_err(Error::DatabaseError)
         .map(|machines| tables::MachineTable::new(machines))
+        .map(|table| html! {
+            h2 "Current inventory"
+            (table)
+
+            @if machine_creator {
+                h2 "Add new machine"
+
+                form action={ (route_prefix()) "machine/create" } method="post" {
+                    table {
+                        tr {
+                            th "Name"
+                            td (forms::Input::new("name"))
+                        }
+                        tr {
+                            th "Processor"
+                            td (forms::Select::new("processor").set_options(processor_options))
+                        }
+                        tr {
+                            th "Memory"
+                            td { (forms::Input::new("memory_gb")) " GiB" }
+                        }
+                        tr {
+                            th /
+                            td (forms::SubmitButton::new().label("Add to inventory"))
+                        }
+                    }
+                }
+            }
+        })
         .map(|table| render("Clowder: Machines", &ctx, None, table.render()))
 }
 
