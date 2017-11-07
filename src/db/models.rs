@@ -180,6 +180,23 @@ impl User {
 
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
+pub struct GithubAccount {
+    pub id: i32,
+    pub user_id: i32,
+    pub github_username: String,
+}
+
+impl GithubAccount {
+    pub fn get(gh_username: &str, conn: &Connection) -> DieselResult<(GithubAccount, User)> {
+        use self::github_accounts::dsl::*;
+        github_accounts.inner_join(users::table)
+                       .filter(github_username.eq(gh_username))
+                       .first(conn)
+    }
+}
+
+
+#[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(User)]
 pub struct Email {
     pub id: i32,

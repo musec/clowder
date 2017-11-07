@@ -31,6 +31,14 @@ table! {
 }
 
 table! {
+    github_accounts (id) {
+        id -> Int4,
+        user_id -> Int4,
+        github_username -> Varchar,
+    }
+}
+
+table! {
     machines (id) {
         id -> Int4,
         name -> Varchar,
@@ -122,3 +130,4 @@ joinable!(role_assignments -> users (user_id));
 joinable!(role_assignments -> roles (role_id));
 joinable!(reservations -> users (user_id));
 joinable!(reservations -> machines (machine_id));
+joinable!(github_accounts -> users (user_id));
