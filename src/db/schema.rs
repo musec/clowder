@@ -96,7 +96,10 @@ table! {
     roles (id) {
         id -> Int4,
         name -> Text,
+        can_alter_machines -> Bool,
         can_alter_users -> Bool,
+        can_create_machines -> Bool,
+        can_delete_machines -> Bool,
         can_view_users -> Bool,
     }
 }

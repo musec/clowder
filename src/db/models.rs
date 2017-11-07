@@ -144,8 +144,20 @@ impl User {
                     .collect())
     }
 
+    pub fn can_alter_machines(&self, c: &Connection) -> DieselResult<bool> {
+        self.has_role(c, |ref role| role.can_alter_machines)
+    }
+
     pub fn can_alter_users(&self, c: &Connection) -> DieselResult<bool> {
         self.has_role(c, |ref role| role.can_alter_users)
+    }
+
+    pub fn can_create_machines(&self, c: &Connection) -> DieselResult<bool> {
+        self.has_role(c, |ref role| role.can_create_machines)
+    }
+
+    pub fn can_delete_machines(&self, c: &Connection) -> DieselResult<bool> {
+        self.has_role(c, |ref role| role.can_delete_machines)
     }
 
     pub fn can_view_users(&self, c: &Connection) -> DieselResult<bool> {
@@ -199,8 +211,11 @@ impl Email {
 pub struct Role {
     pub id: i32,
     pub name: String,
-    pub can_view_users: bool,
+    pub can_alter_machines: bool,
     pub can_alter_users: bool,
+    pub can_create_machines: bool,
+    pub can_delete_machines: bool,
+    pub can_view_users: bool,
 }
 
 impl Role {
