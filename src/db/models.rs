@@ -292,6 +292,18 @@ pub struct Processor {
     pub url: Option<String>,
 }
 
+impl Processor {
+    pub fn all(c: &Connection) -> DieselResult<Vec<Processor>> {
+        use self::processors::dsl::*;
+        processors.order(name).load(c)
+    }
+
+    pub fn get(processor_id: i32, c: &Connection) -> DieselResult<Processor> {
+        use self::processors::dsl::*;
+        processors.find(processor_id).first(c)
+    }
+}
+
 #[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(Processor)]
 pub struct Machine {
