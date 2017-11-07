@@ -9,6 +9,7 @@ type DieselResult<T> = Result<T, diesel::result::Error>;
 
 enable_multi_table_joins![machines, microarchitectures];
 enable_multi_table_joins![machines, architectures];
+enable_multi_table_joins![machines, users];
 enable_multi_table_joins![processors, architectures];
 
 
@@ -482,10 +483,12 @@ pub struct Reservation {
 
 impl Reservation {
     /// Find all reservations, ordered by end time.
-    pub fn all(only_current: bool, c: &Connection) -> DieselResult<Vec<(Reservation, Machine)>> {
+    pub fn all(only_current: bool, c: &Connection) -> DieselResult<Vec<(Reservation,Machine,User)>>
+    {
         use self::reservations::dsl::*;
 
         let query = reservations.inner_join(machines::table)
+                                .inner_join(users::table)
                                 .order(scheduled_end.desc())
                                 .order(machine_id)
                                 ;

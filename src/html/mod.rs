@@ -133,10 +133,9 @@ pub fn render<S,M>(title: S, ctx: &Context, flash: Option<FlashMessage>, content
 fn index(ctx: Context) -> Result<Markup, Error> {
     let machines = FullMachine::all(&ctx.conn)?;
 
-    // TODO: use multiple joins once Diesel supports it
     let reservations = Reservation::all(true, &ctx.conn)?
                                    .into_iter()
-                                   .map(|(r,m)| (r, Some(m), None))
+                                   .map(|(r,m,u)| (r, Some(m), Some(u)))
                                    .collect();
 
     Ok(render("Clowder", &ctx, None, html! {
@@ -503,10 +502,9 @@ fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>,
 
 #[get("/reservations")]
 fn reservations(ctx: Context) -> Result<Markup, Error> {
-    // TODO: use multiple joins once Diesel supports it
     let reservations = Reservation::all(false, &ctx.conn)?
                                    .into_iter()
-                                   .map(|(r, m)| (r, Some(m), None))
+                                   .map(|(r,m,u)| (r, Some(m), Some(u)))
                                    .collect();
 
     Ok(render("Clowder: Reservations", &ctx, None,
