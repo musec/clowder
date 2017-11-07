@@ -122,7 +122,9 @@ impl Client {
 
         let body = response_str(&mut response)?;
 
-        rustc_serialize::json::decode(&body).map_err(Error::from)
+        rustc_serialize::json::decode(&body)
+                              .map_err(|err| format!["failed to parse {}: {}", body, err])
+                              .map_err(Error::InvalidData)
     }
 
     ///
@@ -249,11 +251,5 @@ impl From<hyper::Error> for Error {
 impl From<native_tls::Error> for Error {
     fn from(err: native_tls::Error) -> Error {
         Error::TLSError(err)
-    }
-}
-
-impl From<rustc_serialize::json::DecoderError> for Error {
-    fn from(err: rustc_serialize::json::DecoderError) -> Error {
-        Error::InvalidData(format!["JSON error: {}", err.description()])
     }
 }
