@@ -18,6 +18,9 @@ lazy_static! {
     static ref HMAC_KEY: [u8; 32] = OsRng::new().expect("Unable to open system RNG").gen();
 }
 
+/// The name of the cookie we set (with authenticated encryption) for the user's username.
+static AUTH_COOKIE_NAME: &'static str = "clowder_user";
+
 
 ///
 /// A struct that authenticates users given a MAC'ed cookie or a debug auth bypass
@@ -39,7 +42,7 @@ impl Authenticator {
     /// fallback authentication methods are permitted by local policy (e.g., fake/test auth data).
     ///
     fn authenticate(self, cookies: &mut Cookies) -> Result<AuthContext, Error> {
-        let user = cookies.get_private("clowder_username")
+        let user = cookies.get_private(AUTH_COOKIE_NAME)
                           .ok_or(Error::AuthRequired)
                           .and_then(check_mac)
                           .and_then(|username| self.lookup_user(&username))
@@ -111,7 +114,7 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
 
 /// Log the user out by clearing their auth cookie.
 pub fn logout<'c>(mut jar: Cookies) {
-    jar.get_private("user").map(|c| jar.remove_private(c));
+    jar.get_private(AUTH_COOKIE_NAME).map(|c| jar.remove_private(c));
 }
 
 /// Generate a cookie that attests to a logged-in user's username.
@@ -120,7 +123,7 @@ pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S)
 {
     let name = username.into();
     let value = format!["{}-{}", name, hmac(&name)?];
-    jar.add_private(Cookie::new(String::from("user"), value));
+    jar.add_private(Cookie::new(String::from(AUTH_COOKIE_NAME), value));
 
     Ok(())
 }
