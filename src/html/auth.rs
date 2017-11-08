@@ -21,6 +21,7 @@ lazy_static! {
 
 ///
 /// A struct that authenticates users given a MAC'ed cookie or a debug auth bypass
+/// (e.g., `CLOWDER_FAKE_GITHUB_USERNAME`).
 ///
 struct Authenticator {
     conn: Connection,
@@ -42,6 +43,7 @@ impl Authenticator {
                           .ok_or(Error::AuthRequired)
                           .and_then(check_mac)
                           .and_then(|username| self.lookup_user(&username))
+                          .or_else(|_| self.try_fake_auth())
                           ?;
 
         Ok(AuthContext {
@@ -56,6 +58,21 @@ impl Authenticator {
     fn lookup_user(&self, clowder_username: &str) -> Result<User, Error> {
         User::with_username(&clowder_username, &self.conn)
              .map_err(Error::DatabaseError)
+    }
+
+    ///
+    /// Attempt to authenticate the user with fake (bypass) authentication methods, which may be:
+    ///
+    /// `CLOWDER_FAKE_GITHUB_USERNAME`
+    /// : if set in the environment (or `.env`), treat this as a verified GitHub username
+    ///
+    fn try_fake_auth(&self) -> Result<User, Error> {
+        env::var_os("CLOWDER_FAKE_GITHUB_USERNAME")
+            .and_then(|s| s.to_str().map(str::to_string))
+            .ok_or(Error::AuthRequired)
+            .and_then(|username| GithubAccount::get(&username, &self.conn)
+                                               .map_err(Error::DatabaseError)
+                                               .map(|(_, user)| user))
     }
 }
 
