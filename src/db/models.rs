@@ -484,9 +484,9 @@ impl Disk {
                     .unwrap_or(String::new())
                     ;
 
-        let tag = if self.ssd { " (SSD)" } else { "" };
+        let ssd = if self.ssd { "SSD" } else { "non-SSD" };
 
-        format!["{}{} GiB{}", v, self.capacity_gb, tag]
+        format!["{}{} GiB ({})", v, self.capacity_gb, ssd]
     }
 
     pub fn vendor_name(&self) -> &str {
