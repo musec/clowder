@@ -1,6 +1,6 @@
 [package]
 name = "clowder"
-version = "0.2.0"
+version = "0.2.5"
 authors = ["Jonathan Anderson <jonathan.anderson@mun.ca>"]
 build = "build.rs"
 
