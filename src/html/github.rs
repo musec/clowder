@@ -67,16 +67,9 @@ pub struct UserData {
 
     /// URL for user avatar, if set.
     avatar_url: Option<String>,
-
-    /// User email address: not an `Option` because we always request the `email` OAuth scope.
-    email: String,
 }
 
 impl UserData {
-    pub fn email(&self) -> &str {
-        &self.email
-    }
-
     pub fn username(&self) -> &str {
         &self.login
     }
