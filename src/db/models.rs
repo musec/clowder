@@ -399,12 +399,6 @@ impl FullMachine {
         }
     }
 
-    fn vec(data: Vec<FullMachineJoin>) -> Vec<FullMachine> {
-        data.into_iter()
-            .map(FullMachine::from)
-            .collect()
-    }
-
     pub fn all(c: &Connection) -> DieselResult<Vec<FullMachine>> {
         use self::machines::dsl::*;
         let m = machines.order(name)
@@ -415,7 +409,7 @@ impl FullMachine {
                         .load(c)?
                         ;
 
-        Ok(FullMachine::vec(m))
+        Ok(m.into_iter().map(FullMachine::from).collect())
     }
 
     pub fn with_name(machine_name: &str, c: &Connection) -> DieselResult<FullMachine> {
