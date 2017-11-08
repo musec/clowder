@@ -475,6 +475,27 @@ pub struct Disk {
     pub ssd: bool,
 }
 
+impl Disk {
+    pub fn short_description(&self) -> String {
+        let v = self.vendor
+                    .as_ref()
+                    .map(|vendor| format!["{} ", vendor])
+                    .unwrap_or(String::new())
+                    ;
+
+        let tag = if self.ssd { " (SSD)" } else { "" };
+
+        format!["{}{} GiB{}", v, self.capacity_gb, tag]
+    }
+
+    pub fn vendor_name(&self) -> &str {
+        self.vendor
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("<unknown vendor>")
+    }
+}
+
 #[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(Machine)]
 pub struct Nic {
