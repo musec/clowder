@@ -71,9 +71,9 @@ $ cargo run
 
 ### Fake user account
 
-You can set `CLOWDER_FAKE_USERNAME` in your environment (or `.env` file)
+You can set `CLOWDER_FAKE_GITHUB_USERNAME` in your environment (or `.env` file)
 to provide a username to be treated as if it were obtained from the normal
-authentication workflow (OAuth, email lookup, MAC'ed cookie, etc.).
+GitHub OAuth workflow.
 
 
 ### Reloading
