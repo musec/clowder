@@ -12,7 +12,6 @@ extern crate crypto;
 extern crate dotenv;
 extern crate hyper;
 extern crate hyper_native_tls;
-#[macro_use] extern crate lazy_static;
 extern crate maud;
 extern crate marksman_escape;
 extern crate native_tls;

@@ -1,22 +1,11 @@
-use crypto::hmac::Hmac;
-use crypto::mac::Mac;
-use crypto::sha2::Sha512;
 use db::models::*;
 use diesel::pg::PgConnection as Connection;
-use rand::Rng;
-use rand::os::OsRng;
 use rocket::http::{Cookie,Cookies};
 use rocket::request;
-use rustc_serialize::hex::ToHex;
 use std::env;
 
 use html::error::Error;
 use super::rocket;
-
-lazy_static! {
-    /// A random HMAC key that is regenerated on every server restart.
-    static ref HMAC_KEY: [u8; 32] = OsRng::new().expect("Unable to open system RNG").gen();
-}
 
 /// The name of the cookie we set (with authenticated encryption) for the user's username.
 static AUTH_COOKIE_NAME: &'static str = "clowder_user";
@@ -44,8 +33,7 @@ impl Authenticator {
     fn authenticate(self, cookies: &mut Cookies) -> Result<AuthContext, Error> {
         let user = cookies.get_private(AUTH_COOKIE_NAME)
                           .ok_or(Error::AuthRequired)
-                          .and_then(check_mac)
-                          .and_then(|username| self.lookup_user(&username))
+                          .and_then(|ref username| self.lookup_user(username.value()))
                           .or_else(|_| self.try_fake_auth())
                           ?;
 
@@ -121,30 +109,6 @@ pub fn logout<'c>(mut jar: Cookies) {
 pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S)
     -> Result<(), Error>
 {
-    let name = username.into();
-    let value = format!["{}-{}", name, hmac(&name)?];
-    jar.add_private(Cookie::new(String::from(AUTH_COOKIE_NAME), value));
-
+    jar.add_private(Cookie::new(String::from(AUTH_COOKIE_NAME), username.into()));
     Ok(())
-}
-
-fn check_mac(cookie: Cookie) -> Result<String, Error> {
-    let s = cookie.value();
-
-    let idx = s.rfind("-").ok_or(Error::AuthError(format!["no MAC in cookie: {}", s]))?;
-    let (uname, mac) = s.split_at(idx);
-    let my_mac = hmac(uname)?;
-
-    if my_mac == mac[1..] {
-        Ok(uname.to_string())
-    } else {
-        println!["Cookie authentication failure: {} != {}", my_mac, &mac[1..]];
-        Err(Error::AuthRequired)
-    }
-}
-
-fn hmac(input: &str) -> Result<String, Error> {
-    let mut hmac = Hmac::new(Sha512::new(), &*HMAC_KEY);
-    hmac.input(input.as_bytes());
-    Ok(hmac.result().code().to_hex())
 }

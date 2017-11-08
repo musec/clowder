@@ -15,7 +15,6 @@ diesel_codegen = { version = "*", features = ["postgres"] }
 dotenv = "0.8.0"
 hyper = "0.10.4"
 hyper-native-tls = "0.2.2"
-lazy_static = "0.2.2"
 marksman_escape = "0.1.2"
 maud = { version = "*", features = ["rocket"] }
 native-tls = "0.1.1"
