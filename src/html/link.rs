@@ -15,6 +15,24 @@ impl<'a> From<&'a Machine> for Link {
     }
 }
 
+impl<'a> From<&'a Microarchitecture> for Link {
+    fn from(p: &Microarchitecture) -> Link {
+        Link {
+            url: p.url.clone().unwrap_or(String::from("#")),
+            text: p.name.clone(),
+        }
+    }
+}
+
+impl<'a> From<&'a Processor> for Link {
+    fn from(p: &Processor) -> Link {
+        Link {
+            url: p.url.clone().unwrap_or(String::from("#")),
+            text: p.name.clone(),
+        }
+    }
+}
+
 impl<'a> From<&'a Reservation> for Link {
     fn from(r: &Reservation) -> Link {
         Link {
