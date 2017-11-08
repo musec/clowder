@@ -2,6 +2,12 @@
 name = "clowder"
 version = "0.2.7"
 authors = ["Jonathan Anderson <jonathan.anderson@mun.ca>"]
+license = "Apache-2.0 OR MIT"
+license-file = "LICENSE-APACHE OR LICENSE-MIT"
+description = "Software to manage user-reserved bare-metal netbooting machines"
+repository = "https://github.com/musec/clowder"
+travis-ci = { repository = "musec/clowder", branch = "rust" }
+readme = "README.md"
 build = "build.rs"
 
 [build-dependencies]
