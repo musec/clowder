@@ -2,6 +2,8 @@ use chrono;
 use maud::*;
 use rocket::request::FlashMessage;
 
+include![concat![env!["OUT_DIR"], "/version.rs"]];
+
 
 pub fn alert<S1, S2>(kind: S1, msg: S2) -> Markup
     where S1: Into<String>, S2: Into<String>
@@ -301,7 +303,7 @@ impl Render for Page {
                     footer.footer {
                         div.container.text-muted {
                             div.row.text-muted {
-                                div class="col-md-10" "Clowder: test cluster management system"
+                                div class="col-md-10" { "Clowder " (semver()) }
                                 div class="col-md-2" (chrono::Local::now().format("%e %b %Y"))
                             }
                         }

@@ -2,6 +2,10 @@
 name = "clowder"
 version = "0.1.0"
 authors = ["Jonathan Anderson <jonathan.anderson@mun.ca>"]
+build = "build.rs"
+
+[build-dependencies]
+vergen = "*"
 
 [dependencies]
 chrono = "*"
