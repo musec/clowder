@@ -5,9 +5,11 @@ authors = ["Jonathan Anderson <jonathan.anderson@mun.ca>"]
 license = "Apache-2.0 OR MIT"
 description = "Software to manage user-reserved bare-metal netbooting machines"
 repository = "https://github.com/musec/clowder"
-travis-ci = { repository = "musec/clowder" }
 readme = "README.md"
 build = "build.rs"
+
+[badges]
+travis-ci = { repository = "musec/clowder" }
 
 [build-dependencies]
 vergen = "0.1.1"
