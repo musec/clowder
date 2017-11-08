@@ -1,4 +1,5 @@
 [![Clowder on crates.io](https://img.shields.io/crates/v/clowder.svg)](https://crates.io/crates/clowder)
+[![Clowder on travis-ci.org](https://api.travis-ci.org/musec/clowder.svg)](https://travis-ci.org/musec/clowder)
 
 ## Getting started
 
