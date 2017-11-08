@@ -3,6 +3,7 @@ use db::schema::*;
 use diesel;
 use diesel::*;
 use diesel::pg::PgConnection as Connection;
+use itertools::Itertools;
 use std::collections::HashSet;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
@@ -505,6 +506,46 @@ pub struct Nic {
     pub model: Option<String>,
     pub mac_address: String,
     pub speed_gbps: i32,
+}
+
+impl Nic {
+    pub fn short_description(&self) -> String {
+        let model: String = self.vendor
+                        .as_ref()
+                        .map(|vendor| format!["{} ", vendor])
+                        .unwrap_or(String::new())
+                    +
+                    &self.model
+                         .as_ref()
+                         .map(|m| format!["{} ", m])
+                         .unwrap_or(String::new())
+                    ;
+
+        format!["{} — {}{} Gbps", self.mac_formatted(), model, self.speed_gbps]
+    }
+
+    pub fn mac_formatted(&self) -> String {
+        self.mac_address
+            .chars()
+            .chunks(2)
+            .into_iter()
+            .map(squash_chars)
+            .collect::<Vec<_>>()
+            .join(":")
+    }
+
+    pub fn vendor_name(&self) -> &str {
+        self.vendor
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("<unknown vendor>")
+    }
+}
+
+fn squash_chars<C>(chunk: C) -> String
+    where C: Iterator<Item = char>
+{
+    chunk.fold(String::new(), |mut s, c| { s.push(c); s })
 }
 
 #[derive(Associations, Debug, Identifiable, Queryable)]

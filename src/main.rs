@@ -12,6 +12,7 @@ extern crate crypto;
 extern crate dotenv;
 extern crate hyper;
 extern crate hyper_native_tls;
+extern crate itertools;
 extern crate maud;
 extern crate marksman_escape;
 extern crate native_tls;
