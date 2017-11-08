@@ -9,6 +9,7 @@ readme = "README.md"
 build = "build.rs"
 
 [badges]
+maintenance = { status = "actively-developed" }
 travis-ci = { repository = "musec/clowder" }
 
 [build-dependencies]
