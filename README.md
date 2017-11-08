@@ -20,7 +20,9 @@ echo "CLOWDER_GH_CLIENT_SECRET=aaaaaaaaaa" >> .env
 
 ### Rust
 
-For the moment, we depend on crates that depend on Rust nightly.
+For the moment, we depend on crates that depend on Rust nightly (see
+[SergioBenitez/Rocket#19](https://github.com/SergioBenitez/Rocket/issues/19)
+for our main blocker).
 You will likely want to use [Rustup](https://www.rustup.rs) to install the
 nightly version of Rust.
 
