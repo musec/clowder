@@ -1,3 +1,5 @@
+[![Clowder on crates.io](https://img.shields.io/crates/v/clowder.svg)](https://crates.io/crates/clowder)
+
 ## Getting started
 
 ### GitHub
