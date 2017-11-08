@@ -5,13 +5,12 @@ use chrono_humanize::HumanTime;
 use ::db;
 use db::models::*;
 use ::diesel;
-use diesel::pg::PgConnection as Connection;
 use hyper;
 use marksman_escape::Escape;
 use maud::*;
 use native_tls;
 use super::rocket;
-use rocket::*;
+use rocket::{http, request, Catcher, Route};
 use rocket::request::{FlashMessage, Form, FromFormValue};
 use rocket::response::{Flash, Redirect};
 use rustc_serialize;
@@ -31,41 +30,9 @@ mod static_files;
 mod tables;
 
 use std::env;
+use self::auth::AuthContext;
 use self::error::Error;
 use self::link::Link;
-
-
-/// Contextual information about the current page rendering.
-pub struct Context {
-    /// Who is viewing the page
-    user: User,
-
-    /// Database connection for additional queries
-    conn: Connection,
-}
-
-impl<'a, 'r> request::FromRequest<'a, 'r> for Context {
-    type Error = error::Error;
-
-    fn from_request(req: &'a Request<'r>)
-            -> request::Outcome<Context, Self::Error> {
-
-        let conn = db::establish_connection();
-        let user = auth::authenticate(req.cookies(), &conn);
-
-        match user {
-            Ok(u) => Outcome::Success(Context { user: u, conn: conn }),
-            Err(e) => {
-                let failure = match e {
-                    Error::AuthRequired => (http::Status::Unauthorized, e),
-                    _ => (http::Status::InternalServerError, e),
-                };
-
-                Outcome::Failure(failure)
-            },
-        }
-    }
-}
 
 
 /// All of the routes that we can handle.
@@ -103,10 +70,10 @@ pub fn escape(dangerous: &str) -> String {
 
 
 /// Render a normal (i.e., non-error) page of content.
-pub fn render<S,M>(title: S, ctx: &Context, flash: Option<FlashMessage>, content: M) -> Markup
+pub fn render<S,M>(title: S, auth: &AuthContext, flash: Option<FlashMessage>, content: M) -> Markup
     where S: Into<String>, M: Into<Markup>
 {
-    let user = &ctx.user;
+    let user = &auth.user;
     let route_prefix = route_prefix();
     let prefix = |s| format!["{}{}", route_prefix, s];
 
@@ -115,7 +82,7 @@ pub fn render<S,M>(title: S, ctx: &Context, flash: Option<FlashMessage>, content
         bootstrap::NavItem::link(prefix("reservations"), "Reservations"),
     ];
 
-    if let Ok(true) = user.can_alter_users(&ctx.conn) {
+    if let Ok(true) = user.can_alter_users(&auth.conn) {
         nav_links.push(bootstrap::NavItem::link(prefix("users"), "Users"));
     }
 
@@ -130,15 +97,15 @@ pub fn render<S,M>(title: S, ctx: &Context, flash: Option<FlashMessage>, content
 
 
 #[get("/")]
-fn index(ctx: Context) -> Result<Markup, Error> {
-    let machines = FullMachine::all(&ctx.conn)?;
+fn index(auth: AuthContext) -> Result<Markup, Error> {
+    let machines = FullMachine::all(&auth.conn)?;
 
-    let reservations = Reservation::all(true, &ctx.conn)?
+    let reservations = Reservation::all(true, &auth.conn)?
                                    .into_iter()
                                    .map(|(r,m,u)| (r, Some(m), Some(u)))
                                    .collect();
 
-    Ok(render("Clowder", &ctx, None, html! {
+    Ok(render("Clowder", &auth, None, html! {
         div.row {
             div class="col-md-6" {
                 h4 "Machine inventory"
@@ -186,18 +153,18 @@ fn github_callback(query: GithubCallbackData, cookies: http::Cookies) -> Result<
 }
 
 #[get("/logout")]
-fn logout(_ctx: Context, cookies: http::Cookies) -> Redirect {
+fn logout(_auth: AuthContext, cookies: http::Cookies) -> Redirect {
     auth::logout(cookies);
     Redirect::to(&route_prefix())
 }
 
 #[get("/machine/<machine_name>")]
-fn machine(machine_name: String, ctx: Context) -> Result<Markup, Error> {
-    let conn = &ctx.conn;
+fn machine(machine_name: String, auth: AuthContext) -> Result<Markup, Error> {
+    let conn = &auth.conn;
 
     FullMachine::with_name(&machine_name, conn)
         .map_err(Error::DatabaseError)
-        .and_then(|m| Ok(render(format!["Clowder: {}", m.name()], &ctx, None, html! {
+        .and_then(|m| Ok(render(format!["Clowder: {}", m.name()], &auth, None, html! {
         div.row h2 (m.name())
 
         div.row {
@@ -242,28 +209,28 @@ struct NewMachineForm {
 }
 
 #[post("/machine/create", data = "<form>")]
-fn machine_create(form: Form<NewMachineForm>, ctx: Context) -> Result<Redirect, Error> {
+fn machine_create(form: Form<NewMachineForm>, auth: AuthContext) -> Result<Redirect, Error> {
     let res = form.get();
 
     MachineBuilder::new(res.name.clone())
-                   .processor(&Processor::get(res.processor, &ctx.conn)?)
+                   .processor(&Processor::get(res.processor, &auth.conn)?)
                    .memory_gb(res.memory_gb)
-                   .insert(&ctx.conn)
+                   .insert(&auth.conn)
                    .map(|m| Redirect::to(&format!["{}machine/{}", route_prefix(), &m.name]))
                    .map_err(Error::DatabaseError)
 }
 
 #[get("/machines")]
-fn machines(ctx: Context) -> Result<Markup, Error> {
-    let machine_creator = ctx.user.can_create_machines(&ctx.conn)?;
+fn machines(auth: AuthContext) -> Result<Markup, Error> {
+    let machine_creator = auth.user.can_create_machines(&auth.conn)?;
     let processor_options =
-        Processor::all(&ctx.conn)?
+        Processor::all(&auth.conn)?
                   .iter()
                   .map(|p| forms::SelectOption::new(p.id.to_string(), p.name.clone()))
                   .collect::<Vec<_>>()
                   ;
 
-    FullMachine::all(&ctx.conn)
+    FullMachine::all(&auth.conn)
         .map_err(Error::DatabaseError)
         .map(|machines| tables::MachineTable::new(machines))
         .map(|table| html! {
@@ -295,19 +262,19 @@ fn machines(ctx: Context) -> Result<Markup, Error> {
                 }
             }
         })
-        .map(|table| render("Clowder: Machines", &ctx, None, table.render()))
+        .map(|table| render("Clowder: Machines", &auth, None, table.render()))
 }
 
 #[get("/reservation/<id>")]
-fn reservation(id: i32, ctx: Context, flash: Option<FlashMessage>) -> Result<Markup, Error> {
-    let (r, machine, user) = Reservation::get(id, &ctx.conn)?;
+fn reservation(id: i32, auth: AuthContext, flash: Option<FlashMessage>) -> Result<Markup, Error> {
+    let (r, machine, user) = Reservation::get(id, &auth.conn)?;
 
     let can_end = match (r.scheduled_start, r.actual_end) {
         (s, None) if s <= Utc::now() => true,
         (_, _) => false,
     };
 
-    Ok(render(format!["Clowder: reservation {}", r.id], &ctx, flash, html! {
+    Ok(render(format!["Clowder: reservation {}", r.id], &auth, flash, html! {
         h2 { "Reservation " (r.id) }
 
         table.lefty {
@@ -366,11 +333,11 @@ struct ReservationForm {
 }
 
 #[post("/reservation/create", data = "<form>")]
-fn reservation_create(form: Form<ReservationForm>, ctx: Context) -> Result<Redirect, Error> {
+fn reservation_create(form: Form<ReservationForm>, auth: AuthContext) -> Result<Redirect, Error> {
     let res = form.get();
 
-    let user = try![User::with_username(&res.user, &ctx.conn)];
-    let machine = try![Machine::with_name(&res.machine, &ctx.conn)];
+    let user = try![User::with_username(&res.user, &auth.conn)];
+    let machine = try![Machine::with_name(&res.machine, &auth.conn)];
 
     let dates: Vec<&str> = res.dates.split(" - ").collect();
     if dates.len() != 2 {
@@ -386,7 +353,7 @@ fn reservation_create(form: Form<ReservationForm>, ctx: Context) -> Result<Redir
     if res.pxe.len() > 0 { rb.pxe(res.pxe.clone()); }
     if res.pxe.len() > 0 { rb.nfs(res.nfs.clone()); }
 
-    rb.insert(&ctx.conn)
+    rb.insert(&auth.conn)
         .map(|r| Redirect::to(&format!["{}reservation/{}", route_prefix(), r.id]))
         .map_err(Error::DatabaseError)
 }
@@ -398,15 +365,15 @@ struct ReservationQuery {
 }
 
 #[get("/reservation/create?<res>")]
-fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup, Error> {
-    let users = try![User::all(&ctx.conn)];
+fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<Markup, Error> {
+    let users = try![User::all(&auth.conn)];
     let user_options = users.iter()
         .map(|ref u| forms::SelectOption::new(u.username.clone(), u.name.clone())
-                                         .selected(u.username == ctx.user.username))
+                                         .selected(u.username == auth.user.username))
         .collect::<Vec<_>>()
         ;
 
-    let machines = try![Machine::all(&ctx.conn)];
+    let machines = try![Machine::all(&auth.conn)];
     let machine_options = machines.iter()
         .map(|ref m| forms::SelectOption::new(m.name.clone(), m.name.clone())
                                          .selected(res.machine.as_ref()
@@ -415,7 +382,7 @@ fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup
         .collect::<Vec<_>>()
         ;
 
-    Ok(render("Create reservation", &ctx, None, html! {
+    Ok(render("Create reservation", &auth, None, html! {
         h2 "Reserve a machine"
 
         form action="." method="post" {
@@ -450,10 +417,10 @@ fn reservation_create_page(res: ReservationQuery, ctx: Context) -> Result<Markup
 }
 
 #[get("/reservation/end/<id>")]
-fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
-    let (r, machine, user) = Reservation::get(id, &ctx.conn)?;
+fn reservation_end(id: i32, auth: AuthContext) -> Result<Markup, Error> {
+    let (r, machine, user) = Reservation::get(id, &auth.conn)?;
 
-    Ok(render(format!["Clowder: end reservation {}", r.id], &ctx, None, html! {
+    Ok(render(format!["Clowder: end reservation {}", r.id], &auth, None, html! {
         h2 "End reservation"
 
         (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
@@ -492,51 +459,51 @@ fn reservation_end(id: i32, ctx: Context) -> Result<Markup, Error> {
 }
 
 #[get("/reservation/end/confirm/<res_id>")]
-fn reservation_end_confirm(res_id: i32, ctx: Context) -> Result<Flash<Redirect>, Error> {
-    Reservation::get(res_id, &ctx.conn)
-        .and_then(|(r,_,_)| r.end(&ctx.conn))
+fn reservation_end_confirm(res_id: i32, auth: AuthContext) -> Result<Flash<Redirect>, Error> {
+    Reservation::get(res_id, &auth.conn)
+        .and_then(|(r,_,_)| r.end(&auth.conn))
         .map_err(Error::DatabaseError)
         .map(|r| Flash::new(Redirect::to(&format!["{}reservation/{}", route_prefix(), r.id()]),
                             "info", &format!["Ended reservation {}", r.id()]))
 }
 
 #[get("/reservations")]
-fn reservations(ctx: Context) -> Result<Markup, Error> {
-    let reservations = Reservation::all(false, &ctx.conn)?
+fn reservations(auth: AuthContext) -> Result<Markup, Error> {
+    let reservations = Reservation::all(false, &auth.conn)?
                                    .into_iter()
                                    .map(|(r,m,u)| (r, Some(m), Some(u)))
                                    .collect();
 
-    Ok(render("Clowder: Reservations", &ctx, None,
+    Ok(render("Clowder: Reservations", &auth, None,
               tables::ReservationTable::new(reservations).render()))
 }
 
 #[get("/user/<name>")]
-fn user(name: String, ctx: Context) -> Result<Markup, Error> {
-    let user = try![User::with_username(&name, &ctx.conn)];
-    let superuser = ctx.user.can_alter_users(&ctx.conn)?;
+fn user(name: String, auth: AuthContext) -> Result<Markup, Error> {
+    let user = try![User::with_username(&name, &auth.conn)];
+    let superuser = auth.user.can_alter_users(&auth.conn)?;
 
     let name = user.name.as_str();
-    let myself = user.id == ctx.user.id;
+    let myself = user.id == auth.user.id;
     let writable = myself || superuser;
 
-    let emails = user.emails(&ctx.conn)?;
+    let emails = user.emails(&auth.conn)?;
 
     let roles =
-        Role::all(&ctx.conn)?
+        Role::all(&auth.conn)?
             .into_iter()
             .map(|role| {
-                let inhabited = user.inhabits_role(&role, &ctx.conn).unwrap_or(false);
+                let inhabited = user.inhabits_role(&role, &auth.conn).unwrap_or(false);
                 (role.name, inhabited)
             })
             ;
 
-    let reservations = Reservation::for_user(&user, &ctx.conn)?
+    let reservations = Reservation::for_user(&user, &auth.conn)?
                                    .into_iter()
                                    .map(|(r,m)| (r, Some(m), None))
                                    .collect();
 
-    Ok(render(name, &ctx, None, html! {
+    Ok(render(name, &auth, None, html! {
         h2 (name)
 
         div.row {
@@ -601,21 +568,21 @@ fn user(name: String, ctx: Context) -> Result<Markup, Error> {
 
 
 #[get("/users")]
-fn users(ctx: Context) -> Result<Markup, Error> {
-    let conn = &ctx.conn;
+fn users(auth: AuthContext) -> Result<Markup, Error> {
+    let conn = &auth.conn;
 
-    let can_view = ctx.user.can_alter_users(conn).unwrap_or(false);
-    let can_edit = ctx.user.can_alter_users(conn).unwrap_or(false);
+    let can_view = auth.user.can_alter_users(conn).unwrap_or(false);
+    let can_edit = auth.user.can_alter_users(conn).unwrap_or(false);
 
     if !can_view {
         return Err(Error::NotAuthorized(
-            format!["User '{}' not permitted to view/alter other users", ctx.user.username]));
+            format!["User '{}' not permitted to view/alter other users", auth.user.username]));
     }
 
     let users = User::all(conn)?;
     let roles = Role::all(conn)?;
 
-    Ok(render("Users", &ctx, None, html! {
+    Ok(render("Users", &auth, None, html! {
         h2 ("Users")
 
         table.table.table-responsive {
@@ -702,19 +669,19 @@ impl<'f> request::FromForm<'f> for UserUpdate {
 }
 
 #[post("/user/update/<who>", data = "<form>")]
-fn user_update(who: String, ctx: Context, form: Form<UserUpdate>)
+fn user_update(who: String, auth: AuthContext, form: Form<UserUpdate>)
     -> Result<Flash<Redirect>, Error> {
 
-    let conn = &ctx.conn;
+    let conn = &auth.conn;
 
     let mut user = try! {
         User::with_username(&who, conn)
              .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
     };
 
-    let superuser = ctx.user.can_alter_users(conn).unwrap_or(false);
+    let superuser = auth.user.can_alter_users(conn).unwrap_or(false);
 
-    if !(user.id == ctx.user.id || superuser) {
+    if !(user.id == auth.user.id || superuser) {
         return Err(Error::NotAuthorized(String::from("update other users' details")))
     }
 
