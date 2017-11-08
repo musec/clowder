@@ -138,18 +138,12 @@ struct GithubCallbackData {
 
 #[get("/gh-callback?<query>")]
 fn github_callback(query: GithubCallbackData, cookies: http::Cookies) -> Result<Redirect, Error> {
-    let mut gh = github::Client::new(env::var("CLOWDER_GH_CLIENT_ID")?)?
-        .set_secret(env::var("CLOWDER_GH_CLIENT_SECRET")?)
-        .set_oauth_code(query.code);
-        ;
-
-    let email = gh.user().map(|u| u.email().to_string())?;
-    let conn = db::establish_connection();
-
-    User::with_email(&email, &conn)
-        .map_err(|_| Error::AuthError(format!["Unknown user: {}", email]))
-        .map(|user| auth::set_user_cookie(cookies, user.username))
-        .map(|_| Redirect::to(&route_prefix()))
+    github::auth_callback(query.code)
+           .and_then(|username|
+                GithubAccount::get(&username, &db::establish_connection())
+                              .map_err(Error::DatabaseError))
+           .map(|(_, user)| auth::set_user_cookie(cookies, user.username))
+           .map(|_| Redirect::to(&route_prefix()))
 }
 
 #[get("/logout")]

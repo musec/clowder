@@ -1,5 +1,4 @@
 use super::hyper;
-use super::native_tls;
 use super::rustc_serialize;
 use super::url;
 
@@ -8,17 +7,39 @@ use hyper_native_tls::NativeTlsClient;
 use rustc_serialize::Decodable;
 use url::Url;
 
-use std::error::Error as StdError;
-use std::fmt;
+use super::Error;
+use std::env;
 use std::io::Read;
 
 const ACCESS_TOKEN_URL: &'static str = "https://github.com/login/oauth/access_token";
 
 
+///
+/// Retrieve a GitHub user's username based on an OAuth code passed to a GitHub callback.
+///
+/// The flow of control in a GitHub OAuth authentication session is:
+///
+/// 1. user visits website,
+/// 2. website redirects user to GitHub auth page (with application/client ID),
+/// 3. user authorizes application/client's requested access scope,
+/// 4. GitHub redirects user to an application callback URL, passing a code in the GET query,
+/// 5. application exchanges code, client ID and client secret for a GitHub access token, then
+/// 6. application uses access token in API queries (e.g., for user details).
+///
+/// This function handles steps 4-6, taking an auth code and (if all goes well) returning a
+/// GitHub username.
+///
+pub fn auth_callback(auth_code: String) -> Result<String, Error> {
+    OAuthClient::new(env::var("CLOWDER_GH_CLIENT_ID")?)?
+                .set_secret(env::var("CLOWDER_GH_CLIENT_SECRET")?)
+                .set_oauth_code(auth_code)
+                .user()
+                .map(|u| u.username().to_string())
+}
 
 
 /// A GitHub OAuth client.
-pub struct Client {
+struct OAuthClient {
     /// Client ID: identifies the OAuth application.
     id: String,
 
@@ -62,11 +83,11 @@ impl UserData {
 }
 
 
-impl Client {
-    pub fn new<S: Into<String>>(id: S) -> Result<Client, Error> {
+impl OAuthClient {
+    pub fn new<S: Into<String>>(id: S) -> Result<OAuthClient, Error> {
         let tls_connector = hyper::net::HttpsConnector::new(NativeTlsClient::new()?);
 
-        Ok(Client {
+        Ok(OAuthClient {
             id: id.into(),
             secret: None,
             http: hyper::Client::with_connector(tls_connector),
@@ -128,18 +149,8 @@ impl Client {
     }
 
     ///
-    /// Retrieve a user access token based on an OAuth code passed to a GitHub callback.
-    ///
-    /// The flow of control in a GitHub OAuth authentication session is:
-    ///
-    /// 1. user visits website,
-    /// 2. website redirects user to GitHub auth page (with application/client ID),
-    /// 3. user authorizes application/client's requested access scope,
-    /// 4. GitHub redirects user to an application callback URL, passing a code in the GET query,
-    /// 5. application exchanges code, client ID and client secret for a GitHub access token, then
-    /// 6. application uses access token in API queries (e.g., for user details).
-    ///
-    /// This method implements step five in this process.
+    /// Retrieve a GitHub user access token based on an OAuth code.
+    /// This implements step five in the overall process (described in `auth_callback`).
     ///
     fn retrieve_access_token(&mut self) -> Result<&str, Error> {
         let secret = self.secret
@@ -194,62 +205,4 @@ fn response_str(response: &mut hyper::client::response::Response) -> Result<Stri
     response.read_to_string(&mut body)
             .map(|_| body)
             .map_err(|e| Error::InvalidData(format!["invalid response from GitHub: {}", e]))
-}
-
-
-#[derive(Debug)]
-pub enum Error {
-    /// Error authenticating user.
-    AuthError(String),
-
-    /// We received invalid date from somewhere.
-    InvalidData(String),
-
-    /// There was a problem communicating with a remote host.
-    NetError(hyper::Error),
-
-    /// Error instantiating or using the platform-native TLS client.
-    TLSError(native_tls::Error),
-}
-
-impl StdError for Error {
-    fn description(&self) -> &str {
-        match self {
-            &Error::AuthError(ref msg) => msg,
-            &Error::InvalidData(ref msg) => msg,
-            &Error::NetError(ref e) => e.description(),
-            &Error::TLSError(ref e) => e.description(),
-        }
-    }
-
-    fn cause(&self) -> Option<&StdError> {
-        match self {
-            &Error::NetError(ref e) => Some(e),
-            &Error::TLSError(ref e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &Error::AuthError(ref msg) => write![f, "Authorization error: {}", msg],
-            &Error::InvalidData(ref msg) => write![f, "Invalid data: {}", msg],
-            &Error::NetError(ref e) => write![f, "Network error: {}", e],
-            &Error::TLSError(ref e) => write![f, "TLS (secure network communication) error: {}", e],
-        }
-    }
-}
-
-impl From<hyper::Error> for Error {
-    fn from(err: hyper::Error) -> Error {
-        Error::NetError(err)
-    }
-}
-
-impl From<native_tls::Error> for Error {
-    fn from(err: native_tls::Error) -> Error {
-        Error::TLSError(err)
-    }
 }

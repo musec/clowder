@@ -1,6 +1,5 @@
 use super::bootstrap;
 use super::diesel;
-use super::github;
 use super::hyper;
 use super::native_tls;
 use super::rustc_serialize;
@@ -86,12 +85,6 @@ impl From<diesel::result::Error> for Error {
 impl From<env::VarError> for Error {
     fn from(err: env::VarError) -> Error {
         Error::ConfigError(format!["problem with environment variable (or .env file): {}", err])
-    }
-}
-
-impl From<github::Error> for Error {
-    fn from(err: github::Error) -> Error {
-        Error::AuthError(format!["GitHub error: {}", err])
     }
 }
 
