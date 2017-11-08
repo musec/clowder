@@ -337,6 +337,14 @@ impl Machine {
         machines.order(name).load(c)
     }
 
+    pub fn disks(&self, c: &Connection) -> DieselResult<Vec<Disk>> {
+        Disk::belonging_to(self).load(c)
+    }
+
+    pub fn nics(&self, c: &Connection) -> DieselResult<Vec<Nic>> {
+        Nic::belonging_to(self).load(c)
+    }
+
     pub fn with_name(machine_name: &str, c: &Connection) -> DieselResult<Machine> {
         use self::machines::dsl::*;
         machines.filter(name.eq(machine_name)).first(c)
