@@ -10,23 +10,23 @@ readme = "README.md"
 build = "build.rs"
 
 [build-dependencies]
-vergen = "*"
+vergen = "0.1.1"
 
 [dependencies]
-chrono = "*"
-chrono-humanize = "*"
-diesel = { version = "*", features = ["chrono"] }
-diesel_codegen = { version = "*", features = ["postgres"] }
+chrono = "0.4.0"
+chrono-humanize = "0.0.10"
+diesel = { version = "0.16.0", features = ["chrono"] }
+diesel_codegen = { version = "0.16.0", features = ["postgres"] }
 dotenv = "0.8.0"
 hyper = "0.10.4"
 hyper-native-tls = "0.2.2"
 itertools = "0.7.2"
 marksman_escape = "0.1.2"
-maud = { version = "*", features = ["rocket"] }
+maud = { version = "0.17.1", features = ["rocket"] }
 native-tls = "0.1.1"
 rand = "0.3"
-rocket = "*"
-rocket_codegen = "*"
+rocket = "0.3.3"
+rocket_codegen = "0.3.3"
 rust-crypto = "^0.2"
 rustc-serialize = "0.3.22"
 url = "1.4.0"
