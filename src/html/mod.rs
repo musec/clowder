@@ -162,16 +162,42 @@ fn logout(_auth: AuthContext, cookies: http::Cookies) -> Redirect {
 fn machine(machine_name: String, auth: AuthContext) -> Result<Markup, Error> {
     let conn = &auth.conn;
 
-    FullMachine::with_name(&machine_name, conn)
-        .map_err(Error::DatabaseError)
-        .and_then(|m| Ok(render(format!["Clowder: {}", m.name()], &auth, None, html! {
+    let m = FullMachine::with_name(&machine_name, conn)?;
+    let disks = m.machine().disks(conn)?;
+    let nics = m.machine().nics(conn)?;
+
+    Ok(render(format!["Clowder: {}", m.name()], &auth, None, html! {
         div.row h2 (m.name())
 
         div.row {
             div class="col-md-7" {
-                p {
-                    (m.architecture().name) " (" (m.microarchitecture().name) "), "
-                    (m.cores()) " cores, " (m.memory_gb()) " GiB RAM"
+                dl {
+                    dt "Processor(s)"
+                    dd ul {
+                        li {
+                            (Link::from(m.processor()))
+                            ": "
+                            (Link::from(m.microarchitecture())) " " (m.architecture().name) ", "
+                            (m.cores()) " cores, " (m.freq_ghz()) " GHz"
+                        }
+                    }
+
+                    dt "Memory"
+                    dd { (m.memory_gb()) " GiB" }
+
+                    dt "Disk(s)"
+                    dd ul {
+                        @for ref disk in disks {
+                            li (disk.short_description())
+                        }
+                    }
+
+                    dt "NIC(s)"
+                    dd ul {
+                        @for ref nic in nics {
+                            li (nic.short_description())
+                        }
+                    }
                 }
 
                 p a href={ (route_prefix()) "reservation/create/?machine=" (m.name()) }
@@ -198,7 +224,7 @@ fn machine(machine_name: String, auth: AuthContext) -> Result<Markup, Error> {
                 }
             }
         }
-    })))
+    }))
 }
 
 #[derive(Debug, FromForm)]
