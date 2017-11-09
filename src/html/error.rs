@@ -115,6 +115,17 @@ impl From<rustc_serialize::json::DecoderError> for Error {
     }
 }
 
+impl Into<bootstrap::Page> for Error {
+    fn into(self) -> bootstrap::Page {
+        bootstrap::Page::new(self.kind())
+            .content(html! {
+                h1 (self.kind())
+                h2 (self.msg())
+            })
+            .link_prefix(super::route_prefix())
+    }
+}
+
 impl<'r> Responder<'r> for Error {
     fn respond_to(self, req: &Request) -> response::Result<'r> {
         bootstrap::Page::new(self.kind())
