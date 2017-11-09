@@ -117,8 +117,7 @@ impl User {
         }
 
         for ref role_name in new_roles.difference(&role_names) {
-            Role::with_name(role_name, c)
-                .and_then(|role| RoleAssignment::insert(self, &role, c))?;
+            Role::with_name(role_name, c).and_then(|role| RoleAssignment::insert(self, &role, c))?;
         }
 
         Ok(())

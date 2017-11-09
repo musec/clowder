@@ -262,30 +262,32 @@ fn machines(auth: AuthContext) -> Result<Page, Error> {
     FullMachine::all(&auth.conn)
         .map_err(Error::DatabaseError)
         .map(|machines| tables::MachineTable::new(machines))
-        .map(|table| html! {
-            h2 "Current inventory"
-            (table)
+        .map(|table| {
+            html! {
+                h2 "Current inventory"
+                (table)
 
-            @if machine_creator {
-                h2 "Add new machine"
+                @if machine_creator {
+                    h2 "Add new machine"
 
-                form action={ (route_prefix()) "machine/create" } method="post" {
-                    table {
-                        tr {
-                            th "Name"
-                            td (forms::Input::new("name"))
-                        }
-                        tr {
-                            th "Processor"
-                            td (forms::Select::new("processor").set_options(processor_options))
-                        }
-                        tr {
-                            th "Memory"
-                            td { (forms::Input::new("memory_gb")) " GiB" }
-                        }
-                        tr {
-                            th /
-                            td (forms::SubmitButton::new().label("Add to inventory"))
+                    form action={ (route_prefix()) "machine/create" } method="post" {
+                        table {
+                            tr {
+                                th "Name"
+                                td (forms::Input::new("name"))
+                            }
+                            tr {
+                                th "Processor"
+                                td (forms::Select::new("processor").set_options(processor_options))
+                            }
+                            tr {
+                                th "Memory"
+                                td { (forms::Input::new("memory_gb")) " GiB" }
+                            }
+                            tr {
+                                th /
+                                td (forms::SubmitButton::new().label("Add to inventory"))
+                            }
                         }
                     }
                 }
@@ -614,8 +616,8 @@ fn users(auth: AuthContext) -> Result<Page, Error> {
     let can_edit = auth.user.can_alter_users(conn).unwrap_or(false);
 
     if !can_view {
-        return Err(Error::NotAuthorized(
-            format!["User '{}' not permitted to view/alter other users", auth.user.username]));
+        return Err(Error::NotAuthorized(format!["User '{}' cannot view/alter other users",
+                                                auth.user.username]));
     }
 
     let users = User::all(conn)?;
@@ -687,15 +689,18 @@ impl<'f> request::FromForm<'f> for UserUpdate {
 
         for (k, v) in form_items {
             let key: &str = &*k;
-            let value = String::from_form_value(v)
-                .map_err(rocket::http::RawStr::as_str)
+            let value = String::from_form_value(v).map_err(rocket::http::RawStr::as_str)
                 .map_err(String::from)
                 .map_err(Error::InvalidData)?;
 
             match key {
                 "name" => update.name = value,
-                "emails" => { update.emails.insert(value); },
-                "roles" => { update.roles.insert(value); },
+                "emails" => {
+                    update.emails.insert(value);
+                }
+                "roles" => {
+                    update.roles.insert(value);
+                }
                 _ => {
                     return Err(Error::InvalidData(format!["invalid form data name: '{}'", key]));
                 }
@@ -707,8 +712,10 @@ impl<'f> request::FromForm<'f> for UserUpdate {
 }
 
 #[post("/user/update/<who>", data = "<form>")]
-fn user_update(who: String, auth: AuthContext, form: Form<UserUpdate>)
-    -> Result<Flash<Redirect>, Error> {
+fn user_update(who: String,
+               auth: AuthContext,
+               form: Form<UserUpdate>)
+               -> Result<Flash<Redirect>, Error> {
 
     let conn = &auth.conn;
 
@@ -742,5 +749,6 @@ fn user_update(who: String, auth: AuthContext, form: Form<UserUpdate>)
     }
 
     Ok(Flash::new(Redirect::to(&format!["{}user/{}", route_prefix(), user.username]),
-                  "info", &format!["Updated {}'s details", user.username]))
+                  "info",
+                  &format!["Updated {}'s details", user.username]))
 }

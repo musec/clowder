@@ -187,9 +187,9 @@ impl NavItem {
 impl Render for NavItem {
     fn render(&self) -> Markup {
         match self {
-            &NavItem::Link { ref href, ref text } => html! {
-                li.nav-item a.nav-link href=(href) (text)
-            },
+            &NavItem::Link { ref href, ref text } => {
+                html! { li.nav-item a.nav-link href=(href) (text) }
+            }
         }
     }
 }
