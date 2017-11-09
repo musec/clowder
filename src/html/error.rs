@@ -18,7 +18,6 @@ use maud; // TODO: use a Bootstrap::ResultType or somesuch
 use maud::{html, Render};
 use rocket;
 use rocket::*;
-use rocket::response::{Responder, Response};
 
 use std::env;
 use std::error::Error as StdError;
@@ -126,23 +125,10 @@ impl Into<bootstrap::Page> for Error {
     }
 }
 
-impl<'r> Responder<'r> for Error {
-    fn respond_to(self, req: &Request) -> response::Result<'r> {
-        bootstrap::Page::new(self.kind())
-            .content(html! {
-                h1 (self.kind())
-                h2 (self.msg())
-            })
-            .link_prefix(super::route_prefix())
-            .render()
-            .respond_to(req)
-    }
-}
-
 
 /// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
 #[error(401)]
-fn unauthorized<'r>(_req: &Request) -> Response<'r> {
+fn unauthorized(_req: &Request) -> bootstrap::Page {
     const OAUTH_URL: &'static str = "https://github.com/login/oauth/authorize";
 
     let content = match env::var("CLOWDER_GH_CLIENT_ID") {
@@ -177,36 +163,26 @@ fn unauthorized<'r>(_req: &Request) -> Response<'r> {
         }
     };
 
-    let full_content = bootstrap::Page::new("401 Unauthorized")
+    bootstrap::Page::new("401 Unauthorized")
         .content(content)
         .link_prefix(super::route_prefix())
-        .render()
-        .into_string();
-
-    use std::io;
-
-    let mut response = Response::new();
-    response.set_sized_body(io::Cursor::new(full_content));
-
-    response
 }
 
 /// The 404 handler renders a slightly nicer-looking page than the stock Rocket handler.
 #[error(404)]
-fn not_found(req: &Request) -> maud::Markup {
+fn not_found(req: &Request) -> bootstrap::Page {
     bootstrap::Page::new("404 Not Found")
         .content(html! {
             h2 ("404 Not Found")
             p { "The resource " code (req.uri()) " could not be found." }
         })
         .link_prefix(super::route_prefix())
-        .render()
 }
 
 /// The 500 ISE (Internal Server Error) handler doesn't provide any more information than the
 /// stock Rocket handler, but it also looks nicer.
 #[error(500)]
-fn internal_server_error(e: rocket::Error, _req: &Request) -> maud::Markup {
+fn internal_server_error(e: rocket::Error, _req: &Request) -> bootstrap::Page {
     bootstrap::Page::new("500 Internal Server Error")
         .content(html! {
             h2 ("500 Internal Server Error")
@@ -214,5 +190,4 @@ fn internal_server_error(e: rocket::Error, _req: &Request) -> maud::Markup {
             pre code (format!["{:?}", e])
         })
         .link_prefix(super::route_prefix())
-        .render()
 }
