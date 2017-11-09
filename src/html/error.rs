@@ -15,7 +15,7 @@ use super::rustc_serialize;
 
 use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
-use maud::{html,Render};
+use maud::{html, Render};
 use rocket;
 use rocket::*;
 use rocket::response::{Responder, Response};
@@ -118,10 +118,10 @@ impl From<rustc_serialize::json::DecoderError> for Error {
 impl<'r> Responder<'r> for Error {
     fn respond_to(self, req: &Request) -> response::Result<'r> {
         bootstrap::Page::new(self.kind())
-                        .content(html! {
-                            h1 (self.kind())
-                            h2 (self.msg())
-                        })
+            .content(html! {
+                h1 (self.kind())
+                h2 (self.msg())
+            })
             .link_prefix(super::route_prefix())
             .render()
             .respond_to(req)
@@ -155,7 +155,7 @@ fn unauthorized<'r>(_req: &Request) -> Response<'r> {
                 .closeable(false)
                 .start_open(true)
                 .render()
-        },
+        }
 
         Err(ref e) => {
             html! {
@@ -163,16 +163,14 @@ fn unauthorized<'r>(_req: &Request) -> Response<'r> {
                 p "Login required and GitHub redirection not configured:"
                 pre (e)
             }
-        },
+        }
     };
 
-    let full_content =
-        bootstrap::Page::new("401 Unauthorized")
-            .content(content)
-            .link_prefix(super::route_prefix())
-            .render()
-            .into_string()
-            ;
+    let full_content = bootstrap::Page::new("401 Unauthorized")
+        .content(content)
+        .link_prefix(super::route_prefix())
+        .render()
+        .into_string();
 
     use std::io;
 

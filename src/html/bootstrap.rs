@@ -11,11 +11,12 @@ use chrono;
 use maud::*;
 use rocket::request::FlashMessage;
 
-include![concat![env!["OUT_DIR"], "/version.rs"]];
+include! { concat![env!["OUT_DIR"], "/version.rs"] }
 
 
 pub fn alert<S1, S2>(kind: S1, msg: S2) -> Markup
-    where S1: Into<String>, S2: Into<String>
+    where S1: Into<String>,
+          S2: Into<String>
 {
     html! {
         div class={ "alert alert-dismissable alert-" (kind.into()) } role="alert" {
@@ -27,7 +28,9 @@ pub fn alert<S1, S2>(kind: S1, msg: S2) -> Markup
 }
 
 pub fn callout<S1, S2, M>(kind: S1, title: S2, content: M) -> Markup
-    where S1: Into<String>, S2: Into<String>, M: Into<Markup>
+    where S1: Into<String>,
+          S2: Into<String>,
+          M: Into<Markup>
 {
     html! {
         div#flash class={ "mb-3 bs-callout bs-callout-" (kind.into()) } {
@@ -116,7 +119,11 @@ impl ModalDialog {
 impl Render for ModalDialog {
     fn render(&self) -> Markup {
         let label_id = format!["{}_label", self.id];
-        let title = if let Some(ref t) = self.title { t } else { &self.id };
+        let title = if let Some(ref t) = self.title {
+            t
+        } else {
+            &self.id
+        };
 
         html! {
             div.modal.fade
@@ -162,17 +169,18 @@ impl Render for ModalDialog {
 
 
 pub enum NavItem {
-    Link {
-        href: String,
-        text: String,
-    },
+    Link { href: String, text: String },
 }
 
 impl NavItem {
     pub fn link<S1, S2>(href: S1, text: S2) -> NavItem
-        where S1: Into<String>, S2: Into<String>
+        where S1: Into<String>,
+              S2: Into<String>
     {
-        NavItem::Link { href: href.into(), text: text.into() }
+        NavItem::Link {
+            href: href.into(),
+            text: text.into(),
+        }
     }
 }
 

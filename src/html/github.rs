@@ -39,11 +39,12 @@ const ACCESS_TOKEN_URL: &'static str = "https://github.com/login/oauth/access_to
 /// GitHub username.
 ///
 pub fn auth_callback(auth_code: String) -> Result<String, Error> {
-    OAuthClient::new(env::var("CLOWDER_GH_CLIENT_ID")?)?
-                .set_secret(env::var("CLOWDER_GH_CLIENT_SECRET")?)
-                .set_oauth_code(auth_code)
-                .user()
-                .map(|u| u.username().to_string())
+    OAuthClient::new(env::var("CLOWDER_GH_CLIENT_ID")?)
+        ?
+        .set_secret(env::var("CLOWDER_GH_CLIENT_SECRET")?)
+        .set_oauth_code(auth_code)
+        .user()
+        .map(|u| u.username().to_string())
 }
 
 
@@ -133,21 +134,22 @@ impl OAuthClient {
     }
 
     fn query<T, U>(&mut self, url: U) -> Result<T, Error>
-        where T: Decodable, U: hyper::client::IntoUrl
+        where T: Decodable,
+              U: hyper::client::IntoUrl
     {
         let access_token = self.access_token()?.to_string();
 
-        let mut response = self.http.get(url)
-                .header(header::Authorization(header::Bearer { token: access_token }))
-                .header(header::UserAgent(String::from("musec/clowder")))
-                .send()?
-                ;
+        let mut response = self.http
+            .get(url)
+            .header(header::Authorization(header::Bearer { token: access_token }))
+            .header(header::UserAgent(String::from("musec/clowder")))
+            .send()?;
 
         let body = response_str(&mut response)?;
 
         rustc_serialize::json::decode(&body)
-                              .map_err(|err| format!["failed to parse {}: {}", body, err])
-                              .map_err(Error::InvalidData)
+            .map_err(|err| format!["failed to parse {}: {}", body, err])
+            .map_err(Error::InvalidData)
     }
 
     ///
@@ -156,12 +158,12 @@ impl OAuthClient {
     ///
     fn retrieve_access_token(&mut self) -> Result<&str, Error> {
         let secret = self.secret
-                .as_ref()
-                .ok_or(Error::AuthError(String::from("no GitHub client secret has been set")))?;
+            .as_ref()
+            .ok_or(Error::AuthError(String::from("no GitHub client secret has been set")))?;
 
         let code = self.oauth_code
-                .as_ref()
-                .ok_or(Error::AuthError(String::from("no OAuth code has been set")))?;
+            .as_ref()
+            .ok_or(Error::AuthError(String::from("no OAuth code has been set")))?;
 
         let form_data = url::form_urlencoded::Serializer::new(String::new())
             .append_pair("client_id", &self.id)
@@ -188,13 +190,13 @@ fn access_token(form_body: String) -> Result<String, Error> {
         match &*key {
             "access_token" => {
                 return Ok(value.to_string());
-            },
+            }
 
             "error_description" => {
                 return Err(Error::InvalidData(value.to_string()));
-            },
+            }
 
-            _ => {},
+            _ => {}
         };
     }
 
@@ -205,6 +207,6 @@ fn response_str(response: &mut hyper::client::response::Response) -> Result<Stri
     let mut body = String::new();
 
     response.read_to_string(&mut body)
-            .map(|_| body)
-            .map_err(|e| Error::InvalidData(format!["invalid response from GitHub: {}", e]))
+        .map(|_| body)
+        .map_err(|e| Error::InvalidData(format!["invalid response from GitHub: {}", e]))
 }

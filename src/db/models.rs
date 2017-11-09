@@ -7,7 +7,7 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-use chrono::{DateTime,Utc};
+use chrono::{DateTime, Utc};
 use db::schema::*;
 use diesel;
 use diesel::*;
@@ -17,10 +17,10 @@ use std::collections::HashSet;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
 
-enable_multi_table_joins![machines, microarchitectures];
-enable_multi_table_joins![machines, architectures];
-enable_multi_table_joins![machines, users];
-enable_multi_table_joins![processors, architectures];
+enable_multi_table_joins! { machines, microarchitectures }
+enable_multi_table_joins! { machines, architectures }
+enable_multi_table_joins! { machines, users }
+enable_multi_table_joins! { processors, architectures }
 
 
 #[derive(Debug, Identifiable, Queryable)]
@@ -45,9 +45,9 @@ impl User {
         use self::emails::dsl::*;
 
         emails.filter(email.eq(address))
-              .first(c)
-              .map(|e: Email| e.user_id)
-              .and_then(|uid| User::get(uid, c))
+            .first(c)
+            .map(|e: Email| e.user_id)
+            .and_then(|uid| User::get(uid, c))
     }
 
     ///
@@ -67,8 +67,8 @@ impl User {
     pub fn emails(&self, c: &Connection) -> DieselResult<HashSet<String>> {
         use db::schema::emails::dsl::*;
         emails.filter(user_id.eq(self.id))
-              .load(c)
-              .map(|user_emails| user_emails.into_iter().map(|e: Email| e.email).collect())
+            .load(c)
+            .map(|user_emails| user_emails.into_iter().map(|e: Email| e.email).collect())
     }
 
     ///
@@ -102,8 +102,7 @@ impl User {
 
         let role_names = current_roles.iter()
             .map(|ref role| role.name.clone())
-            .collect::<HashSet<_>>()
-            ;
+            .collect::<HashSet<_>>();
 
         use self::role_assignments::dsl::*;
 
@@ -149,10 +148,11 @@ impl User {
         role_assignments.inner_join(roles::table)
             .filter(user_id.eq(self.id))
             .load(c)
-            .map(|roles: Vec<(RoleAssignment, Role)>|
+            .map(|roles: Vec<(RoleAssignment, Role)>| {
                 roles.into_iter()
                     .map(|(_, r)| r)
-                    .collect())
+                    .collect()
+            })
     }
 
     pub fn can_alter_machines(&self, c: &Connection) -> DieselResult<bool> {
@@ -183,8 +183,9 @@ impl User {
         role_assignments.inner_join(roles::table)
             .filter(user_id.eq(self.id))
             .load(c)
-            .map(|roles: Vec<(RoleAssignment, Role)>|
-                 roles.into_iter().any(|(_, r)| predicate(&r)))
+            .map(|roles: Vec<(RoleAssignment, Role)>| {
+                roles.into_iter().any(|(_, r)| predicate(&r))
+            })
     }
 }
 
@@ -200,8 +201,8 @@ impl GithubAccount {
     pub fn get(gh_username: &str, conn: &Connection) -> DieselResult<(GithubAccount, User)> {
         use self::github_accounts::dsl::*;
         github_accounts.inner_join(users::table)
-                       .filter(github_username.eq(gh_username))
-                       .first(conn)
+            .filter(github_username.eq(gh_username))
+            .first(conn)
     }
 }
 
@@ -226,11 +227,11 @@ impl Email {
         where S: Into<String>
     {
         diesel::insert(&EmailInserter {
-            user_id: user.id,
-            email: email.into(),
-        })
-        .into(emails::table)
-        .get_result(conn)
+                user_id: user.id,
+                email: email.into(),
+            })
+            .into(emails::table)
+            .get_result(conn)
     }
 }
 
@@ -278,11 +279,11 @@ struct RoleAssigner {
 impl RoleAssignment {
     pub fn insert(user: &User, role: &Role, conn: &Connection) -> DieselResult<RoleAssignment> {
         diesel::insert(&RoleAssigner {
-            user_id: user.id,
-            role_id: role.id,
-        })
-        .into(role_assignments::table)
-        .get_result(conn)
+                user_id: user.id,
+                role_id: role.id,
+            })
+            .into(role_assignments::table)
+            .get_result(conn)
     }
 }
 
@@ -400,7 +401,7 @@ pub struct FullMachine {
     machine: Machine,
     processor: Processor,
     microarch: Microarchitecture,
-    arch: Architecture
+    arch: Architecture,
 }
 
 type FullMachineJoin = (Machine, (Processor, (Microarchitecture, Architecture)));
@@ -488,10 +489,9 @@ pub struct Disk {
 impl Disk {
     pub fn short_description(&self) -> String {
         let v = self.vendor
-                    .as_ref()
-                    .map(|vendor| format!["{} ", vendor])
-                    .unwrap_or(String::new())
-                    ;
+            .as_ref()
+            .map(|vendor| format!["{} ", vendor])
+            .unwrap_or(String::new());
 
         let ssd = if self.ssd { "SSD" } else { "non-SSD" };
 
@@ -520,15 +520,14 @@ pub struct Nic {
 impl Nic {
     pub fn short_description(&self) -> String {
         let model: String = self.vendor
-                        .as_ref()
-                        .map(|vendor| format!["{} ", vendor])
-                        .unwrap_or(String::new())
-                    +
-                    &self.model
-                         .as_ref()
-                         .map(|m| format!["{} ", m])
-                         .unwrap_or(String::new())
-                    ;
+            .as_ref()
+            .map(|vendor| format!["{} ", vendor])
+            .unwrap_or(String::new())
+            +
+            &self.model
+            .as_ref()
+            .map(|m| format!["{} ", m])
+            .unwrap_or(String::new());
 
         format!["{} — {}{} Gbps", self.mac_formatted(), model, self.speed_gbps]
     }
@@ -554,7 +553,10 @@ impl Nic {
 fn squash_chars<C>(chunk: C) -> String
     where C: Iterator<Item = char>
 {
-    chunk.fold(String::new(), |mut s, c| { s.push(c); s })
+    chunk.fold(String::new(), |mut s, c| {
+        s.push(c);
+        s
+    })
 }
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
@@ -578,14 +580,13 @@ impl Reservation {
         use self::reservations::dsl::*;
 
         let query = reservations.inner_join(machines::table)
-                                .inner_join(users::table)
-                                .order(scheduled_end.desc())
-                                .order(machine_id)
-                                ;
+            .inner_join(users::table)
+            .order(scheduled_end.desc())
+            .order(machine_id);
 
         if only_current {
             query.filter(actual_end.is_null())
-                 .load(c)
+                .load(c)
         } else {
             query.load(c)
         }
@@ -597,11 +598,11 @@ impl Reservation {
     pub fn for_machine(m: &Machine, c: &Connection) -> DieselResult<Vec<(Reservation, User)>> {
         use self::reservations::dsl::*;
         reservations.inner_join(users::table)
-                    .filter(machine_id.eq(m.id()))
-                    .filter(user_id.eq(users::dsl::id))
-                    .order(actual_end.desc())
-                    .order(scheduled_end.desc())
-                    .load(c)
+            .filter(machine_id.eq(m.id()))
+            .filter(user_id.eq(users::dsl::id))
+            .order(actual_end.desc())
+            .order(scheduled_end.desc())
+            .load(c)
     }
 
     ///
@@ -610,10 +611,10 @@ impl Reservation {
     pub fn for_user(user: &User, c: &Connection) -> DieselResult<Vec<(Reservation, Machine)>> {
         use self::reservations::dsl::*;
         reservations.inner_join(machines::table)
-                    .filter(user_id.eq(user.id()))
-                    .order(actual_end.desc())
-                    .order(scheduled_end.desc())
-                    .load(c)
+            .filter(user_id.eq(user.id()))
+            .order(actual_end.desc())
+            .order(scheduled_end.desc())
+            .load(c)
     }
 
     pub fn get(res_id: i32, c: &Connection) -> DieselResult<(Reservation, Machine, User)> {
@@ -701,7 +702,8 @@ impl ReservationBuilder {
     }
 
     pub fn insert(self, conn: &Connection) -> DieselResult<Reservation> {
-        insert(&self).into(reservations::table)
+        insert(&self)
+            .into(reservations::table)
             .get_result(conn)
     }
 }

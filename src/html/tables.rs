@@ -17,13 +17,13 @@ use maud::*;
 ///
 /// The header of a Bootstrap-compatible HTML table.
 ///
-pub struct TableHeader (Vec<String>);
+pub struct TableHeader(Vec<String>);
 
 impl TableHeader {
     pub fn new(strs: &[&str]) -> TableHeader {
         TableHeader(strs.into_iter()
-                        .map(|s| s.to_string())
-                        .collect())
+            .map(|s| s.to_string())
+            .collect())
     }
 
     pub fn add_if<S>(mut self, condition: bool, s: S) -> TableHeader
@@ -99,7 +99,7 @@ impl MachineTable {
     }
 
     fn header(&self) -> TableHeader {
-        TableHeader::new(&[ "Name" ])
+        TableHeader::new(&["Name"])
             .add_if(self.show_arch, "Arch")
             .add_if(self.show_processor_name, "Proc")
             .add_if(self.show_microarch, "Microarch")
@@ -230,7 +230,7 @@ impl ReservationTable {
     }
 
     fn header(&self) -> TableHeader {
-        TableHeader::new(&[ "#" ])
+        TableHeader::new(&["#"])
             .add_if(self.show_machine, "Machine")
             .add_if(self.show_user, "User")
             .add_if(self.show_scheduled_start, "Start")

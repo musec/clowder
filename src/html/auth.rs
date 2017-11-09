@@ -9,7 +9,7 @@
 
 use db::models::*;
 use diesel::pg::PgConnection as Connection;
-use rocket::http::{Cookie,Cookies};
+use rocket::http::{Cookie, Cookies};
 use rocket::request;
 use std::env;
 
@@ -30,9 +30,7 @@ struct Authenticator {
 
 impl Authenticator {
     fn new() -> Authenticator {
-        Authenticator {
-            conn: super::db::establish_connection(),
-        }
+        Authenticator { conn: super::db::establish_connection() }
     }
 
     ///
@@ -41,10 +39,9 @@ impl Authenticator {
     ///
     fn authenticate(self, cookies: &mut Cookies) -> Result<AuthContext, Error> {
         let user = cookies.get_private(AUTH_COOKIE_NAME)
-                          .ok_or(Error::AuthRequired)
-                          .and_then(|ref username| self.lookup_user(username.value()))
-                          .or_else(|_| self.try_fake_auth())
-                          ?;
+            .ok_or(Error::AuthRequired)
+            .and_then(|ref username| self.lookup_user(username.value()))
+            .or_else(|_| self.try_fake_auth())?;
 
         Ok(AuthContext {
             conn: self.conn,
@@ -56,8 +53,7 @@ impl Authenticator {
     /// Attempt to look up a user (by Clowder username) in the user database.
     ///
     fn lookup_user(&self, clowder_username: &str) -> Result<User, Error> {
-        User::with_username(&clowder_username, &self.conn)
-             .map_err(Error::DatabaseError)
+        User::with_username(&clowder_username, &self.conn).map_err(Error::DatabaseError)
     }
 
     ///
@@ -70,9 +66,11 @@ impl Authenticator {
         env::var_os("CLOWDER_FAKE_GITHUB_USERNAME")
             .and_then(|s| s.to_str().map(str::to_string))
             .ok_or(Error::AuthRequired)
-            .and_then(|username| GithubAccount::get(&username, &self.conn)
-                                               .map_err(Error::DatabaseError)
-                                               .map(|(_, user)| user))
+            .and_then(|username| {
+                GithubAccount::get(&username, &self.conn)
+                    .map_err(Error::DatabaseError)
+                    .map(|(_, user)| user)
+            })
     }
 }
 
@@ -115,9 +113,7 @@ pub fn logout<'c>(mut jar: Cookies) {
 }
 
 /// Generate a cookie that attests to a logged-in user's username.
-pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S)
-    -> Result<(), Error>
-{
+pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S) -> Result<(), Error> {
     jar.add_private(Cookie::new(String::from(AUTH_COOKIE_NAME), username.into()));
     Ok(())
 }

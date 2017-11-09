@@ -25,4 +25,3 @@ fn static_images(filename: String) -> io::Result<File> {
 fn static_js(filename: String) -> io::Result<File> {
     File::open(format!["static/js/{}", filename])
 }
-

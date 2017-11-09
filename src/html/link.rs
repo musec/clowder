@@ -65,4 +65,3 @@ impl Render for Link {
         html! { a href=(self.url) (self.text) }
     }
 }
-

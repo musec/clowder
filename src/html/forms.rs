@@ -112,7 +112,6 @@ impl Select {
             name: name.into(),
             options: Vec::new(),
             multiple: false,
-
         }
     }
 
@@ -147,7 +146,8 @@ pub struct SelectOption {
 
 impl SelectOption {
     pub fn new<S1, S2>(name: S1, label: S2) -> SelectOption
-        where S1: Into<String>, S2: Into<String>
+        where S1: Into<String>,
+              S2: Into<String>
     {
         SelectOption {
             name: name.into(),
@@ -191,15 +191,11 @@ pub struct SubmitButton {
 
 impl SubmitButton {
     pub fn new() -> SubmitButton {
-        SubmitButton {
-            label: String::from("Submit")
-        }
+        SubmitButton { label: String::from("Submit") }
     }
 
     pub fn label<S: Into<String>>(self, l: S) -> SubmitButton {
-        SubmitButton {
-            label: l.into(),
-        }
+        SubmitButton { label: l.into() }
     }
 }
 

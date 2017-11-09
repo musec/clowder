@@ -16,8 +16,10 @@
 extern crate chrono;
 extern crate chrono_humanize;
 extern crate crypto;
-#[macro_use] extern crate diesel;
-#[macro_use] extern crate diesel_codegen;
+#[macro_use]
+extern crate diesel;
+#[macro_use]
+extern crate diesel_codegen;
 extern crate dotenv;
 extern crate hyper;
 extern crate hyper_native_tls;
@@ -41,8 +43,7 @@ fn main() {
     let route_prefix = env::var("CLOWDER_PREFIX").unwrap_or(String::from("/"));
 
     rocket::ignite()
-           .catch(html::error_catchers())
-           .mount(&route_prefix, html::all_routes())
-           .launch()
-           ;
+        .catch(html::error_catchers())
+        .mount(&route_prefix, html::all_routes())
+        .launch();
 }
