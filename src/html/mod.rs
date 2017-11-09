@@ -40,6 +40,7 @@ mod tables;
 
 use std::env;
 use self::auth::AuthContext;
+use self::bootstrap::Page;
 use self::error::Error;
 use self::link::Link;
 
@@ -78,13 +79,21 @@ pub fn escape(dangerous: &str) -> String {
 }
 
 
-/// Render a normal (i.e., non-error) page of content.
-pub fn render<S, M>(title: S, auth: &AuthContext, flash: Option<FlashMessage>, content: M) -> Markup
-    where S: Into<String>,
-          M: Into<Markup>
+///
+/// Create a normal (i.e., non-error) page to be augmented with content.
+///
+/// ```rust
+/// page("my title", &auth)
+///     .content(html! { h2 "hello" })
+///     .flash(/* ... */)
+///     .render()
+/// ```
+///
+fn page<S>(title: S, auth: &AuthContext) -> Page
+    where S: Into<String>
 {
     let user = &auth.user;
-    let route_prefix = route_prefix();
+    let route_prefix: &str = &route_prefix();
     let prefix = |s| format!["{}{}", route_prefix, s];
 
     let mut nav_links = vec![bootstrap::NavItem::link(prefix("machines"), "Machines"),
@@ -94,18 +103,15 @@ pub fn render<S, M>(title: S, auth: &AuthContext, flash: Option<FlashMessage>, c
         nav_links.push(bootstrap::NavItem::link(prefix("users"), "Users"));
     }
 
-    bootstrap::Page::new(title)
-        .content(content.into())
-        .flash(flash)
-        .link_prefix(&route_prefix as &str)
+    Page::new(title.into())
+        .link_prefix(route_prefix)
         .nav(nav_links)
         .user(&user.username, &user.name)
-        .render()
 }
 
 
 #[get("/")]
-fn index(auth: AuthContext) -> Result<Markup, Error> {
+fn index(auth: AuthContext) -> Result<Page, Error> {
     let machines = FullMachine::all(&auth.conn)?;
 
     let reservations = Reservation::all(true, &auth.conn)
@@ -114,7 +120,7 @@ fn index(auth: AuthContext) -> Result<Markup, Error> {
         .map(|(r, m, u)| (r, Some(m), Some(u)))
         .collect();
 
-    Ok(render("Clowder", &auth, None, html! {
+    Ok(page("Clowder", &auth).content(html! {
         div.row {
             div class="col-md-6" {
                 h4 "Machine inventory"
@@ -167,14 +173,14 @@ fn logout(_auth: AuthContext, cookies: http::Cookies) -> Redirect {
 }
 
 #[get("/machine/<machine_name>")]
-fn machine(machine_name: String, auth: AuthContext) -> Result<Markup, Error> {
+fn machine(machine_name: String, auth: AuthContext) -> Result<Page, Error> {
     let conn = &auth.conn;
 
     let m = FullMachine::with_name(&machine_name, conn)?;
     let disks = m.machine().disks(conn)?;
     let nics = m.machine().nics(conn)?;
 
-    Ok(render(format!["Clowder: {}", m.name()], &auth, None, html! {
+    Ok(page(format!["Clowder: {}", m.name()], &auth).content(html! {
         div.row h2 (m.name())
 
         div.row {
@@ -255,7 +261,7 @@ fn machine_create(form: Form<NewMachineForm>, auth: AuthContext) -> Result<Redir
 }
 
 #[get("/machines")]
-fn machines(auth: AuthContext) -> Result<Markup, Error> {
+fn machines(auth: AuthContext) -> Result<Page, Error> {
     let machine_creator = auth.user.can_create_machines(&auth.conn)?;
     let processor_options = Processor::all(&auth.conn)
         ?
@@ -295,11 +301,11 @@ fn machines(auth: AuthContext) -> Result<Markup, Error> {
                 }
             }
         })
-        .map(|table| render("Clowder: Machines", &auth, None, table.render()))
+        .map(|table| page("Clowder: Machines", &auth).content(table))
 }
 
 #[get("/reservation/<id>")]
-fn reservation(id: i32, auth: AuthContext, flash: Option<FlashMessage>) -> Result<Markup, Error> {
+fn reservation(id: i32, auth: AuthContext, flash: Option<FlashMessage>) -> Result<Page, Error> {
     let (r, machine, user) = Reservation::get(id, &auth.conn)?;
 
     let can_end = match (r.scheduled_start, r.actual_end) {
@@ -307,7 +313,7 @@ fn reservation(id: i32, auth: AuthContext, flash: Option<FlashMessage>) -> Resul
         (_, _) => false,
     };
 
-    Ok(render(format!["Clowder: reservation {}", r.id], &auth, flash, html! {
+    Ok(page(format!["Clowder: reservation {}", r.id], &auth).flash(flash).content(html! {
         h2 { "Reservation " (r.id) }
 
         table.lefty {
@@ -402,7 +408,7 @@ struct ReservationQuery {
 }
 
 #[get("/reservation/create?<res>")]
-fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<Markup, Error> {
+fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<Page, Error> {
     let users = try![User::all(&auth.conn)];
     let user_options = users.iter()
         .map(|ref u| {
@@ -422,7 +428,7 @@ fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<M
         })
         .collect::<Vec<_>>();
 
-    Ok(render("Create reservation", &auth, None, html! {
+    Ok(page("Create reservation", &auth).content(html! {
         h2 "Reserve a machine"
 
         form action="." method="post" {
@@ -457,10 +463,10 @@ fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<M
 }
 
 #[get("/reservation/end/<id>")]
-fn reservation_end(id: i32, auth: AuthContext) -> Result<Markup, Error> {
+fn reservation_end(id: i32, auth: AuthContext) -> Result<Page, Error> {
     let (r, machine, user) = Reservation::get(id, &auth.conn)?;
 
-    Ok(render(format!["Clowder: end reservation {}", r.id], &auth, None, html! {
+    Ok(page(format!["Clowder: end reservation {}", r.id], &auth).content(html! {
         h2 "End reservation"
 
         (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
@@ -511,19 +517,18 @@ fn reservation_end_confirm(res_id: i32, auth: AuthContext) -> Result<Flash<Redir
 }
 
 #[get("/reservations")]
-fn reservations(auth: AuthContext) -> Result<Markup, Error> {
+fn reservations(auth: AuthContext) -> Result<Page, Error> {
     let reservations = Reservation::all(false, &auth.conn)
         ?
         .into_iter()
         .map(|(r, m, u)| (r, Some(m), Some(u)))
         .collect();
 
-    Ok(render("Clowder: Reservations", &auth, None,
-              tables::ReservationTable::new(reservations).render()))
+    Ok(page("Clowder: Reservations", &auth).content(tables::ReservationTable::new(reservations)))
 }
 
 #[get("/user/<name>")]
-fn user(name: String, auth: AuthContext) -> Result<Markup, Error> {
+fn user(name: String, auth: AuthContext) -> Result<Page, Error> {
     let user = try![User::with_username(&name, &auth.conn)];
     let superuser = auth.user.can_alter_users(&auth.conn)?;
 
@@ -547,7 +552,7 @@ fn user(name: String, auth: AuthContext) -> Result<Markup, Error> {
         .map(|(r, m)| (r, Some(m), None))
         .collect();
 
-    Ok(render(name, &auth, None, html! {
+    Ok(page(name, &auth).content(html! {
         h2 (name)
 
         div.row {
@@ -612,7 +617,7 @@ fn user(name: String, auth: AuthContext) -> Result<Markup, Error> {
 
 
 #[get("/users")]
-fn users(auth: AuthContext) -> Result<Markup, Error> {
+fn users(auth: AuthContext) -> Result<Page, Error> {
     let conn = &auth.conn;
 
     let can_view = auth.user.can_alter_users(conn).unwrap_or(false);
@@ -626,7 +631,7 @@ fn users(auth: AuthContext) -> Result<Markup, Error> {
     let users = User::all(conn)?;
     let roles = Role::all(conn)?;
 
-    Ok(render("Users", &auth, None, html! {
+    Ok(page("Users", &auth).content(html! {
         h2 ("Users")
 
         table.table.table-responsive {
