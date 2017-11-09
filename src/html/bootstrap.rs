@@ -247,7 +247,7 @@ impl Page {
 }
 
 impl<'r> rocket::response::Responder<'r> for Page {
-    fn respond_to(self, req: &rocket::request::Request) -> rocket::response::Result<'r> {
+    fn respond_to(self, req: &rocket::Request) -> rocket::response::Result<'r> {
         self.render().respond_to(req)
     }
 }
