@@ -153,17 +153,7 @@ struct GithubCallbackData {
 
 #[get("/gh-callback?<query>")]
 fn github_callback(query: GithubCallbackData, cookies: http::Cookies) -> Result<Redirect, Error> {
-    github::auth_callback(query.code)
-        .and_then(|username| {
-            GithubAccount::get(&username, &db::establish_connection()).map_err(|err| match err {
-                diesel::result::Error::NotFound => {
-                    Error::AuthError(format!["GitHub user '{}' not authorized", username])
-                }
-                _ => Error::DatabaseError(err),
-            })
-        })
-        .map(|(_, user)| auth::set_user_cookie(cookies, user.username))
-        .map(|_| Redirect::to(&route_prefix()))
+    auth::github_callback(query.code, cookies).map(|_| Redirect::to(&route_prefix()))
 }
 
 #[get("/logout")]

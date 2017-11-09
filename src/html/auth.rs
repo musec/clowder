@@ -14,6 +14,7 @@ use rocket::request;
 use std::env;
 
 use html::error::Error;
+use super::github;
 use super::rocket;
 
 /// The name of the cookie we set (with authenticated encryption) for the user's username.
@@ -54,6 +55,17 @@ impl Authenticator {
     ///
     fn lookup_user(&self, clowder_username: &str) -> Result<User, Error> {
         User::with_username(&clowder_username, &self.conn).map_err(Error::DatabaseError)
+    }
+
+    ///
+    /// Contact GitHub to retrieve the username associated with an OAuth authentication code
+    /// and then lookup the Clowder user associated with that GitHub account.
+    ///
+    fn retrieve_github_user(&self, auth_code: String) -> Result<User, Error> {
+        let gh_username = github::auth_callback(auth_code)?;
+        GithubAccount::get(&gh_username, &self.conn)
+            .map(|(_, user)| user)
+            .map_err(|_| Error::AuthError(format!["GitHub user '{}' not authorized", gh_username]))
     }
 
     ///
@@ -107,13 +119,19 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
 }
 
 
+/// Handle a GitHub OAuth callback.
+pub fn github_callback(code: String, cookies: rocket::http::Cookies) -> Result<(), Error> {
+    Authenticator::new()
+        .retrieve_github_user(code)
+        .map(|user| set_user_cookie(cookies, user.username))
+}
+
 /// Log the user out by clearing their auth cookie.
 pub fn logout<'c>(mut jar: Cookies) {
     jar.get_private(AUTH_COOKIE_NAME).map(|c| jar.remove_private(c));
 }
 
 /// Generate a cookie that attests to a logged-in user's username.
-pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S) -> Result<(), Error> {
-    jar.add_private(Cookie::new(String::from(AUTH_COOKIE_NAME), username.into()));
-    Ok(())
+pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S) {
+    jar.add_private(Cookie::new(String::from(AUTH_COOKIE_NAME), username.into()))
 }
