@@ -9,6 +9,7 @@
 
 use chrono;
 use maud::*;
+use rocket;
 use rocket::request::FlashMessage;
 
 include! { concat![env!["OUT_DIR"], "/version.rs"] }
@@ -243,6 +244,12 @@ impl Page {
     pub fn user(mut self, username: &str, display_name: &str) -> Self {
         self.user = Some((username.into(), display_name.into()));
         self
+    }
+}
+
+impl<'r> rocket::response::Responder<'r> for Page {
+    fn respond_to(self, req: &rocket::request::Request) -> rocket::response::Result<'r> {
+        self.render().respond_to(req)
     }
 }
 
