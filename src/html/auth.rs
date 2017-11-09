@@ -9,7 +9,7 @@
 
 use db::models::*;
 use diesel::pg::PgConnection as Connection;
-use rocket::http::{Cookie, Cookies};
+use rocket::http::Cookies;
 use rocket::request;
 use std::env;
 
@@ -133,5 +133,5 @@ pub fn logout<'c>(mut jar: Cookies) {
 
 /// Generate a cookie that attests to a logged-in user's username.
 pub fn set_user_cookie<'c, S: Into<String>>(mut jar: Cookies, username: S) {
-    jar.add_private(Cookie::new(String::from(AUTH_COOKIE_NAME), username.into()))
+    jar.add_private(rocket::http::Cookie::new(String::from(AUTH_COOKIE_NAME), username.into()))
 }
