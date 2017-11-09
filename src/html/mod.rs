@@ -409,14 +409,13 @@ fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<P
         })
         .collect::<Vec<_>>();
 
+    let machine_name = res.machine.as_ref();
+
     let machines = try![Machine::all(&auth.conn)];
     let machine_options = machines.iter()
         .map(|ref m| {
             forms::SelectOption::new(m.name.clone(), m.name.clone())
-                .selected(res.machine
-                    .as_ref()
-                    .map(|n| n == &m.name)
-                    .unwrap_or(false))
+                .selected(machine_name.map(|n| n == &m.name).unwrap_or(false))
         })
         .collect::<Vec<_>>();
 

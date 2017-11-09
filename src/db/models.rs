@@ -108,11 +108,10 @@ impl User {
 
         for role in &current_roles {
             if !new_roles.contains(&role.name) {
-                diesel::delete(
-                    role_assignments
-                        .filter(role_id.eq(role.id))
-                        .filter(user_id.eq(self.id)))
-                    .execute(c)?;
+                let to_delete = role_assignments.filter(role_id.eq(role.id))
+                    .filter(user_id.eq(self.id));
+
+                diesel::delete(to_delete).execute(c)?;
             }
         }
 
@@ -512,17 +511,17 @@ pub struct Nic {
 
 impl Nic {
     pub fn short_description(&self) -> String {
-        let model: String = self.vendor
+        let vendor: String = self.vendor
             .as_ref()
             .map(|vendor| format!["{} ", vendor])
-            .unwrap_or(String::new())
-            +
-            &self.model
+            .unwrap_or(String::new());
+
+        let model: String = self.model
             .as_ref()
             .map(|m| format!["{} ", m])
             .unwrap_or(String::new());
 
-        format!["{} — {}{} Gbps", self.mac_formatted(), model, self.speed_gbps]
+        format!["{} — {}{} Gbps", self.mac_formatted(), vendor + &model, self.speed_gbps]
     }
 
     pub fn mac_formatted(&self) -> String {
@@ -566,10 +565,11 @@ pub struct Reservation {
     pub nfs_root: Option<String>,
 }
 
+type FullReservation = (Reservation, Machine, User);
+
 impl Reservation {
     /// Find all reservations, ordered by end time.
-    pub fn all(only_current: bool, c: &Connection) -> DieselResult<Vec<(Reservation,Machine,User)>>
-    {
+    pub fn all(only_current: bool, c: &Connection) -> DieselResult<Vec<FullReservation>> {
         use self::reservations::dsl::*;
 
         let query = reservations.inner_join(machines::table)
@@ -610,7 +610,7 @@ impl Reservation {
             .load(c)
     }
 
-    pub fn get(res_id: i32, c: &Connection) -> DieselResult<(Reservation, Machine, User)> {
+    pub fn get(res_id: i32, c: &Connection) -> DieselResult<FullReservation> {
         use db::schema::reservations::dsl::*;
 
         // TODO: figure out proper multi-table join stuff
