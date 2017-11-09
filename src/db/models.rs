@@ -613,15 +613,10 @@ impl Reservation {
     pub fn get(res_id: i32, c: &Connection) -> DieselResult<FullReservation> {
         use db::schema::reservations::dsl::*;
 
-        // TODO: figure out proper multi-table join stuff
-        let (r, m): (Reservation, Machine) =
-            reservations.inner_join(machines::table)
-                        .filter(id.eq(res_id))
-                        .first(c)?;
-
-        let u = User::get(r.user_id, c)?;
-
-        Ok((r, m, u))
+        reservations.inner_join(machines::table)
+            .inner_join(users::table)
+            .filter(id.eq(res_id))
+            .first(c)
     }
 
     ///
