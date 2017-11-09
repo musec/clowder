@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "clowder"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "chrono 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono-humanize 0.0.10 (registry+https://github.com/rust-lang/crates.io-index)",
