@@ -10,7 +10,6 @@
 use chrono;
 use maud::*;
 use rocket;
-use rocket::request::FlashMessage;
 
 include! { concat![env!["OUT_DIR"], "/version.rs"] }
 
@@ -199,7 +198,7 @@ impl Render for NavItem {
 pub struct Page {
     title: String,
     content: Option<Markup>,
-    flash: Option<FlashMessage>,
+    flash: Option<rocket::request::FlashMessage>,
     prefix: String,
     nav: Vec<NavItem>,
     user: Option<(String, String)>,
@@ -224,7 +223,7 @@ impl Page {
         self
     }
 
-    pub fn flash(mut self, f: Option<FlashMessage>) -> Self {
+    pub fn flash(mut self, f: Option<rocket::request::FlashMessage>) -> Self {
         self.flash = f;
         self
     }

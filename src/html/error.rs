@@ -17,7 +17,6 @@ use chrono;
 use maud; // TODO: use a Bootstrap::ResultType or somesuch
 use maud::{html, Render};
 use rocket;
-use rocket::*;
 
 use std::env;
 use std::error::Error as StdError;
@@ -128,7 +127,7 @@ impl Into<bootstrap::Page> for Error {
 
 /// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
 #[error(401)]
-fn unauthorized(_req: &Request) -> bootstrap::Page {
+fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
     const OAUTH_URL: &'static str = "https://github.com/login/oauth/authorize";
 
     let content = match env::var("CLOWDER_GH_CLIENT_ID") {
@@ -170,7 +169,7 @@ fn unauthorized(_req: &Request) -> bootstrap::Page {
 
 /// The 404 handler renders a slightly nicer-looking page than the stock Rocket handler.
 #[error(404)]
-fn not_found(req: &Request) -> bootstrap::Page {
+fn not_found(req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("404 Not Found")
         .content(html! {
             h2 ("404 Not Found")
@@ -182,7 +181,7 @@ fn not_found(req: &Request) -> bootstrap::Page {
 /// The 500 ISE (Internal Server Error) handler doesn't provide any more information than the
 /// stock Rocket handler, but it also looks nicer.
 #[error(500)]
-fn internal_server_error(e: rocket::Error, _req: &Request) -> bootstrap::Page {
+fn internal_server_error(e: rocket::Error, _req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("500 Internal Server Error")
         .content(html! {
             h2 ("500 Internal Server Error")
