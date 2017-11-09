@@ -179,13 +179,7 @@ impl User {
     fn has_role<Pred>(&self, c: &Connection, predicate: Pred) -> DieselResult<bool>
         where Pred: Fn(&Role) -> bool
     {
-        use self::role_assignments::dsl::*;
-        role_assignments.inner_join(roles::table)
-            .filter(user_id.eq(self.id))
-            .load(c)
-            .map(|roles: Vec<(RoleAssignment, Role)>| {
-                roles.into_iter().any(|(_, r)| predicate(&r))
-            })
+        self.roles(c).map(|roles| roles.iter().any(predicate))
     }
 }
 
