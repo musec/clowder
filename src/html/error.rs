@@ -14,7 +14,7 @@ use super::native_tls;
 use super::rustc_serialize;
 
 use chrono;
-use maud; // TODO: use a Bootstrap::ResultType or somesuch
+use maud;
 use maud::{html, Render};
 use rocket;
 
