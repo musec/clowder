@@ -170,6 +170,12 @@ impl MachineTable {
     }
 }
 
+impl Into<Markup> for MachineTable {
+    fn into(self) -> Markup {
+        <Render>::render(&self)
+    }
+}
+
 impl Render for MachineTable {
     fn render(&self) -> Markup {
         html! {
@@ -328,6 +334,12 @@ impl ReservationTable {
     pub fn show_user(mut self, s: bool) -> ReservationTable {
         self.show_user = s;
         self
+    }
+}
+
+impl Into<Markup> for ReservationTable {
+    fn into(self) -> Markup {
+        <Render>::render(&self)
     }
 }
 
