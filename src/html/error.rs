@@ -126,7 +126,7 @@ impl Into<bootstrap::Page> for Error {
 
 
 /// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
-#[error(401)]
+#[catch(401)]
 fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
     const OAUTH_URL: &'static str = "https://github.com/login/oauth/authorize";
 
@@ -170,7 +170,7 @@ fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
 }
 
 /// The 404 handler renders a slightly nicer-looking page than the stock Rocket handler.
-#[error(404)]
+#[catch(404)]
 fn not_found(req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("404 Not Found")
         .content(html! {
@@ -182,7 +182,7 @@ fn not_found(req: &rocket::Request) -> bootstrap::Page {
 
 /// The 500 ISE (Internal Server Error) handler doesn't provide any more information than the
 /// stock Rocket handler, but it also looks nicer.
-#[error(500)]
+#[catch(500)]
 fn internal_server_error(e: rocket::Error, _req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("500 Internal Server Error")
         .content(html! {
