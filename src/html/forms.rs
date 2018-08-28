@@ -178,7 +178,7 @@ impl<'a> From<(&'a str, &'a str)> for SelectOption {
 impl Render for SelectOption {
     fn render(&self) -> Markup {
         html! {
-            option value=(self.name) selected?[self.selected] (self.label)
+            option value=(self.name) selected?[self.selected] { (self.label) }
         }
     }
 }

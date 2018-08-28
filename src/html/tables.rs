@@ -43,7 +43,7 @@ impl Render for TableHeader {
             thead.thead-default {
                 tr {
                     @for ref heading in &self.0 {
-                        th (heading)
+                        th { (heading) }
                     }
                 }
             }
@@ -111,12 +111,12 @@ impl MachineTable {
     fn render_machine(&self, m: &FullMachine) -> Markup {
         html! {
             tr {
-                td (Link::from(m.machine()))
-                @if self.show_arch { td (m.architecture().name) }
+                td { (Link::from(m.machine())) }
+                @if self.show_arch { td { (m.architecture().name) } }
                 @if self.show_processor_name {
                     td {
                         @if let Some(ref url) = m.processor().url {
-                            a href=(url) (m.processor().name)
+                            a href=(url) { (m.processor().name) }
                         } @else {
                             (m.processor().name)
                         }
@@ -126,13 +126,13 @@ impl MachineTable {
                     td {
                         @let microarch = m.microarchitecture();
                         @if let Some(ref url) = microarch.url {
-                            a href=(url) (microarch.name)
+                            a href=(url) { (microarch.name) }
                         } @else {
                             (microarch.name)
                         }
                     }
                 }
-                @if self.show_cores { td.numeric (m.cores()) }
+                @if self.show_cores { td.numeric { (m.cores()) } }
                 @if self.show_freq { td.numeric { (m.freq_ghz()) " GHz" } }
                 @if self.show_memory { td.numeric { (m.memory_gb()) " GiB" } }
             }
@@ -268,7 +268,7 @@ impl ReservationTable {
 
         html! {
             tr class=(row_class) {
-                td (Link::from(r))
+                td { (Link::from(r)) }
 
                 @if self.show_machine {
                     td {

@@ -21,8 +21,9 @@ pub fn alert<S1, S2>(kind: S1, msg: S2) -> Markup
     html! {
         div class={ "alert alert-dismissable alert-" (kind.into()) } role="alert" {
             (PreEscaped(msg.into()))
-            button.close type="button" data-dismiss="alert" aria-label="Close"
-                span aria-hidden="true" (PreEscaped("&times;".to_string()))
+            button.close type="button" data-dismiss="alert" aria-label="Close" {
+                span aria-hidden="true" { (PreEscaped("&times;".to_string())) }
+            }
         }
     }
 }
@@ -34,7 +35,7 @@ pub fn callout<S1, S2, M>(kind: S1, title: S2, content: M) -> Markup
 {
     html! {
         div#flash class={ "mb-3 bs-callout bs-callout-" (kind.into()) } {
-            h4 (title.into())
+            h4 { (title.into()) }
             (content.into())
         }
     }
@@ -132,30 +133,35 @@ impl Render for ModalDialog {
                 aria-labelledby=(label_id)
                 aria-hidden="true" {
 
-                div.modal-dialog role="document"
+                div.modal-dialog role="document" {
                     div.modal-content {
                         div.modal-header {
-                            h5.modal-title id=(label_id) (title)
+                            h5.modal-title id=(label_id) { (title) }
 
                             @if self.closeable {
                                 button.close type="button"
                                     data-dismiss="modal"
-                                    aria-label="Close"
-
-                                    span aria-hidden="true" (PreEscaped("&times;"))
+                                    aria-label="Close" {
+                                        span aria-hidden="true" {
+                                            (PreEscaped("&times;"))
+                                        }
+                                    }
                             }
                         }
 
                         @if let Some(ref body) = self.body.as_ref() {
-                            div.modal-body
+                            div.modal-body {
                                 (body)
+                            }
                         }
 
                         @if let Some(ref footer) = self.footer.as_ref() {
-                            div.modal-footer
+                            div.modal-footer {
                                 (footer)
+                            }
                         }
                     }
+                }
             }
 
             @if self.start_open {
@@ -188,7 +194,7 @@ impl Render for NavItem {
     fn render(&self) -> Markup {
         match self {
             &NavItem::Link { ref href, ref text } => {
-                html! { li.nav-item a.nav-link href=(href) (text) }
+                html! { li.nav-item { a.nav-link href=(href) { (text) } } }
             }
         }
     }
@@ -263,7 +269,7 @@ impl Render for Page {
                     meta name="viewport"
                         content="width=device-width, initial-scale=1, shrink-to-fit=no" /
 
-                    title (format!["Clowder: {}", self.title])
+                    title { (format!["Clowder: {}", self.title]) }
 
                     link rel="stylesheet" href={ (self.prefix) "css/bootstrap.min.css" } /
                     link rel="stylesheet" href={ (self.prefix) "css/musec.css" } /
@@ -286,28 +292,34 @@ impl Render for Page {
                             span.navbar-toggler-icon {}
                         }
 
-                        a class="navbar-brand" href={ (self.prefix) } "Clowder"
+                        a class="navbar-brand" href=(self.prefix) { "Clowder" }
 
-                        div.collapse.navbar-collapse#navbarSupportedContent
-                            ul.navbar-nav.mr-auto
+                        div.collapse.navbar-collapse#navbarSupportedContent {
+                            ul.navbar-nav.mr-auto {
                                 @for ref m in &self.nav { (m) }
+                            }
+                        }
 
                             @if let Some((ref username, ref display_name)) = self.user {
                                 div.dropdown {
                                     a.btn.dropdown-toggle#userDropdown
                                         href="#"
                                         data-toggle="dropdown" data-target="fubar"
-                                        aria-haspopup="true" aria-expanded="false"
-                                        (display_name)
+                                        aria-haspopup="true" aria-expanded="false" {
+                                            (display_name)
+                                        }
 
                                     div.dropdown-menu.dropdown-menu-right#fubar
                                         aria-labelledby="userDropdown" {
 
-                                        h6.dropdown-header (username)
-                                        a.dropdown-item href={ (self.prefix) "user/" (username) }
+                                        h6.dropdown-header { (username) }
+                                        a.dropdown-item href={ (self.prefix) "user/" (username) } {
                                             "Profile"
+                                        }
                                         div.dropdown-divider {}
-                                        a.dropdown-item href={ (self.prefix) "logout" } "Log out"
+                                        a.dropdown-item href={ (self.prefix) "logout" } {
+                                            "Log out"
+                                        }
                                     }
                                 }
                             }
@@ -317,15 +329,22 @@ impl Render for Page {
                     }
 
                     div.container {
-                        div.row div class="col-md-12"
-                            // Check for a flash (one-time) message:
-                            (match self.flash {
-                                Some(ref f) => alert(f.name(), f.msg()),
-                                None => html![],
-                            })
+                        div.row {
+                            div class="col-md-12" {
+                                // Check for a flash (one-time) message:
+                                (match self.flash {
+                                    Some(ref f) => alert(f.name(), f.msg()),
+                                    None => html![],
+                                })
+                            }
+                        }
 
                         @if let Some(ref content) = self.content {
-                            div.row div class="col-md-12" div.container (content)
+                            div.row {
+                                div class="col-md-12" {
+                                    div.container { (content) }
+                                }
+                            }
                         }
                     }
 
@@ -333,7 +352,7 @@ impl Render for Page {
                         div.container.text-muted {
                             div.row.text-muted {
                                 div class="col-md-10" { "Clowder " (semver()) }
-                                div class="col-md-2" (chrono::Local::now().format("%e %b %Y"))
+                                div class="col-md-2" { (chrono::Local::now().format("%e %b %Y")) }
                             }
                         }
                     }

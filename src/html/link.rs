@@ -62,6 +62,6 @@ impl<'a> From<&'a User> for Link {
 
 impl Render for Link {
     fn render(&self) -> Markup {
-        html! { a href=(self.url) (self.text) }
+        html! { a href=(self.url) { (self.text) } }
     }
 }

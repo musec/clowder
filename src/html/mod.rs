@@ -123,7 +123,7 @@ fn index(auth: AuthContext) -> Result<Page, Error> {
     Ok(page("Clowder", &auth).content(html! {
         div.row {
             div class="col-md-6" {
-                h4 "Machine inventory"
+                h4 { "Machine inventory" }
                 (tables::MachineTable::new(machines)
                     .show_arch(false)
                     .show_cores(true)
@@ -134,7 +134,7 @@ fn index(auth: AuthContext) -> Result<Page, Error> {
             }
 
             div class="col-md-6" {
-                h4 "Current reservations"
+                h4 { "Current reservations" }
                 (tables::ReservationTable::new(reservations)
                                           .show_machine(true)
                                           .show_user(true)
@@ -171,45 +171,55 @@ fn machine(machine_name: String, auth: AuthContext) -> Result<Page, Error> {
     let nics = m.machine().nics(conn)?;
 
     Ok(page(format!["Clowder: {}", m.name()], &auth).content(html! {
-        div.row h2 (m.name())
+        div.row { h2 { (m.name()) } }
 
         div.row {
             div class="col-md-7" {
                 dl {
-                    dt "Processor(s)"
-                    dd ul {
-                        li {
-                            (Link::from(m.processor()))
-                            ": "
-                            (Link::from(m.microarchitecture())) " " (m.architecture().name) ", "
-                            (m.cores()) " cores, " (m.freq_ghz()) " GHz"
+                    dt { "Processor(s)" }
+                    dd {
+                        ul {
+                            li {
+                                (Link::from(m.processor()))
+                                ": "
+                                (Link::from(m.microarchitecture())) " " (m.architecture().name)
+                                ", "
+                                (m.cores()) " cores, " (m.freq_ghz()) " GHz"
+                            }
                         }
                     }
 
-                    dt "Memory"
+                    dt { "Memory" }
                     dd { (m.memory_gb()) " GiB" }
 
-                    dt "Disk(s)"
-                    dd ul {
-                        @for ref disk in disks {
-                            li (disk.short_description())
+                    dt { "Disk(s)" }
+                    dd {
+                        ul {
+                            @for ref disk in disks {
+                                li { (disk.short_description()) }
+                            }
                         }
                     }
 
-                    dt "NIC(s)"
-                    dd ul {
-                        @for ref nic in nics {
-                            li (nic.short_description())
+                    dt { "NIC(s)" }
+                    dd {
+                        ul {
+                            @for ref nic in nics {
+                                li { (nic.short_description()) }
+                            }
                         }
                     }
                 }
 
-                p a href={ (route_prefix()) "reservation/create/?machine=" (m.name()) }
-                    "Reserve this machine"
+                p {
+                    a href={ (route_prefix()) "reservation/create/?machine=" (m.name()) } {
+                        "Reserve this machine"
+                    }
+                }
             }
 
             div class="col-md-5" {
-                h3 "Reservations"
+                h3 { "Reservations" }
 
                 table.table.table-responsive {
                     (tables::TableHeader::new(&[ "", "User", "Started", "Ends" ]))
@@ -217,11 +227,13 @@ fn machine(machine_name: String, auth: AuthContext) -> Result<Page, Error> {
                     tbody {
                         @for (ref r, ref u) in Reservation::for_machine(&m.machine(), conn)? {
                             tr {
-                                td (Link::from(r))
-                                td (Link::from(u))
-                                td (HumanTime::from(r.start()))
-                                td (r.scheduled_end.map(|e| HumanTime::from(e).to_string())
-                                                   .unwrap_or(String::new()))
+                                td { (Link::from(r)) }
+                                td { (Link::from(u)) }
+                                td { (HumanTime::from(r.start())) }
+                                td {
+                                    (r.scheduled_end.map(|e| HumanTime::from(e).to_string())
+                                                    .unwrap_or(String::new()))
+                                }
                             }
                         }
                     }
@@ -264,29 +276,32 @@ fn machines(auth: AuthContext) -> Result<Page, Error> {
         .map(|machines| tables::MachineTable::new(machines))
         .map(|table| {
             html! {
-                h2 "Current inventory"
+                h2 { "Current inventory" }
                 (table)
 
                 @if machine_creator {
-                    h2 "Add new machine"
+                    h2 { "Add new machine" }
 
                     form action={ (route_prefix()) "machine/create" } method="post" {
                         table {
                             tr {
-                                th "Name"
-                                td (forms::Input::new("name"))
+                                th { "Name" }
+                                td { (forms::Input::new("name")) }
                             }
                             tr {
-                                th "Processor"
-                                td (forms::Select::new("processor").set_options(processor_options))
+                                th { "Processor" }
+                                td {
+                                    (forms::Select::new("processor")
+                                                   .set_options(processor_options))
+                                }
                             }
                             tr {
-                                th "Memory"
+                                th { "Memory" }
                                 td { (forms::Input::new("memory_gb")) " GiB" }
                             }
                             tr {
                                 th /
-                                td (forms::SubmitButton::new().label("Add to inventory"))
+                                td { (forms::SubmitButton::new().label("Add to inventory")) }
                             }
                         }
                     }
@@ -309,40 +324,48 @@ fn reservation(id: i32, auth: AuthContext, flash: Option<FlashMessage>) -> Resul
         h2 { "Reservation " (r.id) }
 
         table.lefty {
-            tr { th "User"       td (Link::from(&user)) }
-            tr { th "Machine"    td (Link::from(&machine)) }
-            tr { th "Starts"     td (r.scheduled_start) }
+            tr { th { "User" }       td { (Link::from(&user)) } }
+            tr { th { "Machine" }    td { (Link::from(&machine)) } }
+            tr { th { "Starts" }     td { (r.scheduled_start) } }
             tr {
-                th "Ends"
-                td (match r.scheduled_end {
-                    Some(d) => d.to_string(),
-                    None => String::new(),
-                })
+                th { "Ends" }
+                td {
+                    (match r.scheduled_end {
+                        Some(d) => d.to_string(),
+                        None => String::new(),
+                    })
+                }
             }
             tr {
-                th "Ended"
-                td (match r.actual_end {
-                    Some(d) => d.to_string(),
-                    None => String::new(),
-                })
+                th { "Ended" }
+                td {
+                    (match r.actual_end {
+                        Some(d) => d.to_string(),
+                        None => String::new(),
+                    })
+                }
             }
             tr {
-                th "NFS root"
-                td (match r.nfs_root {
-                    Some(r) => r,
-                    None => String::new(),
-                })
+                th { "NFS root" }
+                td {
+                    (match r.nfs_root {
+                        Some(r) => r,
+                        None => String::new(),
+                    })
+                }
             }
             tr {
-                th "PXE path"
-                td (match r.pxe_path {
-                    Some(p) => p,
-                    None => String::new(),
-                })
+                th { "PXE path" }
+                td {
+                    (match r.pxe_path {
+                        Some(p) => p,
+                        None => String::new(),
+                    })
+                }
             }
             @if can_end {
                 tr {
-                    th ""
+                    th {}
                     td {
                         form action={ "end/" (r.id) } method="get" {
                              input type="submit" value="End reservation" /
@@ -420,33 +443,33 @@ fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<P
         .collect::<Vec<_>>();
 
     Ok(page("Create reservation", &auth).content(html! {
-        h2 "Reserve a machine"
+        h2 { "Reserve a machine" }
 
         form action="." method="post" {
             table {
                 tr {
-                    th "User"
-                    td (forms::Select::new("user").set_options(user_options))
+                    th { "User" }
+                    td { (forms::Select::new("user").set_options(user_options)) }
                 }
                 tr {
-                    th "Machine"
-                    td (forms::Select::new("machine").set_options(machine_options))
+                    th { "Machine" }
+                    td { (forms::Select::new("machine").set_options(machine_options)) }
                 }
                 tr {
-                    th "Dates"
-                    td (forms::Input::new("dates").class("daterange").size(45))
+                    th { "Dates" }
+                    td { (forms::Input::new("dates").class("daterange").size(45)) }
                 }
                 tr {
-                    th "PXE loader"
-                    td (forms::Input::new("pxe").size(45))
+                    th { "PXE loader" }
+                    td { (forms::Input::new("pxe").size(45)) }
                 }
                 tr {
-                    th "NFS root"
-                    td (forms::Input::new("nfs").size(45))
+                    th { "NFS root" }
+                    td { (forms::Input::new("nfs").size(45)) }
                 }
                 tr {
                     th /
-                    td (forms::SubmitButton::new().label("Reserve"))
+                    td { (forms::SubmitButton::new().label("Reserve")) }
                 }
             }
         }
@@ -458,30 +481,39 @@ fn reservation_end(id: i32, auth: AuthContext) -> Result<Page, Error> {
     let (r, machine, user) = Reservation::get(id, &auth.conn)?;
 
     Ok(page(format!["Clowder: end reservation {}", r.id], &auth).content(html! {
-        h2 "End reservation"
+        h2 { "End reservation" }
 
         (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
             html! {
                 table {
-                    tr { th "User"       td (Link::from(&user)) }
-                    tr { th "Machine"    td (Link::from(&machine)) }
-                    tr { th "Starts"     td (r.scheduled_start) }
+                    tr { th { "User" }       td { (Link::from(&user)) } }
+                    tr { th { "Machine" }    td { (Link::from(&machine)) } }
+                    tr { th { "Starts" }     td { (r.scheduled_start) } }
                     tr {
-                        th "Ends"
-                        td (match r.scheduled_end { Some(d) => d.to_string(), _ => String::new() })
+                        th { "Ends" }
+                        td {
+                            (match r.scheduled_end {
+                                Some(d) => d.to_string(),
+                                _ => String::new()
+                            })
+                        }
                     }
                     tr {
-                        th "Ended"
-                        td (match r.actual_end { Some(d) => d.to_string(), None => String::new() })
+                        th { "Ended" }
+                        td {
+                            (match r.actual_end {
+                                Some(d) => d.to_string(),
+                                None => String::new()
+                            })
+                        }
                     }
                     tr {
-                        th "NFS root"
-                        td (match r.nfs_root { Some(r) => r, None => String::new() })
+                        th { "NFS root" }
+                        td { (match r.nfs_root { Some(r) => r, None => String::new() }) }
                     }
                     tr {
-                        th "PXE path"
-                        td (match r.pxe_path { Some(p) => p, None => String::new(),
-                        })
+                        th { "PXE path" }
+                        td { (match r.pxe_path { Some(p) => p, None => String::new() }) }
                     }
                     tr {
                         td colspan="2" {
@@ -544,29 +576,34 @@ fn user(name: String, auth: AuthContext) -> Result<Page, Error> {
         .collect();
 
     Ok(page(name, &auth).content(html! {
-        h2 (name)
+        h2 { (name) }
 
         div.row {
             div class="col-md-6" {
                 form action={ (route_prefix()) "user/update/" (user.username) } method="post" {
                     table.table.table-responsive {
                         tbody {
-                            tr { th "Username" td (user.username) }
-                            tr { th "Name"
-                                td (forms::Input::new("name")
-                                                 .value(user.name.clone())
-                                                 .size(18)
-                                                 .writable(writable))
+                            tr { th { "Username" } td { (user.username) } }
+                            tr {
+                                th { "Name" }
+                                td {
+                                    (forms::Input::new("name")
+                                                  .value(user.name.clone())
+                                                  .size(18)
+                                                  .writable(writable))
+                                }
                             }
-                            tr { th "Email"
-                                td
+                            tr {
+                                th { "Email" }
+                                td {
                                     @for address in emails {
                                         (address)
                                         br {}
                                     }
+                                }
                             }
                             tr {
-                                th "Roles"
+                                th { "Roles" }
                                 td {
                                     @if superuser {
                                         (forms::Select::new("roles")
@@ -580,7 +617,7 @@ fn user(name: String, auth: AuthContext) -> Result<Page, Error> {
                                                     .collect()
                                             ))
                                     } @else {
-                                        ul.list-unstyled
+                                        ul.list-unstyled {
                                             @for (name, inhabited) in roles {
                                                 li {
                                                     (name)
@@ -589,19 +626,24 @@ fn user(name: String, auth: AuthContext) -> Result<Page, Error> {
                                                     }
                                                 }
                                             }
+                                        }
                                     }
                                 }
                             }
-                            tr td colspan="2"
-                                input.btn.btn-block.btn-warning type="submit"
-                                    value="Update user details" /
+                            tr {
+                                td colspan="2" {
+                                    input.btn.btn-block.btn-warning type="submit"
+                                        value="Update user details" /
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            div class="col-md-6"
+            div class="col-md-6" {
                 (tables::ReservationTable::new(reservations).show_user(false))
+            }
         }
     }))
 }
@@ -623,30 +665,35 @@ fn users(auth: AuthContext) -> Result<Page, Error> {
     let roles = Role::all(conn)?;
 
     Ok(page("Users", &auth).content(html! {
-        h2 ("Users")
+        h2 { ("Users") }
 
         table.table.table-responsive {
-            thead.thead-default tr {
-                th {}
-                th "Username"
-                th "Name"
-                th "Email"
-                th "Roles"
-                th {}
+            thead.thead-default {
+                tr {
+                    th {}
+                    th { "Username" }
+                    th { "Name" }
+                    th { "Email" }
+                    th { "Roles" }
+                    th {}
+                }
             }
 
             tbody {
                 @for ref user in &users {
                     form action={ (route_prefix()) "user/update/" (user.username) } method="post" {
                         tr {
-                            th (user.id)
-                            td (user.username.clone())
-                            td (forms::Input::new("name")
-                                    .value(user.name.clone())
-                                    .size(15)
-                                    .writable(can_edit))
-                            td (user.emails(conn)?.into_iter().collect::<Vec<_>>().join(" "))
-                            td (forms::Select::new("roles")
+                            th { (user.id) }
+                            td { (user.username.clone()) }
+                            td {
+                                (forms::Input::new("name")
+                                       .value(user.name.clone())
+                                       .size(15)
+                                       .writable(can_edit))
+                            }
+                            td { (user.emails(conn)?.into_iter().collect::<Vec<_>>().join(" ")) }
+                            td {
+                                (forms::Select::new("roles")
                                     .set_options(
                                         roles.iter()
                                             .map(|ref role| {
@@ -660,7 +707,8 @@ fn users(auth: AuthContext) -> Result<Page, Error> {
                                             .collect()
                                     )
                                     .multiple(true))
-                            td (forms::SubmitButton::new().label("Update"))
+                            }
+                            td { (forms::SubmitButton::new().label("Update")) }
                         }
                     }
                 }

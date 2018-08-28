@@ -117,8 +117,8 @@ impl Into<bootstrap::Page> for Error {
     fn into(self) -> bootstrap::Page {
         bootstrap::Page::new(self.kind())
             .content(html! {
-                h1 (self.kind())
-                h2 (self.msg())
+                h1 { (self.kind()) }
+                h2 { (self.msg()) }
             })
             .link_prefix(super::route_prefix())
     }
@@ -135,16 +135,18 @@ fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
             bootstrap::ModalDialog::new("login")
                 .title("Login required")
                 .body(html! {
-                    p a.btn.btn-secondary.large href={ (OAUTH_URL) "?client_id=" (id) } {
-                        i.fa.fa-github aria-hidden="true" {}
-                        (maud::PreEscaped("&nbsp;"))
-                        "Sign in with GitHub"
+                    p {
+                        a.btn.btn-secondary.large href={ (OAUTH_URL) "?client_id=" (id) } {
+                            i.fa.fa-github aria-hidden="true" {}
+                            (maud::PreEscaped("&nbsp;"))
+                            "Sign in with GitHub"
+                        }
                     }
                 })
                 .footer(html! {
                     p.footnote {
                         "Contact "
-                        a href="https://www.engr.mun.ca/~anderson/" "Jonathan Anderson"
+                        a href="https://www.engr.mun.ca/~anderson/" { "Jonathan Anderson" }
                         " for authorization to use this system."
                     }
                 })
@@ -155,9 +157,9 @@ fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
 
         Err(ref e) => {
             html! {
-                h1 "Login required"
-                p "Login required and GitHub redirection not configured:"
-                pre (e)
+                h1 { "Login required" }
+                p { "Login required and GitHub redirection not configured:" }
+                pre { (e) }
             }
         }
     };
@@ -172,8 +174,8 @@ fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
 fn not_found(req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("404 Not Found")
         .content(html! {
-            h2 ("404 Not Found")
-            p { "The resource " code (req.uri()) " could not be found." }
+            h2 { ("404 Not Found") }
+            p { "The resource " code { (req.uri()) } " could not be found." }
         })
         .link_prefix(super::route_prefix())
 }
@@ -184,9 +186,9 @@ fn not_found(req: &rocket::Request) -> bootstrap::Page {
 fn internal_server_error(e: rocket::Error, _req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("500 Internal Server Error")
         .content(html! {
-            h2 ("500 Internal Server Error")
-            p "There is an error in Clowder:"
-            pre code (format!["{:?}", e])
+            h2 { ("500 Internal Server Error") }
+            p { "There is an error in Clowder:" }
+            pre { code { (format!["{:?}", e]) } }
         })
         .link_prefix(super::route_prefix())
 }
