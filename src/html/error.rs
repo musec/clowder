@@ -169,6 +169,17 @@ fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
         .link_prefix(super::route_prefix())
 }
 
+/// 403 forbidden means that (re-)authenticating won't help.
+#[catch(403)]
+fn forbidden() -> bootstrap::Page {
+    bootstrap::Page::new("403 Forbidden")
+        .content(html! {
+            h2 { ("403 Forbidden") }
+            p { "You are not authorized to access this resource." }
+        })
+        .link_prefix(super::route_prefix())
+}
+
 /// The 404 handler renders a slightly nicer-looking page than the stock Rocket handler.
 #[catch(404)]
 fn not_found(req: &rocket::Request) -> bootstrap::Page {
