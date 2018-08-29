@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Jonathan Anderson
+ * Copyright 2016-2018 Jonathan Anderson
  *
  * Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
  * http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -10,6 +10,7 @@
 #![feature(custom_derive)]
 #![feature(plugin)]
 #![feature(proc_macro)]
+#![feature(proc_macro_non_items)]
 #![plugin(rocket_codegen)]
 #![recursion_limit="128"]
 
