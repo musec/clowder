@@ -8,6 +8,7 @@
  */
 
 use db::models::*;
+use diesel::result::Error as DieselError;
 use diesel::pg::PgConnection as Connection;
 use rocket::http::Cookies;
 use rocket::request;
@@ -109,6 +110,9 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
             Err(e) => {
                 let failure = match e {
                     Error::AuthRequired => (rocket::http::Status::Unauthorized, e),
+                    Error::DatabaseError(DieselError::NotFound) => {
+                        (rocket::http::Status::Forbidden, e)
+                    },
                     _ => (rocket::http::Status::InternalServerError, e),
                 };
 
