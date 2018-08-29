@@ -12,7 +12,7 @@ use diesel::result::Error as DieselError;
 use diesel::pg::PgConnection as Connection;
 use rocket::http::Cookies;
 use rocket::request;
-use std::env;
+use std::{env, fmt};
 
 use html::error::Error;
 use super::github;
@@ -97,6 +97,12 @@ pub struct AuthContext {
 
     /// The authenticated user
     pub user: User,
+}
+
+impl fmt::Debug for AuthContext {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write![f, "AuthContext for User '{:?}'", self.user]
+    }
 }
 
 impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
