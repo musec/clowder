@@ -19,8 +19,7 @@ vergen = "0.1.1"
 [dependencies]
 chrono = "0.4.0"
 chrono-humanize = "0.0.10"
-diesel = { version = "0.16.0", features = ["chrono"] }
-diesel_codegen = { version = "0.16.0", features = ["postgres"] }
+diesel = { version = "1.3.2", features = ["chrono", "postgres"] }
 dotenv = "0.8.0"
 hyper = "0.10.4"
 hyper-native-tls = "0.2.2"

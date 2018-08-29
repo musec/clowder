@@ -19,8 +19,6 @@ extern crate chrono_humanize;
 extern crate crypto;
 #[macro_use]
 extern crate diesel;
-#[macro_use]
-extern crate diesel_codegen;
 extern crate dotenv;
 extern crate hyper;
 extern crate hyper_native_tls;

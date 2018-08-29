@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Jonathan Anderson
+ * Copyright 2016-2018 Jonathan Anderson
  *
  * Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
  * http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -17,10 +17,17 @@ use std::collections::HashSet;
 
 type DieselResult<T> = Result<T, diesel::result::Error>;
 
-enable_multi_table_joins! { machines, microarchitectures }
-enable_multi_table_joins! { machines, architectures }
-enable_multi_table_joins! { machines, users }
-enable_multi_table_joins! { processors, architectures }
+allow_tables_to_appear_in_same_query! { github_accounts, users }
+allow_tables_to_appear_in_same_query! { machines, microarchitectures }
+allow_tables_to_appear_in_same_query! { machines, architectures }
+allow_tables_to_appear_in_same_query! { machines, processors }
+allow_tables_to_appear_in_same_query! { machines, users }
+allow_tables_to_appear_in_same_query! { microarchitectures, architectures }
+allow_tables_to_appear_in_same_query! { processors, architectures }
+allow_tables_to_appear_in_same_query! { processors, microarchitectures }
+allow_tables_to_appear_in_same_query! { reservations, machines }
+allow_tables_to_appear_in_same_query! { reservations, users }
+allow_tables_to_appear_in_same_query! { role_assignments, roles }
 
 
 #[derive(Debug, Identifiable, Queryable)]
@@ -218,11 +225,11 @@ impl Email {
     pub fn insert<S>(user: &User, email: S, conn: &Connection) -> DieselResult<Email>
         where S: Into<String>
     {
-        diesel::insert(&EmailInserter {
+        diesel::insert_into(emails::table)
+            .values(&EmailInserter {
                 user_id: user.id,
                 email: email.into(),
             })
-            .into(emails::table)
             .get_result(conn)
     }
 }
@@ -270,11 +277,11 @@ struct RoleAssigner {
 
 impl RoleAssignment {
     pub fn insert(user: &User, role: &Role, conn: &Connection) -> DieselResult<RoleAssignment> {
-        diesel::insert(&RoleAssigner {
+        diesel::insert_into(role_assignments::table)
+            .values(&RoleAssigner {
                 user_id: user.id,
                 role_id: role.id,
             })
-            .into(role_assignments::table)
             .get_result(conn)
     }
 }
@@ -286,7 +293,7 @@ pub struct Architecture {
 }
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
-#[belongs_to(Architecture)]
+#[belongs_to(Architecture, foreign_key = "arch_id")]
 pub struct Microarchitecture {
     pub id: i32,
     pub arch_id: i32,
@@ -302,7 +309,7 @@ impl Microarchitecture {
 }
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
-#[belongs_to(Microarchitecture)]
+#[belongs_to(Microarchitecture, foreign_key = "microarch_id")]
 pub struct Processor {
     pub id: i32,
     pub microarch_id: i32,
@@ -372,7 +379,7 @@ impl MachineBuilder {
     }
 
     pub fn insert(self, conn: &Connection) -> DieselResult<Machine> {
-        insert(&self).into(machines::table).get_result(conn)
+        insert_into(machines::table).values(&self).get_result(conn)
     }
 
     pub fn memory_gb(mut self, mem: i32) -> MachineBuilder {
@@ -626,9 +633,8 @@ impl Reservation {
     /// completion) is to mark it as completed right now.
     ///
     pub fn end(self, c: &Connection) -> DieselResult<Reservation> {
-        use self::reservations::dsl::*;
         diesel::update(&self)
-            .set(actual_end.eq(Some(Utc::now())))
+            .set(reservations::actual_end.eq(Some(Utc::now())))
             .get_result::<Reservation>(c)
     }
 
@@ -690,8 +696,8 @@ impl ReservationBuilder {
     }
 
     pub fn insert(self, conn: &Connection) -> DieselResult<Reservation> {
-        insert(&self)
-            .into(reservations::table)
+        insert_into(reservations::table)
+            .values(&self)
             .get_result(conn)
     }
 }
