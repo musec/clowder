@@ -407,8 +407,8 @@ fn reservation_create(res: Form<ReservationForm>, auth: AuthContext) -> Result<R
         .map_err(Error::DatabaseError)
 }
 
-#[get("/reservation/create?<machine>&<user>")]
-fn reservation_create_page(machine: Option<String>, user: Option<String>, auth: AuthContext)
+#[get("/reservation/create?<machine>")]
+fn reservation_create_page(machine: Option<String>, auth: AuthContext)
     -> Result<Page, Error>
 {
     let users = User::all(&auth.conn)?;
