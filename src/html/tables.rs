@@ -172,7 +172,7 @@ impl MachineTable {
 
 impl Into<Markup> for MachineTable {
     fn into(self) -> Markup {
-        <Render>::render(&self)
+        self.render()
     }
 }
 
@@ -339,7 +339,7 @@ impl ReservationTable {
 
 impl Into<Markup> for ReservationTable {
     fn into(self) -> Markup {
-        <Render>::render(&self)
+        <dyn Render>::render(&self)
     }
 }
 
