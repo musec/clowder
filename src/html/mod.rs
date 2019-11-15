@@ -144,8 +144,11 @@ fn index(auth: AuthContext) -> Result<Page, Error> {
 }
 
 #[get("/gh-callback?<code>")]
-fn github_callback(code: String, cookies: http::Cookies) -> Result<Redirect, Error> {
-    auth::github_callback(code, cookies).map(|_| Redirect::to(route_prefix()))
+fn github_callback(code: String, cookies: http::Cookies) -> Result<Page, Redirect> {
+    match auth::github_callback(code, cookies) {
+        Ok(_) => Err(Redirect::to(route_prefix())),
+        Err(e) => Ok(e.into()),
+    }
 }
 
 #[get("/logout")]
