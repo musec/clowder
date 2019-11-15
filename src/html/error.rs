@@ -127,7 +127,7 @@ impl Into<bootstrap::Page> for Error {
 
 /// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
 #[catch(401)]
-fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
+pub fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
     const OAUTH_URL: &'static str = "https://github.com/login/oauth/authorize";
 
     let content = match env::var("CLOWDER_GH_CLIENT_ID") {
@@ -171,7 +171,7 @@ fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
 
 /// 403 forbidden means that (re-)authenticating won't help.
 #[catch(403)]
-fn forbidden() -> bootstrap::Page {
+pub fn forbidden() -> bootstrap::Page {
     bootstrap::Page::new("403 Forbidden")
         .content(html! {
             h2 { ("403 Forbidden") }
@@ -182,7 +182,7 @@ fn forbidden() -> bootstrap::Page {
 
 /// The 404 handler renders a slightly nicer-looking page than the stock Rocket handler.
 #[catch(404)]
-fn not_found(req: &rocket::Request) -> bootstrap::Page {
+pub fn not_found(req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("404 Not Found")
         .content(html! {
             h2 { ("404 Not Found") }
@@ -194,12 +194,11 @@ fn not_found(req: &rocket::Request) -> bootstrap::Page {
 /// The 500 ISE (Internal Server Error) handler doesn't provide any more information than the
 /// stock Rocket handler, but it also looks nicer.
 #[catch(500)]
-fn internal_server_error(e: rocket::Error, _req: &rocket::Request) -> bootstrap::Page {
+pub fn internal_server_error(_req: &rocket::Request) -> bootstrap::Page {
     bootstrap::Page::new("500 Internal Server Error")
         .content(html! {
             h2 { ("500 Internal Server Error") }
-            p { "There is an error in Clowder:" }
-            pre { code { (format!["{:?}", e]) } }
+            p { "There is an error in Clowder!" }
         })
         .link_prefix(super::route_prefix())
 }

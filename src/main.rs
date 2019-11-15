@@ -7,10 +7,9 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-#![feature(custom_derive)]
+#![feature(decl_macro)]
 #![feature(plugin)]
-#![feature(proc_macro_non_items)]
-#![plugin(rocket_codegen)]
+#![feature(proc_macro_hygiene)]
 #![recursion_limit="128"]
 
 extern crate chrono;
@@ -26,7 +25,7 @@ extern crate maud;
 extern crate marksman_escape;
 extern crate native_tls;
 extern crate rand;
-extern crate rocket;
+#[macro_use] extern crate rocket;
 extern crate rustc_serialize;
 extern crate url;
 
@@ -41,7 +40,7 @@ fn main() {
     let route_prefix = env::var("CLOWDER_PREFIX").unwrap_or(String::from("/"));
 
     rocket::ignite()
-        .catch(html::error_catchers())
+        .register(html::error_catchers())
         .mount(&route_prefix, html::all_routes())
         .launch();
 }

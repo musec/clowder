@@ -20,7 +20,7 @@ use maud::*;
 use native_tls;
 use super::rocket;
 use rocket::{http, request, Catcher, Route};
-use rocket::request::{FlashMessage, Form, FromFormValue};
+use rocket::request::{FlashMessage, Form};
 use rocket::response::{Flash, Redirect};
 use rustc_serialize;
 use url;
@@ -146,20 +146,15 @@ fn index(auth: AuthContext) -> Result<Page, Error> {
     }))
 }
 
-#[derive(FromForm)]
-struct GithubCallbackData {
-    code: String,
-}
-
-#[get("/gh-callback?<query>")]
-fn github_callback(query: GithubCallbackData, cookies: http::Cookies) -> Result<Redirect, Error> {
-    auth::github_callback(query.code, cookies).map(|_| Redirect::to(&route_prefix()))
+#[get("/gh-callback?<code>")]
+fn github_callback(code: String, cookies: http::Cookies) -> Result<Redirect, Error> {
+    auth::github_callback(code, cookies).map(|_| Redirect::to(route_prefix()))
 }
 
 #[get("/logout")]
 fn logout(_auth: AuthContext, cookies: http::Cookies) -> Redirect {
     auth::logout(cookies);
-    Redirect::to(&route_prefix())
+    Redirect::to(route_prefix().to_string())
 }
 
 #[get("/machine/<machine_name>")]
@@ -252,13 +247,11 @@ struct NewMachineForm {
 
 #[post("/machine/create", data = "<form>")]
 fn machine_create(form: Form<NewMachineForm>, auth: AuthContext) -> Result<Redirect, Error> {
-    let res = form.get();
-
-    MachineBuilder::new(res.name.clone())
-        .processor(&Processor::get(res.processor, &auth.conn)?)
-        .memory_gb(res.memory_gb)
+    MachineBuilder::new(form.name.clone())
+        .processor(&Processor::get(form.processor, &auth.conn)?)
+        .memory_gb(form.memory_gb)
         .insert(&auth.conn)
-        .map(|m| Redirect::to(&format!["{}machine/{}", route_prefix(), &m.name]))
+        .map(|m| Redirect::to(format!["{}machine/{}", route_prefix(), m.name]))
         .map_err(Error::DatabaseError)
 }
 
@@ -386,12 +379,10 @@ struct ReservationForm {
     nfs: String,
 }
 
-#[post("/reservation/create", data = "<form>")]
-fn reservation_create(form: Form<ReservationForm>, auth: AuthContext) -> Result<Redirect, Error> {
-    let res = form.get();
-
-    let user = try![User::with_username(&res.user, &auth.conn)];
-    let machine = try![Machine::with_name(&res.machine, &auth.conn)];
+#[post("/reservation/create", data = "<res>")]
+fn reservation_create(res: Form<ReservationForm>, auth: AuthContext) -> Result<Redirect, Error> {
+    let user = User::with_username(&res.user, &auth.conn)?;
+    let machine = Machine::with_name(&res.machine, &auth.conn)?;
 
     let dates: Vec<&str> = res.dates.split(" - ").collect();
     if dates.len() != 2 {
@@ -412,18 +403,14 @@ fn reservation_create(form: Form<ReservationForm>, auth: AuthContext) -> Result<
     }
 
     rb.insert(&auth.conn)
-        .map(|r| Redirect::to(&format!["{}reservation/{}", route_prefix(), r.id]))
+        .map(|r| Redirect::to(format!["{}reservation/{}", route_prefix(), r.id]))
         .map_err(Error::DatabaseError)
 }
 
-#[derive(Debug, FromForm)]
-struct ReservationQuery {
-    user: Option<String>,
-    machine: Option<String>,
-}
-
-#[get("/reservation/create?<res>")]
-fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<Page, Error> {
+#[get("/reservation/create?<machine>&<user>")]
+fn reservation_create_page(machine: Option<String>, user: Option<String>, auth: AuthContext)
+    -> Result<Page, Error>
+{
     let users = try![User::all(&auth.conn)];
     let user_options = users.iter()
         .map(|ref u| {
@@ -432,13 +419,11 @@ fn reservation_create_page(res: ReservationQuery, auth: AuthContext) -> Result<P
         })
         .collect::<Vec<_>>();
 
-    let machine_name = res.machine.as_ref();
-
     let machines = try![Machine::all(&auth.conn)];
     let machine_options = machines.iter()
         .map(|ref m| {
             forms::SelectOption::new(m.name.clone(), m.name.clone())
-                .selected(machine_name.map(|n| n == &m.name).unwrap_or(false))
+                .selected(if let &Some(ref name) = &machine { name == &m.name } else { false })
         })
         .collect::<Vec<_>>();
 
@@ -533,9 +518,9 @@ fn reservation_end_confirm(res_id: i32, auth: AuthContext) -> Result<Flash<Redir
         .and_then(|(r, _, _)| r.end(&auth.conn))
         .map_err(Error::DatabaseError)
         .map(|r| {
-            Flash::new(Redirect::to(&format!["{}reservation/{}", route_prefix(), r.id()]),
+            Flash::new(Redirect::to(format!["{}reservation/{}", route_prefix(), r.id()]),
                        "info",
-                       &format!["Ended reservation {}", r.id()])
+                       format!["Ended reservation {}", r.id()])
         })
 }
 
@@ -734,13 +719,8 @@ impl<'f> request::FromForm<'f> for UserUpdate {
             roles: HashSet::new(),
         };
 
-        for (k, v) in form_items {
-            let key: &str = &*k;
-            let value = String::from_form_value(v).map_err(rocket::http::RawStr::as_str)
-                .map_err(String::from)
-                .map_err(Error::InvalidData)?;
-
-            match key {
+        for (key, value) in form_items.map(|i| i.key_value_decoded()) {
+            match &*key {
                 "name" => update.name = value,
                 "emails" => {
                     update.emails.insert(value);
@@ -777,25 +757,23 @@ fn user_update(who: String,
         return Err(Error::NotAuthorized(String::from("update other users' details")));
     }
 
-    let f = form.get();
-
     // Has the user requested a name change?
-    if user.name != f.name {
-        user = user.change_name(f.name.clone(), conn)?;
+    if user.name != form.name {
+        user = user.change_name(form.name.clone(), conn)?;
     }
 
     // Only admin users can (currently) modify email addresses, since they are almost akin to
     // login credentials. We will revisit this in the future.
     if superuser {
-        user.set_emails(&f.emails, conn)?;
+        user.set_emails(&form.emails, conn)?;
     }
 
     // Only admin users can change users' roles.
     if superuser {
-        user.set_roles(&f.roles, conn)?;
+        user.set_roles(&form.roles, conn)?;
     }
 
-    Ok(Flash::new(Redirect::to(&format!["{}user/{}", route_prefix(), user.username]),
+    Ok(Flash::new(Redirect::to(format!["{}user/{}", route_prefix(), user.username]),
                   "info",
-                  &format!["Updated {}'s details", user.username]))
+                  format!["Updated {}'s details", user.username]))
 }

@@ -204,7 +204,7 @@ impl Render for NavItem {
 pub struct Page {
     title: String,
     content: Option<Markup>,
-    flash: Option<rocket::request::FlashMessage>,
+    flash: Option<(String, String)>,
     prefix: String,
     nav: Vec<NavItem>,
     user: Option<(String, String)>,
@@ -230,7 +230,7 @@ impl Page {
     }
 
     pub fn flash(mut self, f: Option<rocket::request::FlashMessage>) -> Self {
-        self.flash = f;
+        self.flash = f.map(|fm| (fm.name().to_string(), fm.msg().to_string()));
         self
     }
 
@@ -333,7 +333,7 @@ impl Render for Page {
                             div class="col-md-12" {
                                 // Check for a flash (one-time) message:
                                 (match self.flash {
-                                    Some(ref f) => alert(f.name(), f.msg()),
+                                    Some((ref name, ref msg)) => alert(name, msg),
                                     None => html![],
                                 })
                             }
