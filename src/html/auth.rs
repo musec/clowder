@@ -56,7 +56,13 @@ impl Authenticator {
     /// Attempt to look up a user (by Clowder username) in the user database.
     ///
     fn lookup_user(&self, clowder_username: &str) -> Result<User, Error> {
-        User::with_username(&clowder_username, &self.conn).map_err(Error::DatabaseError)
+        User::with_username(&clowder_username, &self.conn)
+            .map_err(|e| match e {
+                diesel::result::Error::NotFound => {
+                    Error::AuthError(format!["No such user ('{}')", clowder_username])
+                },
+                e => Error::DatabaseError(e)
+            })
     }
 
     ///
@@ -82,7 +88,12 @@ impl Authenticator {
             .ok_or(Error::AuthRequired)
             .and_then(|username| {
                 GithubAccount::get(&username, &self.conn)
-                    .map_err(Error::DatabaseError)
+                    .map_err(|e| match e {
+                        diesel::result::Error::NotFound => {
+                            Error::AuthError(format!["No such GitHub username ({})", username])
+                        },
+                        e => Error::DatabaseError(e)
+                    })
                     .map(|(_, user)| user)
             })
     }
@@ -118,6 +129,7 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
                 warn!["Authentication failed: {:?}", e];
 
                 let failure = match e {
+                    Error::AuthError(_) => (rocket::http::Status::Forbidden, e),
                     Error::AuthRequired => (rocket::http::Status::Unauthorized, e),
                     Error::DatabaseError(DieselError::NotFound) => {
                         (rocket::http::Status::Forbidden, e)
