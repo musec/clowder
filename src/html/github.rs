@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Jonathan Anderson
+ * Copyright 2016-2017, 2019 Jonathan Anderson
  *
  * Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
  * http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
