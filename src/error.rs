@@ -14,7 +14,6 @@ use super::rustc_serialize;
 
 use chrono;
 
-use std::env;
 use std::error::Error as StdError;
 
 #[derive(Debug)]
@@ -48,13 +47,6 @@ pub enum Error {
 }
 
 impl Error {
-    pub fn config<S>(msg: S) -> Error
-    where
-        S: Into<String>
-    {
-        Error::ConfigError(msg.into())
-    }
-
     pub fn kind(&self) -> &str {
         match self {
             &Error::AuthError(_) => "Authentication error",
@@ -111,15 +103,6 @@ impl From<diesel::result::Error> for Error {
 
 impl From<dotenv::Error> for Error {
     fn from(err: dotenv::Error) -> Error {
-        Error::ConfigError(format![
-            "problem with environment variable (or .env file): {}",
-            err
-        ])
-    }
-}
-
-impl From<env::VarError> for Error {
-    fn from(err: env::VarError) -> Error {
         Error::ConfigError(format![
             "problem with environment variable (or .env file): {}",
             err

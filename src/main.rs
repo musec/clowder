@@ -38,6 +38,20 @@ mod db;
 mod error;
 mod html;
 
+fn getenv(name: &str) -> Result<String, error::Error> {
+    use error::Error;
+
+    match env::var(name) {
+        Ok(url) => Ok(url),
+        Err(env::VarError::NotPresent) => {
+            Err(Error::ConfigError(format!["{} not set", name]))
+        },
+        Err(env::VarError::NotUnicode(s)) => {
+            Err(Error::ConfigError(format!["Invalid value for {}: {:?}", name, s]))
+        },
+    }
+}
+
 fn main() {
     dotenv::dotenv().ok();
     let route_prefix = env::var("CLOWDER_PREFIX").unwrap_or(String::from("/"));

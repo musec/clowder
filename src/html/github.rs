@@ -17,7 +17,6 @@ use rustc_serialize::Decodable;
 use url::Url;
 
 use super::Error;
-use std::env;
 use std::io::Read;
 
 const ACCESS_TOKEN_URL: &'static str = "https://github.com/login/oauth/access_token";
@@ -38,8 +37,8 @@ const ACCESS_TOKEN_URL: &'static str = "https://github.com/login/oauth/access_to
 /// GitHub username.
 ///
 pub fn auth_callback(auth_code: String) -> Result<String, Error> {
-    OAuthClient::new(env::var("CLOWDER_GH_CLIENT_ID")?)?
-        .set_secret(env::var("CLOWDER_GH_CLIENT_SECRET")?)
+    OAuthClient::new(crate::getenv("CLOWDER_GH_CLIENT_ID")?)?
+        .set_secret(crate::getenv("CLOWDER_GH_CLIENT_SECRET")?)
         .set_oauth_code(auth_code)
         .user()
         .map(|u| u.username().to_string())

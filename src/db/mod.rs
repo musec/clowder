@@ -7,27 +7,14 @@
  * copied, modified, or distributed except according to those terms.
  */
 
-use std::env;
-
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use dotenv::dotenv;
 use error::Error;
 
 pub mod models;
 pub mod schema;
 
 pub fn establish_connection() -> Result<PgConnection, Error> {
-    dotenv()?;
-
-    let database_url = match env::var("DATABASE_URL") {
-        Ok(url) => Ok(url),
-        Err(env::VarError::NotPresent) => Err(Error::config("DATABASE_URL not set")),
-        Err(env::VarError::NotUnicode(s)) => {
-            Err(Error::config(format!["Invalid DATABASE_URL: {:?}", s]))
-        },
-    };
-
-    PgConnection::establish(&database_url?)
+    PgConnection::establish(&super::getenv("DATABASE_URL")?)
         .map_err(Error::DatabaseConnectionError)
 }
