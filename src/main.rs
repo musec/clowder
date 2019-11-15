@@ -53,7 +53,7 @@ fn getenv(name: &str) -> Result<String, error::Error> {
 }
 
 fn main() {
-    dotenv::dotenv().ok();
+    dotenv::dotenv().expect("Failed to parse .env");
     let route_prefix = env::var("CLOWDER_PREFIX").unwrap_or(String::from("/"));
 
     rocket::ignite()
