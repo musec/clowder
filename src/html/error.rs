@@ -51,7 +51,7 @@ pub enum Error {
 impl Error {
     fn kind(&self) -> &str {
         match self {
-            &Error::AuthError(_) => "Authorization error",
+            &Error::AuthError(_) => "Authentication error",
             &Error::AuthRequired => "Authorization required",
             &Error::BadRequest(_) => "Bad request",
             &Error::ConfigError(_) => "Configuration error",
