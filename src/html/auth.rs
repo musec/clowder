@@ -14,9 +14,9 @@ use rocket::http::Cookies;
 use rocket::request;
 use std::{env, fmt};
 
+use crate::error::Error;
 use super::github;
 use super::rocket;
-use html::error::Error;
 
 /// The name of the cookie we set (with authenticated encryption) for the user's username.
 static AUTH_COOKIE_NAME: &'static str = "clowder_user";
@@ -107,7 +107,7 @@ impl fmt::Debug for AuthContext {
 }
 
 impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
-    type Error = super::error::Error;
+    type Error = Error;
 
     fn from_request(req: &'a request::Request<'r>) -> request::Outcome<AuthContext, super::Error> {
         let auth_context = Authenticator::new().authenticate(&mut req.cookies());

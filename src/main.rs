@@ -33,6 +33,7 @@ extern crate url;
 use std::env;
 
 mod db;
+mod error;
 mod html;
 
 fn main() {

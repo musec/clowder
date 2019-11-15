@@ -14,11 +14,9 @@ use chrono::{DateTime, Utc};
 use chrono_humanize::HumanTime;
 use db;
 use db::models::*;
-use diesel;
 use hyper;
 use marksman_escape::Escape;
 use maud::*;
-use native_tls;
 use rocket::request::{FlashMessage, Form};
 use rocket::response::{Flash, Redirect};
 use rocket::{http, request, Catcher, Route};
@@ -38,9 +36,9 @@ mod link;
 mod static_files;
 mod tables;
 
+use crate::error::Error;
 use self::auth::AuthContext;
 use self::bootstrap::Page;
-use self::error::Error;
 use self::link::Link;
 use std::env;
 
@@ -720,7 +718,7 @@ struct UserUpdate {
 
 // TODO: use #[derive(FromForm)] once SergioBenitez/Rocket#205 is resolved
 impl<'f> request::FromForm<'f> for UserUpdate {
-    type Error = error::Error;
+    type Error = Error;
 
     fn from_form(form_items: &mut request::FormItems<'f>, _: bool) -> Result<Self, Self::Error> {
         let mut update = UserUpdate {
