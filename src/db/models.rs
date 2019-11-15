@@ -10,8 +10,8 @@
 use chrono::{DateTime, Utc};
 use db::schema::*;
 use diesel;
-use diesel::*;
 use diesel::pg::PgConnection as Connection;
+use diesel::*;
 use itertools::Itertools;
 use std::collections::HashSet;
 
@@ -28,7 +28,6 @@ allow_tables_to_appear_in_same_query! { processors, microarchitectures }
 allow_tables_to_appear_in_same_query! { reservations, machines }
 allow_tables_to_appear_in_same_query! { reservations, users }
 allow_tables_to_appear_in_same_query! { role_assignments, roles }
-
 
 #[derive(Debug, Identifiable, Queryable)]
 pub struct User {
@@ -51,7 +50,8 @@ impl User {
     pub fn with_email(address: &str, c: &Connection) -> DieselResult<User> {
         use self::emails::dsl::*;
 
-        emails.filter(email.eq(address))
+        emails
+            .filter(email.eq(address))
             .first(c)
             .map(|e: Email| e.user_id)
             .and_then(|uid| User::get(uid, c))
@@ -62,7 +62,8 @@ impl User {
     /// a new User object with the updated name.
     ///
     pub fn change_name<S>(self, new_name: S, c: &Connection) -> DieselResult<User>
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
         use self::users::dsl::*;
 
@@ -73,7 +74,8 @@ impl User {
 
     pub fn emails(&self, c: &Connection) -> DieselResult<HashSet<String>> {
         use db::schema::emails::dsl::*;
-        emails.filter(user_id.eq(self.id))
+        emails
+            .filter(user_id.eq(self.id))
             .load(c)
             .map(|user_emails| user_emails.into_iter().map(|e: Email| e.email).collect())
     }
@@ -107,7 +109,8 @@ impl User {
     pub fn set_roles(&self, new_roles: &HashSet<String>, c: &Connection) -> DieselResult<()> {
         let current_roles = self.roles(c)?;
 
-        let role_names = current_roles.iter()
+        let role_names = current_roles
+            .iter()
             .map(|ref role| role.name.clone())
             .collect::<HashSet<_>>();
 
@@ -115,7 +118,8 @@ impl User {
 
         for role in &current_roles {
             if !new_roles.contains(&role.name) {
-                let to_delete = role_assignments.filter(role_id.eq(role.id))
+                let to_delete = role_assignments
+                    .filter(role_id.eq(role.id))
                     .filter(user_id.eq(self.id));
 
                 diesel::delete(to_delete).execute(c)?;
@@ -123,7 +127,8 @@ impl User {
         }
 
         for ref role_name in new_roles.difference(&role_names) {
-            Role::with_name(role_name, c).and_then(|role| RoleAssignment::insert(self, &role, c))?;
+            Role::with_name(role_name, c)
+                .and_then(|role| RoleAssignment::insert(self, &role, c))?;
         }
 
         Ok(())
@@ -140,7 +145,8 @@ impl User {
 
     pub fn inhabits_role(&self, role: &Role, c: &Connection) -> DieselResult<bool> {
         use self::role_assignments::dsl::*;
-        role_assignments.inner_join(roles::table)
+        role_assignments
+            .inner_join(roles::table)
             .filter(user_id.eq(self.id))
             .filter(role_id.eq(role.id))
             .count()
@@ -150,14 +156,11 @@ impl User {
 
     pub fn roles(&self, c: &Connection) -> DieselResult<Vec<Role>> {
         use self::role_assignments::dsl::*;
-        role_assignments.inner_join(roles::table)
+        role_assignments
+            .inner_join(roles::table)
             .filter(user_id.eq(self.id))
             .load(c)
-            .map(|roles: Vec<(RoleAssignment, Role)>| {
-                roles.into_iter()
-                    .map(|(_, r)| r)
-                    .collect()
-            })
+            .map(|roles: Vec<(RoleAssignment, Role)>| roles.into_iter().map(|(_, r)| r).collect())
     }
 
     pub fn can_alter_machines(&self, c: &Connection) -> DieselResult<bool> {
@@ -182,12 +185,12 @@ impl User {
 
     /// Does any of this user's roles satisfy a predicate?
     fn has_role<Pred>(&self, c: &Connection, predicate: Pred) -> DieselResult<bool>
-        where Pred: Fn(&Role) -> bool
+    where
+        Pred: Fn(&Role) -> bool,
     {
         self.roles(c).map(|roles| roles.iter().any(predicate))
     }
 }
-
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
 pub struct GithubAccount {
@@ -199,12 +202,12 @@ pub struct GithubAccount {
 impl GithubAccount {
     pub fn get(gh_username: &str, conn: &Connection) -> DieselResult<(GithubAccount, User)> {
         use self::github_accounts::dsl::*;
-        github_accounts.inner_join(users::table)
+        github_accounts
+            .inner_join(users::table)
             .filter(github_username.eq(gh_username))
             .first(conn)
     }
 }
-
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(User)]
@@ -223,7 +226,8 @@ struct EmailInserter {
 
 impl Email {
     pub fn insert<S>(user: &User, email: S, conn: &Connection) -> DieselResult<Email>
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
         diesel::insert_into(emails::table)
             .values(&EmailInserter {
@@ -233,7 +237,6 @@ impl Email {
             .get_result(conn)
     }
 }
-
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
 pub struct Role {
@@ -257,7 +260,6 @@ impl Role {
         roles.filter(name.eq(role_name)).first(c)
     }
 }
-
 
 #[derive(Associations, Debug, Identifiable, Queryable)]
 #[belongs_to(Role)]
@@ -419,26 +421,27 @@ impl FullMachine {
 
     pub fn all(c: &Connection) -> DieselResult<Vec<FullMachine>> {
         use self::machines::dsl::*;
-        let m = machines.order(name)
-                        .inner_join(
-                            processors::table.inner_join(
-                                microarchitectures::table.inner_join(
-                                    architectures::table)))
-                        .load(c)?
-                        ;
+        let m = machines
+            .order(name)
+            .inner_join(
+                processors::table
+                    .inner_join(microarchitectures::table.inner_join(architectures::table)),
+            )
+            .load(c)?;
 
         Ok(m.into_iter().map(FullMachine::from).collect())
     }
 
     pub fn with_name(machine_name: &str, c: &Connection) -> DieselResult<FullMachine> {
         use self::machines::dsl::*;
-        machines.filter(name.eq(machine_name))
-                .inner_join(
-                    processors::table.inner_join(
-                        microarchitectures::table.inner_join(
-                            architectures::table)))
-                .first(c)
-                .map(FullMachine::from)
+        machines
+            .filter(name.eq(machine_name))
+            .inner_join(
+                processors::table
+                    .inner_join(microarchitectures::table.inner_join(architectures::table)),
+            )
+            .first(c)
+            .map(FullMachine::from)
     }
 
     pub fn architecture(&self) -> &Architecture {
@@ -487,7 +490,8 @@ pub struct Disk {
 
 impl Disk {
     pub fn short_description(&self) -> String {
-        let v = self.vendor
+        let v = self
+            .vendor
             .as_ref()
             .map(|vendor| format!["{} ", vendor])
             .unwrap_or(String::new());
@@ -518,17 +522,24 @@ pub struct Nic {
 
 impl Nic {
     pub fn short_description(&self) -> String {
-        let vendor: String = self.vendor
+        let vendor: String = self
+            .vendor
             .as_ref()
             .map(|vendor| format!["{} ", vendor])
             .unwrap_or(String::new());
 
-        let model: String = self.model
+        let model: String = self
+            .model
             .as_ref()
             .map(|m| format!["{} ", m])
             .unwrap_or(String::new());
 
-        format!["{} — {}{} Gbps", self.mac_formatted(), vendor + &model, self.speed_gbps]
+        format![
+            "{} — {}{} Gbps",
+            self.mac_formatted(),
+            vendor + &model,
+            self.speed_gbps
+        ]
     }
 
     pub fn mac_formatted(&self) -> String {
@@ -550,7 +561,8 @@ impl Nic {
 }
 
 fn squash_chars<C>(chunk: C) -> String
-    where C: Iterator<Item = char>
+where
+    C: Iterator<Item = char>,
 {
     chunk.fold(String::new(), |mut s, c| {
         s.push(c);
@@ -579,14 +591,14 @@ impl Reservation {
     pub fn all(only_current: bool, c: &Connection) -> DieselResult<Vec<FullReservation>> {
         use self::reservations::dsl::*;
 
-        let query = reservations.inner_join(machines::table)
+        let query = reservations
+            .inner_join(machines::table)
             .inner_join(users::table)
             .order(scheduled_end.desc())
             .order(machine_id);
 
         if only_current {
-            query.filter(actual_end.is_null())
-                .load(c)
+            query.filter(actual_end.is_null()).load(c)
         } else {
             query.load(c)
         }
@@ -597,7 +609,8 @@ impl Reservation {
     ///
     pub fn for_machine(m: &Machine, c: &Connection) -> DieselResult<Vec<(Reservation, User)>> {
         use self::reservations::dsl::*;
-        reservations.inner_join(users::table)
+        reservations
+            .inner_join(users::table)
             .filter(machine_id.eq(m.id()))
             .filter(user_id.eq(users::dsl::id))
             .order(actual_end.desc())
@@ -610,7 +623,8 @@ impl Reservation {
     ///
     pub fn for_user(user: &User, c: &Connection) -> DieselResult<Vec<(Reservation, Machine)>> {
         use self::reservations::dsl::*;
-        reservations.inner_join(machines::table)
+        reservations
+            .inner_join(machines::table)
             .filter(user_id.eq(user.id()))
             .order(actual_end.desc())
             .order(scheduled_end.desc())
@@ -620,7 +634,8 @@ impl Reservation {
     pub fn get(res_id: i32, c: &Connection) -> DieselResult<FullReservation> {
         use db::schema::reservations::dsl::*;
 
-        reservations.inner_join(machines::table)
+        reservations
+            .inner_join(machines::table)
             .inner_join(users::table)
             .filter(id.eq(res_id))
             .first(c)

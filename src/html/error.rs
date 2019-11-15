@@ -21,7 +21,6 @@ use rocket;
 use std::env;
 use std::error::Error as StdError;
 
-
 #[derive(Debug)]
 pub enum Error {
     /// Error authenticating user.
@@ -91,7 +90,10 @@ impl From<diesel::result::Error> for Error {
 
 impl From<env::VarError> for Error {
     fn from(err: env::VarError) -> Error {
-        Error::ConfigError(format!["problem with environment variable (or .env file): {}", err])
+        Error::ConfigError(format![
+            "problem with environment variable (or .env file): {}",
+            err
+        ])
     }
 }
 
@@ -124,36 +126,33 @@ impl Into<bootstrap::Page> for Error {
     }
 }
 
-
 /// The error catcher for unauthorized accesses prompts for HTTP basic authentication.
 #[catch(401)]
 pub fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
     const OAUTH_URL: &'static str = "https://github.com/login/oauth/authorize";
 
     let content = match env::var("CLOWDER_GH_CLIENT_ID") {
-        Ok(ref id) => {
-            bootstrap::ModalDialog::new("login")
-                .title("Login required")
-                .body(html! {
-                    p {
-                        a.btn.btn-secondary.large href={ (OAUTH_URL) "?client_id=" (id) } {
-                            i.fa.fa-github aria-hidden="true" {}
-                            (maud::PreEscaped("&nbsp;"))
-                            "Sign in with GitHub"
-                        }
+        Ok(ref id) => bootstrap::ModalDialog::new("login")
+            .title("Login required")
+            .body(html! {
+                p {
+                    a.btn.btn-secondary.large href={ (OAUTH_URL) "?client_id=" (id) } {
+                        i.fa.fa-github aria-hidden="true" {}
+                        (maud::PreEscaped("&nbsp;"))
+                        "Sign in with GitHub"
                     }
-                })
-                .footer(html! {
-                    p.footnote {
-                        "Contact "
-                        a href="https://www.engr.mun.ca/~anderson/" { "Jonathan Anderson" }
-                        " for authorization to use this system."
-                    }
-                })
-                .closeable(false)
-                .start_open(true)
-                .render()
-        }
+                }
+            })
+            .footer(html! {
+                p.footnote {
+                    "Contact "
+                    a href="https://www.engr.mun.ca/~anderson/" { "Jonathan Anderson" }
+                    " for authorization to use this system."
+                }
+            })
+            .closeable(false)
+            .start_open(true)
+            .render(),
 
         Err(ref e) => {
             html! {

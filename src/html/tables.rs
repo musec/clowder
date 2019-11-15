@@ -13,7 +13,6 @@ use db::models::*;
 use html::link::Link;
 use maud::*;
 
-
 ///
 /// The header of a Bootstrap-compatible HTML table.
 ///
@@ -21,13 +20,12 @@ pub struct TableHeader(Vec<String>);
 
 impl TableHeader {
     pub fn new(strs: &[&str]) -> TableHeader {
-        TableHeader(strs.into_iter()
-            .map(|s| s.to_string())
-            .collect())
+        TableHeader(strs.into_iter().map(|s| s.to_string()).collect())
     }
 
     pub fn add_if<S>(mut self, condition: bool, s: S) -> TableHeader
-        where S: Into<String>
+    where
+        S: Into<String>,
     {
         if condition {
             self.0.push(s.into());
@@ -50,7 +48,6 @@ impl Render for TableHeader {
         }
     }
 }
-
 
 ///
 /// An HTML table that shows various properties of machines.
@@ -85,7 +82,8 @@ pub struct MachineTable {
 
 impl MachineTable {
     pub fn new<MV>(machines: MV) -> MachineTable
-        where MV: Into<Vec<FullMachine>>
+    where
+        MV: Into<Vec<FullMachine>>,
     {
         MachineTable {
             machines: machines.into(),
@@ -191,7 +189,6 @@ impl Render for MachineTable {
         }
     }
 }
-
 
 type ReservationData = (Reservation, Option<Machine>, Option<User>);
 

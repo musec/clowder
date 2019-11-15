@@ -10,7 +10,6 @@
 use std::fs::File;
 use std::io;
 
-
 #[get("/css/<filename>")]
 pub fn static_css(filename: String) -> io::Result<File> {
     File::open(format!["static/css/{}", filename])

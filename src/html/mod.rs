@@ -9,6 +9,7 @@
 
 use std::collections::HashSet;
 
+use super::rocket;
 use chrono::{DateTime, Utc};
 use chrono_humanize::HumanTime;
 use db;
@@ -18,10 +19,9 @@ use hyper;
 use marksman_escape::Escape;
 use maud::*;
 use native_tls;
-use super::rocket;
-use rocket::{http, request, Catcher, Route};
 use rocket::request::{FlashMessage, Form};
 use rocket::response::{Flash, Redirect};
+use rocket::{http, request, Catcher, Route};
 use rustc_serialize;
 use url;
 
@@ -32,18 +32,17 @@ use rocket::request::FromForm;
 mod auth;
 mod bootstrap;
 mod error;
-mod github;
 mod forms;
+mod github;
 mod link;
 mod static_files;
 mod tables;
 
-use std::env;
 use self::auth::AuthContext;
 use self::bootstrap::Page;
 use self::error::Error;
 use self::link::Link;
-
+use std::env;
 
 /// All of the routes that we can handle.
 pub fn all_routes() -> Vec<Route> {
@@ -78,7 +77,6 @@ pub fn escape(dangerous: &str) -> String {
         .unwrap_or(String::from("&lt;error&gt;"))
 }
 
-
 ///
 /// Create a normal (i.e., non-error) page to be augmented with content.
 ///
@@ -90,14 +88,17 @@ pub fn escape(dangerous: &str) -> String {
 /// ```
 ///
 fn page<S>(title: S, auth: &AuthContext) -> Page
-    where S: Into<String>
+where
+    S: Into<String>,
 {
     let user = &auth.user;
     let route_prefix: &str = &route_prefix();
     let prefix = |s| format!["{}{}", route_prefix, s];
 
-    let mut nav_links = vec![bootstrap::NavItem::link(prefix("machines"), "Machines"),
-                             bootstrap::NavItem::link(prefix("reservations"), "Reservations")];
+    let mut nav_links = vec![
+        bootstrap::NavItem::link(prefix("machines"), "Machines"),
+        bootstrap::NavItem::link(prefix("reservations"), "Reservations"),
+    ];
 
     if let Ok(true) = user.can_alter_users(&auth.conn) {
         nav_links.push(bootstrap::NavItem::link(prefix("users"), "Users"));
@@ -109,13 +110,11 @@ fn page<S>(title: S, auth: &AuthContext) -> Page
         .user(&user.username, &user.name)
 }
 
-
 #[get("/")]
 fn index(auth: AuthContext) -> Result<Page, Error> {
     let machines = FullMachine::all(&auth.conn)?;
 
-    let reservations = Reservation::all(true, &auth.conn)
-        ?
+    let reservations = Reservation::all(true, &auth.conn)?
         .into_iter()
         .map(|(r, m, u)| (r, Some(m), Some(u)))
         .collect();
@@ -165,77 +164,79 @@ fn machine(machine_name: String, auth: AuthContext) -> Result<Page, Error> {
     let disks = m.machine().disks(conn)?;
     let nics = m.machine().nics(conn)?;
 
-    Ok(page(format!["Clowder: {}", m.name()], &auth).content(html! {
-        div.row { h2 { (m.name()) } }
+    Ok(
+        page(format!["Clowder: {}", m.name()], &auth).content(html! {
+            div.row { h2 { (m.name()) } }
 
-        div.row {
-            div class="col-md-7" {
-                dl {
-                    dt { "Processor(s)" }
-                    dd {
-                        ul {
-                            li {
-                                (Link::from(m.processor()))
-                                ": "
-                                (Link::from(m.microarchitecture())) " " (m.architecture().name)
-                                ", "
-                                (m.cores()) " cores, " (m.freq_ghz()) " GHz"
+            div.row {
+                div class="col-md-7" {
+                    dl {
+                        dt { "Processor(s)" }
+                        dd {
+                            ul {
+                                li {
+                                    (Link::from(m.processor()))
+                                    ": "
+                                    (Link::from(m.microarchitecture())) " " (m.architecture().name)
+                                    ", "
+                                    (m.cores()) " cores, " (m.freq_ghz()) " GHz"
+                                }
+                            }
+                        }
+
+                        dt { "Memory" }
+                        dd { (m.memory_gb()) " GiB" }
+
+                        dt { "Disk(s)" }
+                        dd {
+                            ul {
+                                @for ref disk in disks {
+                                    li { (disk.short_description()) }
+                                }
+                            }
+                        }
+
+                        dt { "NIC(s)" }
+                        dd {
+                            ul {
+                                @for ref nic in nics {
+                                    li { (nic.short_description()) }
+                                }
                             }
                         }
                     }
 
-                    dt { "Memory" }
-                    dd { (m.memory_gb()) " GiB" }
-
-                    dt { "Disk(s)" }
-                    dd {
-                        ul {
-                            @for ref disk in disks {
-                                li { (disk.short_description()) }
-                            }
-                        }
-                    }
-
-                    dt { "NIC(s)" }
-                    dd {
-                        ul {
-                            @for ref nic in nics {
-                                li { (nic.short_description()) }
-                            }
+                    p {
+                        a href={ (route_prefix()) "reservation/create/?machine=" (m.name()) } {
+                            "Reserve this machine"
                         }
                     }
                 }
 
-                p {
-                    a href={ (route_prefix()) "reservation/create/?machine=" (m.name()) } {
-                        "Reserve this machine"
-                    }
-                }
-            }
+                div class="col-md-5" {
+                    h3 { "Reservations" }
 
-            div class="col-md-5" {
-                h3 { "Reservations" }
+                    table.table.table-responsive {
+                        (tables::TableHeader::new(&[ "", "User", "Started", "Ends" ]))
 
-                table.table.table-responsive {
-                    (tables::TableHeader::new(&[ "", "User", "Started", "Ends" ]))
-
-                    tbody {
-                        @for (ref r, ref u) in Reservation::for_machine(&m.machine(), conn)? {
-                            tr {
-                                td { (Link::from(r)) }
-                                td { (Link::from(u)) }
-                                td { (HumanTime::from(r.start())) }
-                                td {
-                                    (r.scheduled_end.map(|e| HumanTime::from(e).to_string())
-                                                    .unwrap_or(String::new()))
+                        tbody {
+                            @for (ref r, ref u) in Reservation::for_machine(&m.machine(), conn)? {
+                                tr {
+                                    td { (Link::from(r)) }
+                                    td { (Link::from(u)) }
+                                    td { (HumanTime::from(r.start())) }
+                                    td {
+                                        (r.scheduled_end.map(|e| HumanTime::from(e).to_string())
+                                                        .unwrap_or(String::new()))
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-    }))
+        }),
+    )
 }
 
 #[derive(Debug, FromForm)]
@@ -258,8 +259,7 @@ fn machine_create(form: Form<NewMachineForm>, auth: AuthContext) -> Result<Redir
 #[get("/machines")]
 fn machines(auth: AuthContext) -> Result<Page, Error> {
     let machine_creator = auth.user.can_create_machines(&auth.conn)?;
-    let processor_options = Processor::all(&auth.conn)
-        ?
+    let processor_options = Processor::all(&auth.conn)?
         .iter()
         .map(|p| forms::SelectOption::new(p.id.to_string(), p.name.clone()))
         .collect::<Vec<_>>();
@@ -313,61 +313,63 @@ fn reservation(id: i32, auth: AuthContext, flash: Option<FlashMessage>) -> Resul
         (_, _) => false,
     };
 
-    Ok(page(format!["Clowder: reservation {}", r.id], &auth).flash(flash).content(html! {
-        h2 { "Reservation " (r.id) }
+    Ok(page(format!["Clowder: reservation {}", r.id], &auth)
+        .flash(flash)
+        .content(html! {
+            h2 { "Reservation " (r.id) }
 
-        table.lefty {
-            tr { th { "User" }       td { (Link::from(&user)) } }
-            tr { th { "Machine" }    td { (Link::from(&machine)) } }
-            tr { th { "Starts" }     td { (r.scheduled_start) } }
-            tr {
-                th { "Ends" }
-                td {
-                    (match r.scheduled_end {
-                        Some(d) => d.to_string(),
-                        None => String::new(),
-                    })
-                }
-            }
-            tr {
-                th { "Ended" }
-                td {
-                    (match r.actual_end {
-                        Some(d) => d.to_string(),
-                        None => String::new(),
-                    })
-                }
-            }
-            tr {
-                th { "NFS root" }
-                td {
-                    (match r.nfs_root {
-                        Some(r) => r,
-                        None => String::new(),
-                    })
-                }
-            }
-            tr {
-                th { "PXE path" }
-                td {
-                    (match r.pxe_path {
-                        Some(p) => p,
-                        None => String::new(),
-                    })
-                }
-            }
-            @if can_end {
+            table.lefty {
+                tr { th { "User" }       td { (Link::from(&user)) } }
+                tr { th { "Machine" }    td { (Link::from(&machine)) } }
+                tr { th { "Starts" }     td { (r.scheduled_start) } }
                 tr {
-                    th {}
+                    th { "Ends" }
                     td {
-                        form action={ "end/" (r.id) } method="get" {
-                             input type="submit" value="End reservation" /
+                        (match r.scheduled_end {
+                            Some(d) => d.to_string(),
+                            None => String::new(),
+                        })
+                    }
+                }
+                tr {
+                    th { "Ended" }
+                    td {
+                        (match r.actual_end {
+                            Some(d) => d.to_string(),
+                            None => String::new(),
+                        })
+                    }
+                }
+                tr {
+                    th { "NFS root" }
+                    td {
+                        (match r.nfs_root {
+                            Some(r) => r,
+                            None => String::new(),
+                        })
+                    }
+                }
+                tr {
+                    th { "PXE path" }
+                    td {
+                        (match r.pxe_path {
+                            Some(p) => p,
+                            None => String::new(),
+                        })
+                    }
+                }
+                @if can_end {
+                    tr {
+                        th {}
+                        td {
+                            form action={ "end/" (r.id) } method="get" {
+                                 input type="submit" value="End reservation" /
+                            }
                         }
                     }
                 }
             }
-        }
-    }))
+        }))
 }
 
 #[derive(Debug, FromForm)]
@@ -386,7 +388,10 @@ fn reservation_create(res: Form<ReservationForm>, auth: AuthContext) -> Result<R
 
     let dates: Vec<&str> = res.dates.split(" - ").collect();
     if dates.len() != 2 {
-        return Err(Error::BadRequest(format!["expected two dates, not '{:?}'", dates]));
+        return Err(Error::BadRequest(format![
+            "expected two dates, not '{:?}'",
+            dates
+        ]));
     }
 
     let start = DateTime::parse_from_str(dates[0], "%H:%M%:z %e %b %Y")?;
@@ -408,11 +413,10 @@ fn reservation_create(res: Form<ReservationForm>, auth: AuthContext) -> Result<R
 }
 
 #[get("/reservation/create?<machine>")]
-fn reservation_create_page(machine: Option<String>, auth: AuthContext)
-    -> Result<Page, Error>
-{
+fn reservation_create_page(machine: Option<String>, auth: AuthContext) -> Result<Page, Error> {
     let users = User::all(&auth.conn)?;
-    let user_options = users.iter()
+    let user_options = users
+        .iter()
         .map(|ref u| {
             forms::SelectOption::new(u.username.clone(), u.name.clone())
                 .selected(u.username == auth.user.username)
@@ -420,10 +424,16 @@ fn reservation_create_page(machine: Option<String>, auth: AuthContext)
         .collect::<Vec<_>>();
 
     let machines = Machine::all(&auth.conn)?;
-    let machine_options = machines.iter()
+    let machine_options = machines
+        .iter()
         .map(|ref m| {
-            forms::SelectOption::new(m.name.clone(), m.name.clone())
-                .selected(if let &Some(ref name) = &machine { name == &m.name } else { false })
+            forms::SelectOption::new(m.name.clone(), m.name.clone()).selected(
+                if let &Some(ref name) = &machine {
+                    name == &m.name
+                } else {
+                    false
+                },
+            )
         })
         .collect::<Vec<_>>();
 
@@ -465,51 +475,53 @@ fn reservation_create_page(machine: Option<String>, auth: AuthContext)
 fn reservation_end(id: i32, auth: AuthContext) -> Result<Page, Error> {
     let (r, machine, user) = Reservation::get(id, &auth.conn)?;
 
-    Ok(page(format!["Clowder: end reservation {}", r.id], &auth).content(html! {
-        h2 { "End reservation" }
+    Ok(
+        page(format!["Clowder: end reservation {}", r.id], &auth).content(html! {
+            h2 { "End reservation" }
 
-        (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
-            html! {
-                table {
-                    tr { th { "User" }       td { (Link::from(&user)) } }
-                    tr { th { "Machine" }    td { (Link::from(&machine)) } }
-                    tr { th { "Starts" }     td { (r.scheduled_start) } }
-                    tr {
-                        th { "Ends" }
-                        td {
-                            (match r.scheduled_end {
-                                Some(d) => d.to_string(),
-                                _ => String::new()
-                            })
+            (bootstrap::callout("warning", "Are you sure you want to end this reservation?",
+                html! {
+                    table {
+                        tr { th { "User" }       td { (Link::from(&user)) } }
+                        tr { th { "Machine" }    td { (Link::from(&machine)) } }
+                        tr { th { "Starts" }     td { (r.scheduled_start) } }
+                        tr {
+                            th { "Ends" }
+                            td {
+                                (match r.scheduled_end {
+                                    Some(d) => d.to_string(),
+                                    _ => String::new()
+                                })
+                            }
                         }
-                    }
-                    tr {
-                        th { "Ended" }
-                        td {
-                            (match r.actual_end {
-                                Some(d) => d.to_string(),
-                                None => String::new()
-                            })
+                        tr {
+                            th { "Ended" }
+                            td {
+                                (match r.actual_end {
+                                    Some(d) => d.to_string(),
+                                    None => String::new()
+                                })
+                            }
                         }
-                    }
-                    tr {
-                        th { "NFS root" }
-                        td { (match r.nfs_root { Some(r) => r, None => String::new() }) }
-                    }
-                    tr {
-                        th { "PXE path" }
-                        td { (match r.pxe_path { Some(p) => p, None => String::new() }) }
-                    }
-                    tr {
-                        td colspan="2" {
-                            form action={ "confirm/" (r.id) } method="get" {
-                                input type="submit" value="End reservation" /
+                        tr {
+                            th { "NFS root" }
+                            td { (match r.nfs_root { Some(r) => r, None => String::new() }) }
+                        }
+                        tr {
+                            th { "PXE path" }
+                            td { (match r.pxe_path { Some(p) => p, None => String::new() }) }
+                        }
+                        tr {
+                            td colspan="2" {
+                                form action={ "confirm/" (r.id) } method="get" {
+                                    input type="submit" value="End reservation" /
+                                }
                             }
                         }
                     }
-                }
-            }))
-    }))
+                }))
+        }),
+    )
 }
 
 #[get("/reservation/end/confirm/<res_id>")]
@@ -518,16 +530,17 @@ fn reservation_end_confirm(res_id: i32, auth: AuthContext) -> Result<Flash<Redir
         .and_then(|(r, _, _)| r.end(&auth.conn))
         .map_err(Error::DatabaseError)
         .map(|r| {
-            Flash::new(Redirect::to(format!["{}reservation/{}", route_prefix(), r.id()]),
-                       "info",
-                       format!["Ended reservation {}", r.id()])
+            Flash::new(
+                Redirect::to(format!["{}reservation/{}", route_prefix(), r.id()]),
+                "info",
+                format!["Ended reservation {}", r.id()],
+            )
         })
 }
 
 #[get("/reservations")]
 fn reservations(auth: AuthContext) -> Result<Page, Error> {
-    let reservations = Reservation::all(false, &auth.conn)
-        ?
+    let reservations = Reservation::all(false, &auth.conn)?
         .into_iter()
         .map(|(r, m, u)| (r, Some(m), Some(u)))
         .collect();
@@ -546,16 +559,12 @@ fn user(name: String, auth: AuthContext) -> Result<Page, Error> {
 
     let emails = user.emails(&auth.conn)?;
 
-    let roles = Role::all(&auth.conn)
-        ?
-        .into_iter()
-        .map(|role| {
-            let inhabited = user.inhabits_role(&role, &auth.conn).unwrap_or(false);
-            (role.name, inhabited)
-        });
+    let roles = Role::all(&auth.conn)?.into_iter().map(|role| {
+        let inhabited = user.inhabits_role(&role, &auth.conn).unwrap_or(false);
+        (role.name, inhabited)
+    });
 
-    let reservations = Reservation::for_user(&user, &auth.conn)
-        ?
+    let reservations = Reservation::for_user(&user, &auth.conn)?
         .into_iter()
         .map(|(r, m)| (r, Some(m), None))
         .collect();
@@ -633,7 +642,6 @@ fn user(name: String, auth: AuthContext) -> Result<Page, Error> {
     }))
 }
 
-
 #[get("/users")]
 fn users(auth: AuthContext) -> Result<Page, Error> {
     let conn = &auth.conn;
@@ -642,8 +650,10 @@ fn users(auth: AuthContext) -> Result<Page, Error> {
     let can_edit = auth.user.can_alter_users(conn).unwrap_or(false);
 
     if !can_view {
-        return Err(Error::NotAuthorized(format!["User '{}' cannot view/alter other users",
-                                                auth.user.username]));
+        return Err(Error::NotAuthorized(format![
+            "User '{}' cannot view/alter other users",
+            auth.user.username
+        ]));
     }
 
     let users = User::all(conn)?;
@@ -729,7 +739,10 @@ impl<'f> request::FromForm<'f> for UserUpdate {
                     update.roles.insert(value);
                 }
                 _ => {
-                    return Err(Error::InvalidData(format!["invalid form data name: '{}'", key]));
+                    return Err(Error::InvalidData(format![
+                        "invalid form data name: '{}'",
+                        key
+                    ]));
                 }
             }
         }
@@ -739,21 +752,22 @@ impl<'f> request::FromForm<'f> for UserUpdate {
 }
 
 #[post("/user/update/<who>", data = "<form>")]
-fn user_update(who: String,
-               auth: AuthContext,
-               form: Form<UserUpdate>)
-               -> Result<Flash<Redirect>, Error> {
-
+fn user_update(
+    who: String,
+    auth: AuthContext,
+    form: Form<UserUpdate>,
+) -> Result<Flash<Redirect>, Error> {
     let conn = &auth.conn;
 
-    let mut user =
-        User::with_username(&who, conn)
-             .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))?;
+    let mut user = User::with_username(&who, conn)
+        .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))?;
 
     let superuser = auth.user.can_alter_users(conn).unwrap_or(false);
 
     if !(user.id == auth.user.id || superuser) {
-        return Err(Error::NotAuthorized(String::from("update other users' details")));
+        return Err(Error::NotAuthorized(String::from(
+            "update other users' details",
+        )));
     }
 
     // Has the user requested a name change?
@@ -772,7 +786,9 @@ fn user_update(who: String,
         user.set_roles(&form.roles, conn)?;
     }
 
-    Ok(Flash::new(Redirect::to(format!["{}user/{}", route_prefix(), user.username]),
-                  "info",
-                  format!["Updated {}'s details", user.username]))
+    Ok(Flash::new(
+        Redirect::to(format!["{}user/{}", route_prefix(), user.username]),
+        "info",
+        format!["Updated {}'s details", user.username],
+    ))
 }

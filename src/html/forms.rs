@@ -9,7 +9,6 @@
 
 use maud::*;
 
-
 /// An HTML <input> field
 pub struct Input {
     name: String,
@@ -97,8 +96,6 @@ impl Render for Input {
     }
 }
 
-
-
 /// An HTML <select> field
 pub struct Select {
     name: String,
@@ -146,8 +143,9 @@ pub struct SelectOption {
 
 impl SelectOption {
     pub fn new<S1, S2>(name: S1, label: S2) -> SelectOption
-        where S1: Into<String>,
-              S2: Into<String>
+    where
+        S1: Into<String>,
+        S2: Into<String>,
     {
         SelectOption {
             name: name.into(),
@@ -183,7 +181,6 @@ impl Render for SelectOption {
     }
 }
 
-
 /// An HTML form submission button.
 pub struct SubmitButton {
     label: String,
@@ -191,7 +188,9 @@ pub struct SubmitButton {
 
 impl SubmitButton {
     pub fn new() -> SubmitButton {
-        SubmitButton { label: String::from("Submit") }
+        SubmitButton {
+            label: String::from("Submit"),
+        }
     }
 
     pub fn label<S: Into<String>>(self, l: S) -> SubmitButton {
