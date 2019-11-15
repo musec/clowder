@@ -21,6 +21,8 @@ extern crate dotenv;
 extern crate hyper;
 extern crate hyper_native_tls;
 extern crate itertools;
+#[macro_use]
+extern crate log;
 extern crate marksman_escape;
 extern crate maud;
 extern crate native_tls;

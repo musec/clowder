@@ -115,6 +115,8 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
         match auth_context {
             Ok(ctx) => rocket::outcome::Outcome::Success(ctx),
             Err(e) => {
+                warn!["Authentication failed: {:?}", e];
+
                 let failure = match e {
                     Error::AuthRequired => (rocket::http::Status::Unauthorized, e),
                     Error::DatabaseError(DieselError::NotFound) => {

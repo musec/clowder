@@ -24,6 +24,7 @@ dotenv = "0.13"
 hyper = "0.10.4"
 hyper-native-tls = "0.3"
 itertools = "0.7"
+log = "0.4"
 marksman_escape = "0.1.2"
 maud = { version = "0.21", features = ["rocket"] }
 native-tls = "0.2"
