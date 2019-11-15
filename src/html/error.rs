@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Jonathan Anderson
+ * Copyright 2016-2019 Jonathan Anderson
  *
  * Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
  * http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -72,6 +72,21 @@ impl Error {
             Error::InvalidData(msg) => msg,
             Error::NetError(e) => e.description().to_string(),
             Error::NotAuthorized(msg) => msg,
+        }
+    }
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            &Error::AuthError(ref msg) => write![f, "Failed to authenticate: {}", msg],
+            &Error::AuthRequired => write![f, "Authorization required"],
+            &Error::BadRequest(ref req) => write![f, "{}", req],
+            &Error::ConfigError(ref msg) => write![f, "{}", msg],
+            &Error::DatabaseError(ref e) => write![f, "{:?}", e],
+            &Error::InvalidData(ref msg) => write![f, "{}", msg],
+            &Error::NetError(ref e) => write![f, "{:?}", e],
+            &Error::NotAuthorized(ref action) => write![f, "Not authorized to {}", action],
         }
     }
 }
