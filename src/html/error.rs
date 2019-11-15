@@ -55,10 +55,11 @@ pub fn unauthorized(_req: &rocket::Request) -> bootstrap::Page {
             .render(),
 
         Err(ref e) => {
+            error!["Error in GitHub client ID: {:?}", e];
+
             html! {
-                h1 { "Login required" }
-                p { "Login required and GitHub redirection not configured:" }
-                pre { (e) }
+                h1 { "Login error" }
+                p { "Internal server error in GitHub authentication" }
             }
         }
     };
