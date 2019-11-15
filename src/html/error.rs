@@ -76,6 +76,16 @@ impl Error {
     }
 }
 
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            &Error::DatabaseError(ref e) => Some(e),
+            &Error::NetError(ref e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
