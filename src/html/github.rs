@@ -171,11 +171,10 @@ impl OAuthClient {
             .append_pair("code", code)
             .finish();
 
-        let mut response = try! {
+        let mut response =
             self.http.post(url::Url::parse(ACCESS_TOKEN_URL).expect("malformed GitHub URI"))
                 .body(&form_data)
-                .send()
-        };
+                .send()?;
 
         let token = response_str(&mut response).and_then(access_token)?;
 

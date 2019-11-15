@@ -389,8 +389,8 @@ fn reservation_create(res: Form<ReservationForm>, auth: AuthContext) -> Result<R
         return Err(Error::BadRequest(format!["expected two dates, not '{:?}'", dates]));
     }
 
-    let start = try![DateTime::parse_from_str(dates[0], "%H:%M%:z %e %b %Y")];
-    let end = try![DateTime::parse_from_str(dates[1], "%H:%M%:z %e %b %Y")];
+    let start = DateTime::parse_from_str(dates[0], "%H:%M%:z %e %b %Y")?;
+    let end = DateTime::parse_from_str(dates[1], "%H:%M%:z %e %b %Y")?;
 
     let mut rb = ReservationBuilder::new(&user, &machine, start.with_timezone(&Utc));
     rb.end(end.with_timezone(&Utc));
@@ -411,7 +411,7 @@ fn reservation_create(res: Form<ReservationForm>, auth: AuthContext) -> Result<R
 fn reservation_create_page(machine: Option<String>, user: Option<String>, auth: AuthContext)
     -> Result<Page, Error>
 {
-    let users = try![User::all(&auth.conn)];
+    let users = User::all(&auth.conn)?;
     let user_options = users.iter()
         .map(|ref u| {
             forms::SelectOption::new(u.username.clone(), u.name.clone())
@@ -419,7 +419,7 @@ fn reservation_create_page(machine: Option<String>, user: Option<String>, auth: 
         })
         .collect::<Vec<_>>();
 
-    let machines = try![Machine::all(&auth.conn)];
+    let machines = Machine::all(&auth.conn)?;
     let machine_options = machines.iter()
         .map(|ref m| {
             forms::SelectOption::new(m.name.clone(), m.name.clone())
@@ -537,7 +537,7 @@ fn reservations(auth: AuthContext) -> Result<Page, Error> {
 
 #[get("/user/<name>")]
 fn user(name: String, auth: AuthContext) -> Result<Page, Error> {
-    let user = try![User::with_username(&name, &auth.conn)];
+    let user = User::with_username(&name, &auth.conn)?;
     let superuser = auth.user.can_alter_users(&auth.conn)?;
 
     let name = user.name.as_str();
@@ -746,10 +746,9 @@ fn user_update(who: String,
 
     let conn = &auth.conn;
 
-    let mut user = try! {
+    let mut user =
         User::with_username(&who, conn)
-             .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))
-    };
+             .map_err(|err| Error::BadRequest(format!["No such user: '{}' ({})", who, err]))?;
 
     let superuser = auth.user.can_alter_users(conn).unwrap_or(false);
 
