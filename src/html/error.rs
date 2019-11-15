@@ -61,19 +61,6 @@ impl Error {
             &Error::NotAuthorized(_) => "Authorization error",
         }
     }
-
-    fn msg(self) -> String {
-        match self {
-            Error::AuthError(msg) => msg,
-            Error::AuthRequired => String::from("Authorization required"),
-            Error::BadRequest(msg) => msg,
-            Error::ConfigError(msg) => msg,
-            Error::DatabaseError(e) => e.description().to_string(),
-            Error::InvalidData(msg) => msg,
-            Error::NetError(e) => e.description().to_string(),
-            Error::NotAuthorized(msg) => msg,
-        }
-    }
 }
 
 impl std::error::Error for Error {
@@ -145,7 +132,7 @@ impl Into<bootstrap::Page> for Error {
         bootstrap::Page::new(self.kind())
             .content(html! {
                 h1 { (self.kind()) }
-                h2 { (self.msg()) }
+                h2 { (self) }
             })
             .link_prefix(super::route_prefix())
     }
