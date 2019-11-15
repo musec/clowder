@@ -28,6 +28,9 @@ pub enum Error {
     /// There is a misconfiguration of the Clowder server itself.
     ConfigError(String),
 
+    /// There was an error connecting to a database.
+    DatabaseConnectionError(diesel::ConnectionError),
+
     /// An otherwise-uninterpreted error occurred when interacting with the database.
     DatabaseError(diesel::result::Error),
 
@@ -45,6 +48,13 @@ pub enum Error {
 }
 
 impl Error {
+    pub fn config<S>(msg: S) -> Error
+    where
+        S: Into<String>
+    {
+        Error::ConfigError(msg.into())
+    }
+
     pub fn kind(&self) -> &str {
         match self {
             &Error::AuthError(_) => "Authentication error",
@@ -52,6 +62,7 @@ impl Error {
             &Error::BadRequest(_) => "Bad request",
             &Error::ConfigError(_) => "Configuration error",
             &Error::DatabaseError(_) => "Database error",
+            &Error::DatabaseConnectionError(_) => "Database connection error",
             &Error::InvalidData(_) => "Invalid data",
             &Error::NetError(_) => "Network error",
             &Error::NotAuthorized(_) => "Authorization error",
@@ -63,6 +74,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             &Error::DatabaseError(ref e) => Some(e),
+            &Error::DatabaseConnectionError(ref e) => Some(e),
             &Error::NetError(ref e) => Some(e),
             _ => None,
         }
@@ -77,6 +89,7 @@ impl std::fmt::Display for Error {
             &Error::BadRequest(ref req) => write![f, "{}", req],
             &Error::ConfigError(ref msg) => write![f, "{}", msg],
             &Error::DatabaseError(ref e) => write![f, "{:?}", e],
+            &Error::DatabaseConnectionError(ref e) => write![f, "{:?}", e],
             &Error::InvalidData(ref msg) => write![f, "{}", msg],
             &Error::NetError(ref e) => write![f, "{:?}", e],
             &Error::NotAuthorized(ref action) => write![f, "Not authorized to {}", action],
@@ -93,6 +106,15 @@ impl From<chrono::ParseError> for Error {
 impl From<diesel::result::Error> for Error {
     fn from(err: diesel::result::Error) -> Error {
         Error::DatabaseError(err)
+    }
+}
+
+impl From<dotenv::Error> for Error {
+    fn from(err: dotenv::Error) -> Error {
+        Error::ConfigError(format![
+            "problem with environment variable (or .env file): {}",
+            err
+        ])
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Jonathan Anderson
+ * Copyright 2016-2017, 2019 Jonathan Anderson
  *
  * Licensed under the Apache License, Version 2.0, <LICENSE-APACHE or
  * http://apache.org/licenses/LICENSE-2.0> or the MIT license <LICENSE-MIT or
@@ -30,10 +30,9 @@ struct Authenticator {
 }
 
 impl Authenticator {
-    fn new() -> Authenticator {
-        Authenticator {
-            conn: super::db::establish_connection(),
-        }
+    fn new() -> Result<Authenticator, Error> {
+        super::db::establish_connection()
+            .map(|conn| Authenticator { conn })
     }
 
     ///
@@ -109,8 +108,9 @@ impl fmt::Debug for AuthContext {
 impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
     type Error = Error;
 
-    fn from_request(req: &'a request::Request<'r>) -> request::Outcome<AuthContext, super::Error> {
-        let auth_context = Authenticator::new().authenticate(&mut req.cookies());
+    fn from_request(req: &'a request::Request<'r>) -> request::Outcome<AuthContext, Self::Error> {
+        let auth_context = Authenticator::new()
+            .and_then(|a| a.authenticate(&mut req.cookies()));
 
         match auth_context {
             Ok(ctx) => rocket::outcome::Outcome::Success(ctx),
@@ -131,7 +131,7 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
 
 /// Handle a GitHub OAuth callback.
 pub fn github_callback(code: String, cookies: rocket::http::Cookies) -> Result<(), Error> {
-    Authenticator::new()
+    Authenticator::new()?
         .retrieve_github_user(code)
         .map(|user| set_user_cookie(cookies, user.username))
 }
