@@ -53,6 +53,15 @@ impl Authenticator {
     }
 
     ///
+    /// Look up a known GitHub user in the Clowder user database.
+    ///
+    fn github_user(&self, gh_username: &str) -> Result<User, Error> {
+        GithubAccount::get(&gh_username, &self.conn)
+            .map(|(_, user)| user)
+            .map_err(|_| Error::AuthError(format!["Unknown GitHub user '{}'", gh_username]))
+    }
+
+    ///
     /// Attempt to look up a user (by Clowder username) in the user database.
     ///
     fn lookup_user(&self, clowder_username: &str) -> Result<User, Error> {
@@ -66,17 +75,6 @@ impl Authenticator {
     }
 
     ///
-    /// Contact GitHub to retrieve the username associated with an OAuth authentication code
-    /// and then lookup the Clowder user associated with that GitHub account.
-    ///
-    fn retrieve_github_user(&self, auth_code: String) -> Result<User, Error> {
-        let gh_username = github::auth_callback(auth_code)?;
-        GithubAccount::get(&gh_username, &self.conn)
-            .map(|(_, user)| user)
-            .map_err(|_| Error::AuthError(format!["GitHub user '{}' not authorized", gh_username]))
-    }
-
-    ///
     /// Attempt to authenticate the user with fake (bypass) authentication methods, which may be:
     ///
     /// `CLOWDER_FAKE_GITHUB_USERNAME`
@@ -86,16 +84,7 @@ impl Authenticator {
         env::var_os("CLOWDER_FAKE_GITHUB_USERNAME")
             .and_then(|s| s.to_str().map(str::to_string))
             .ok_or(Error::AuthRequired)
-            .and_then(|username| {
-                GithubAccount::get(&username, &self.conn)
-                    .map_err(|e| match e {
-                        diesel::result::Error::NotFound => {
-                            Error::AuthError(format!["No such GitHub username ({})", username])
-                        },
-                        e => Error::DatabaseError(e)
-                    })
-                    .map(|(_, user)| user)
-            })
+            .and_then(|username| self.github_user(&username))
     }
 }
 
@@ -145,8 +134,10 @@ impl<'a, 'r> request::FromRequest<'a, 'r> for AuthContext {
 
 /// Handle a GitHub OAuth callback.
 pub fn github_callback(code: String, cookies: rocket::http::Cookies) -> Result<(), Error> {
+    let username = github::auth_callback(code)?;
+
     Authenticator::new()?
-        .retrieve_github_user(code)
+        .github_user(&username)
         .map(|user| set_user_cookie(cookies, user.username))
 }
 
